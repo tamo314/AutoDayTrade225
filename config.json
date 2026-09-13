@@ -12,21 +12,18 @@
   "codex": {
     "command": "codex",
     "model": "gpt-6-astra",
+    "sandbox": "danger-full-access",
     "extra_args": [
       "--config",
-      "sandbox_workspace_write.network_access=true",
-      "--sandbox",
-      "danger-full-access"
+      "sandbox_workspace_write.network_access=true"
     ],
 
     "executor_model": "gpt-5.6-terra",
-    "executor_sandbox": "workspace-write",
+    "executor_sandbox": "danger-full-access",
     "executor_approval_policy": "never",
     "executor_extra_args": [
       "--config",
-      "sandbox_workspace_write.network_access=true",
-      "--sandbox",
-      "danger-full-access"
+      "sandbox_workspace_write.network_access=true"
     ]
   },
   "claude": {
