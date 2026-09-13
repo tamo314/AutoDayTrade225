@@ -1,5 +1,80 @@
 # 戦略研究結果
 
+## R009-Q001: セッション内価格経路の方向一貫性を伴う継続 — INCONCLUSIVE（Development一次評価）
+
+`r009-q001-20260913-directional-consistency-01` は、価格統計・イベント・PnLへアクセスする前に、コード・設定・入力識別子とhashを固定して登録した。R005は予定終了前の60分のopen-to-close方向とF相対のentry/exitを使うのに対し、R009は固定したS+119までの60個の1分close変化の `|Δ|/V` と固定S+120→S+180の保有を使う。R001--R004/R008の初動・突破・レンジ条件、R006のセッション間gap、R007の局所急変反転とも参照値・方向・時間窓が異なるため、同等仕様の既存評価には該当しない。既知Development上の追加探索であり、独立確認・探索全体の多重性補正ではない。
+
+day/nightの版管理された予定始値Sから、`t=S+119`、`E=S+120`、`X=S+180`に固定した。`E<=new-entry cutoff` と `X<=F` を事前に満たす予定セッションだけを対象にし、観測行の端から時刻を逆算していない。同一sessionの`[t-60,t]`の連続61本の適格足を要求し、60変化について `Δ=close_t-close_(t-60)`、`V=sum(abs(d_j))` とした。Aは`V>0`、`Δ!=0`、`2|Δ|>=V`（等号を含む）ならΔ方向、B/Cは同じA事前イベントで常時買い/売り、Dは同一時刻・品質と`V>0, Δ!=0`だけを使い比率条件なしでΔ方向へ入った。全条件はStop/Targetなし、1枚、最大1ポジション、entryはt確定後の最短E始値、exitはX-1確定後の最短X始値であり、entry遅延でXを延長していない。
+
+R004の固定隔離を一致再現した。45 session・27,345バー（day 20/night 25）を隔離し、2,216 session・1,326,086バーを残した。物理I/OはDevelopment選択済み正規化Parquetだけ、論理価格アクセスはtrade_date 2021-01-01..2025-06-30だけであり、OOS/Final Holdoutは未読である。実限月・roll・調整方式、旧R003-Q001隔離一覧未保存、事後whole-session隔離への条件付けのため、品質は **PASS_LIMITED** を超えない。
+
+|条件|取引|Gross|slippage寄与|手数料|Net|期待値/取引|PF|最大実現DD|
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+|A 方向一貫性、1 tick|2|14,000円|2,000円|120円|13,880円|6,940円|null|0円|
+|B 常時買い|2|5,000円|2,000円|120円|4,880円|2,440円|1.878|5,560円|
+|C 常時売り|2|-9,000円|2,000円|120円|-9,120円|-4,560円|0.274|12,560円|
+|D 方向追随（比率条件なし）|2,147|-1,612,500円|2,147,000円|128,820円|-1,741,320円|-811.048円|0.729|1,781,380円|
+|A 2 tick|2|12,000円|4,000円|120円|11,880円|5,940円|null|0円|
+
+Aはlong/short=1/1で、すべてday（Net 13,880円）だった。利益は2021-10の3,440円と2024-06の10,440円の2取引のみで、上位10利益取引除去後Netは0円、正の月は2/54である。Aの0損失によるPF=nullはPF>1の条件を満たしたとは扱わない。Dはday/night Net=-816,040/-925,280円、long/short=-967,520/-773,800円である。A/Dの事前イベントはboth=2、A-only=0、D-only=2,145で、差は経路条件だけの因果効果ではなく、イベント構成・取引数・費用を含むルール全体の差である。2025年は1--6月のみを含む。
+
+対象1,120 trade_date（無取引0、両session隔離日は除外、一方隔離日は残存sessionを使用）にday/nightを合算した20日非循環moving-block bootstrap 10,000回、seed=20260913、全条件共通index、末尾切詰め、linear percentileの95%区間は次の通りである。A日次平均は **[0.000, 34.107]円**、A-Bは **[0.000, 24.107]円**、A-Cは **[0.000, 61.607]円**、A-Dは **[955.513, 2,152.192]円**。下限は厳密に正である必要があり、0.000の3区間は不合格である。
+
+合成検証は61本/60変化、`Δ=sum(d_j)`、比率の等号/直下、単調・往復・V=0・Δ=0、固定信号時刻、prefix不変性、session跨ぎ/窓欠損禁止、翌足約定、固定exitとentry遅延、方向と会計を確認した。Ruff、mypy、関連pytest（3件）は通過した。実データの全5条件で注文取消0、force-flat 0、end-of-data 0、entry/exit遅延0、signal exit、`Net=Gross-fees` を照合し、経路・会計ゲートはPASSした。Grossはfill-to-fillでslippage込み、slippage寄与はNetから二重控除していない。
+
+**INCONCLUSIVE**。A/B/Cの取引数2（各<200）、A long/short=1/1（各<50）で必要件数を満たさないため、Aの正Net・2 tick期待値やA-Dの区間を採用根拠にしない。A PF、A/A-B/A-C下限、正の月、上位10除去後Netも不合格である。閾値・窓・時間帯を緩めず、WFA、3 tick・手数料増・追加遅延、OOS、Final Holdout、独立期間の再現は未評価である。CANDIDATEへは昇格させない。成果物: `results/research/r009-q001-20260913-directional-consistency-01/`。
+
+最小の次作業は、この固定定義の件数不足を記録したまま、Plannerが別の未重複仮説を事前登録するまでR009の比率・観測窓・保有窓・時刻・フィルターを探索しないことである。
+
+### 研究状態（R009追記）
+
+- R003本体: **BLOCKED / Development PnL=NOT_RUN**。
+- R003-Q001: **旧REJECT維持**、EXIT影響監査12条件は **UNAFFECTED_PROVEN**、修正版バックテスト未実行。
+- R004/R005修正版: **REJECT維持**。R006/R007/R008: **REJECT維持**。
+- R009: **Development complete / INCONCLUSIVE**。Data quality: **PASS_LIMITED**。
+- OOS: **NOT_EVALUATED**。Final Holdout: **NOT_ACCESSED**。
+
+## R008-Q001: セッション内の値幅収縮後の突破継続 — REJECT（Development一次評価）
+
+R008-Q001はR001--R007と重複しない、S+90からS+180の同一セッション内3本の連続30分窓を使う規則として、価格統計・イベント・PnLへのアクセス前に登録した。W0/W1/W2は各30本で候補足tを含まず、R0>0、R1+R2>0、4R0<=R1+R2、かつclose(t)>=U+5（買い）／close(t)<=L-5（売り）の最初の成立をAとした。B/CはAの事前イベントで常時買い／売り、Dは同一品質・時間帯・range正値で収縮を要求しない独立の最初の突破である。E=t+1、X=E+30の絶対時刻で、遅延でもXを延長せず、Stop/Target・再entry・追加探索は行っていない。
+
+R004固定隔離を再現し、45セッション・27,345バーを除外、2,216セッション・1,326,086バーを残した。物理I/Oと論理価格アクセスはDevelopment（trade_date 2021-01-01..2025-06-30）のみに限定し、OOS/Final Holdoutは未読である。品質はroll/adjustment/実限月の未解決等によりPASS_LIMITEDである。合成検証（窓とtの分離、91本、収縮等号・ゼロ、突破等号、欠損回復、セッション境界、翌足約定、固定exit/遅延、対照、会計）4件、Ruff、mypyは通過し、全条件でcancel/force-flat/end-of-dataなし、Net=Gross-fees、A/B/C事前イベント一致だった。
+
+|条件|取引|Gross|Fees|Net|期待値|PF|最大実現DD|
+|---|---:|---:|---:|---:|---:|---:|---:|
+|A 収縮突破 1 tick|1,019|-1,417,500円|61,140円|-1,478,640円|-1,451.070円|0.476|1,490,280円|
+|B 常時買い|1,019|-961,500円|61,140円|-1,022,640円|-1,003.572円|0.597|1,050,960円|
+|C 常時売り|1,019|-1,076,500円|61,140円|-1,137,640円|-1,116.428円|0.563|1,137,640円|
+|D 非収縮突破|2,196|-2,098,500円|131,760円|-2,230,260円|-1,015.601円|0.618|2,257,740円|
+|A 2 tick|1,019|-2,436,500円|61,140円|-2,497,640円|-2,451.070円|0.295|2,503,280円|
+
+20 trade_date moving-block bootstrap 10,000回（seed=20260913、共通index、linear percentile、1,120対象日）の95%区間は、A日次平均[-1,627.431, -1,022.963]円、A-B[-840.179, 51.808]円、A-C[-642.857, 3.571]円、A-D[228.720, 1,123.789]円である。Aは買い/売り508/511、正の月4/54、上位10利益除去後Net -1,678,540円であった。A-Dの良い差は、イベント時刻・方向構成・取引数・費用を含むルール差であり、収縮だけの因果効果ではない。
+
+**REJECT**。全条件の件数とA方向別件数は満たすが、A Net、PF、A平均区間、A-B/A-C区間、2 tick期待値、正の月、上位10利益除去後Netが不合格である。WFA、OOS、Final Holdout、3 tick・手数料増・追加遅延・パラメータ近傍は未評価であり、CANDIDATEには昇格させない。成果物: `results/research/r008-q001-20260913-session-compression-breakout-06/`。
+
+## R007-Q001 / Decision: REJECT（セッション内局所急変後15分反転）
+
+実行日: 2026-09-13。成果物: `results/research/r007-q001-20260913-local-shock-reversal-01/`。R001--R006との重複を事前に照合した。R001--R003は初動レンジ・初動方向、R004/R005は失敗ブレイク/終盤方向、R006はセッション間ギャップであり、同一セッションの直近60個の1分変化の中央値を尺度にする「最初の局所急変への逆張り15分保有」と同一の参照尺度・方向・保有窓ではない。R007は既知Developmentを見た後の追加探索であり、独立の確認実験ではない。
+
+事前登録済み固定仕様: day/nightを独立に、版管理された予定始値Sから `t=S+61`～`S+180` 分（両端含む）だけを候補にした。各候補は同一セッションの `[t-61,t]` に連続した62本の適格足を要求した。`q_t=close_t-close_(t-1)`、`m_t=median(|close_j-close_(j-1)|, j=t-60..t-1)`（60個の中央2値の算術平均、候補自身の変化を除外）、`T=max(4m_t,20)` とし、最初の `|q_t|>=T` のみをイベントにした。Aはq>0で売り/q<0で買い、Bは常時買い、Cは常時売り。E=t+1始値、X=E+15始値で決済（X-1足の終値後にEXIT発行）とし、Stop/Target、再エントリー、追加フィルター、パラメータ探索は行っていない。Grossはfill-to-fillで片道slippageを含み、Net=Gross-feesであり、slippageを二重控除していない。
+
+実行前の合成検証はPASS（62本/60変化、偶数中央値、候補変化の尺度除外、閾値一致/直下/m=0、候補境界と最初のイベント、夜間trade_date・セッション跨ぎ禁止、欠損後の窓回復、翌足約定、固定出口と入口遅延、対照、最大1取引、会計）。R004の固定隔離を再現し、45セッション/27,345本隔離、残存2,216セッション/1,326,086本、隔離一覧hash `2974bec…3213`、親入力hash `f6c267…a7db0` は一致した。品質は連続系列/実限月・roll・調整方式、旧R003隔離一覧未保存、事後的隔離への条件付けのため **PASS_LIMITED** にとどまる。OOS/Final Holdoutは選択・読込していない。
+
+|条件（片道30円）|取引|Gross円|slippage寄与円|手数料円|Net円|期待値円/取引|PF|最大DD円|
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+|A 局所急変逆張り、1 tick|1,690|-1,387,000|1,690,000|101,400|-1,488,400|-880.710|0.590|1,503,600|
+|B 常時買い、1 tick|1,690|-1,876,000|1,690,000|101,400|-1,977,400|-1,170.059|0.497|1,989,220|
+|C 常時売り、1 tick|1,690|-1,504,000|1,690,000|101,400|-1,605,400|-949.941|0.576|1,605,690|
+|A 局所急変逆張り、2 tick|1,690|-3,077,000|3,380,000|101,400|-3,178,400|-1,880.710|0.324|3,189,160|
+
+対象は1,120 trade_date（両session隔離日は除外、一方のみ隔離の24日は残るsessionを使用、無取引は0円）で、1,690イベント、526イベントなし、評価不能候補0、予定範囲外0、取消0、未約定0、signal EXIT 1,690、force-flat/end-of-data 0だった。Aのday/night Netは -901,620/-586,780円、q<0に対応するA買い/q>0に対応するA売りは -877,480/-610,920円。年別A Netは2021 -305,140、2022 -312,560、2023 -317,860、2024 -309,000、2025前半 -243,840円。正の月は54か月中5、上位10利益取引除去後Netは -1,674,800円である。
+
+20日非循環moving-block bootstrap（10,000回、seed=20260913、全条件共通index、末尾切詰め、linear percentile）の95%区間は、A日次平均 -1,646.912～-1,029.732円（推定 -1,328.929）、A-B -53.594～930.357円（436.607）、A-C -401.786～547.321円（104.464）だった。Development探索上の区間であり、研究全体の多重探索は補正していない。
+
+条件別に、A/B/C各200取引、A買い/売り各50は合格。A Net>0、PF>1、A/A-B/A-Cの全bootstrap下限>0、A 2 tick期待値>0、正の月>=27、上位10除去後Net>0はいずれも不合格。経路・会計はPASSだが件数充足後の必要条件未達のため **R007=REJECT**。閾値/時間窓/方向の救済探索、3 tick・手数料増・追加遅延、WFA、OOS、独立期間での再現は未評価のまま実行しない。結果から正当化される次の最小作業は、この棄却結果を保持したまま、未重複の単一仮説を別IDで事前登録する前にR001--R007の対応表を更新することだけである。
+
+状態: R003本体=BLOCKED / Development PnL=NOT_RUN、R003-Q001=旧REJECT維持・EXIT影響監査12条件UNAFFECTED_PROVEN・修正版バックテスト未実行、R004/R005修正版=REJECT維持、R006=REJECT維持、R007=REJECT、Data quality=PASS_LIMITED、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSED。
+
 更新: 2026-09-13。R001/R002完了、3仮説・27基本条件・18ストレス、計45実験。すべてDevelopmentで棄却。OOS/Final Holdoutは未使用。
 
 ## R001 / Decision: REJECT（両仮説）
@@ -217,6 +292,20 @@ Next experiment（未実施）: まず入力roll-riskマーカーとtick-grid警
 
 保存先: `results/research/20260913T091013-506b627c/`。完成レポート: `results/research/20260913T091013-506b627c/reports/20260913T091523-7bcab951/research_report.md`。全15実験の台帳と指標の件数・Net/Gross/fees/slippage・日次equity終値が一致することをレポート生成時に照合した。
 
+## R005-Q001 / Decision: BLOCKED
+
+R005-Q001 remains **BLOCKED**. Its raw Development execution and provisional PnL/REJECT outputs remain invalidated and are not R005 results. This diagnostic does not rerun Development, PnL aggregation, bootstrap, OOS, or Final Holdout; it only repairs and verifies a documented execution-semantics violation with synthetic bars.
+
+The normative configuration calls the boundary a **new-entry** cutoff (`scheduled_close-15`), while the prior engine skipped every strategy callback at and after that time. A held A position therefore could not receive its required EXIT callback after `F-1 = scheduled_close-6`, even though the documented event order says that its pending market EXIT must apply at F open before force-flat. This is a specification violation, not a new economic capability. The minimal correction keeps flat strategies uncalled after the cutoff (so no new entry can be created), but lets a strategy with the existing sole position issue an EXIT. Fills, slippage, fees, max-delay cancellation, force-flat, and position limits are unchanged.
+
+B independently falsifies the earlier blanket explanation: B enters at `F-175`, emits EXIT at `F-121` (before cutoff `F-10`), and fills at `F-120`. The invalidated local B event ledger's diagnostic columns show 2,122 `exit_order_issued` / `signal` exits at their scheduled B times (plus 94 no-position rows), rather than all B trades force-flattening. Thus the old statement that all B exits were force-flat is an artifact/report inconsistency and must not be used as research evidence. A's 2,114 diagnostic rows did reach force-flat at F after its callback was suppressed, which the pre-fix synthetic test reproduced.
+
+Post-fix synthetic coverage proves A's one EXIT at F before forced-flat, B's normal `F-120` exit, day/night schedule versions (including the 2021-09-20-night rule selected for `trade_date=2021-09-21`), cutoff-adjacent new-entry rejection and EXIT acceptance, missing/delayed bars, maximum delay cancellation, duplicate EXIT/force-flat ordering, maximum one position, and `Net = Gross - fees` without double-counted slippage. R001–R004 synthetic comparisons show unchanged entry order/fill and round-trip fee; only previously suppressed timed EXITs move from force-flat at 15:40 to signal/fill at 15:30/15:31 in the constructed cases. Any prior real-data ledger that can contain such a timed EXIT needs a separately registered rerun before it is relied upon; none was run here.
+
+Facts: preregistration was saved before R005 price work; the R004 frozen view reproduced (45 sessions / 27,345 bars isolated; 2,216 sessions / 1,326,086 bars retained; hash `2974bec…3213`); raw/Gold, OOS, and Final Holdout were not accessed. Data quality remains `PASS_LIMITED`. Development PnL is `NOT_RUN_VALID`; OOS is `NOT_EVALUATED`; Final Holdout is `NOT_ACCESSED`.
+
+The fixed R005 time contract is now reproducible within the existing economic contract, but **R005-Q001 stays BLOCKED** because its historical execution was invalid. The next permitted work is a new R005 execution ID with a new preregistration that references this engine correction and states whether the prior invalid history is being rerun. It must preserve the fixed A/B rule and the record that this is Development-after-prior-exploration, then rerun only under that new ID. Artifacts: `results/research/r005-q001-20260913-session-end-momentum-03/` (invalidated source) and `results/research/r005-q001-20260913-exit-path-diagnostic-01/`.
+
 ## R003 / Decision: INVESTIGATE（品質ゲートで停止）
 
 ### Hypothesis
@@ -320,3 +409,170 @@ roll・調整方式の外部証跡を得られない前提で、R003本体を修
 **REJECT**。隔離により元データを修復したとは扱わず、R003を救済するために除外規則・閾値・時間帯を追加探索しない。全9条件が同じ経済方向で不合格のため、この限定感度では追加ストレス・WFAを実行しない。OOS=**NOT_EVALUATED**、Final Holdout=**NOT_ACCESSED**。
 
 成果物: `results/research/r003-q001-20260913-development-quarantine-01/`（隔離規則の事前登録）および `results/research/r003-q001-20260913-development-campaign-01/`（12条件の個別台帳と決定）。
+
+## R004-Q001 / Decision: REJECT（初回ブレイク失敗確認後の逆張り）
+
+### Confirmed facts
+
+- 実験ID `r004-q001-20260913-failed-breakout-01` を、R004固有のDevelopmentイベント・PnLの前に `preregistration.json` と固定2条件の `campaign_plan.json` として保存した。これはR003結果を閲覧後に着想したDevelopment探索であり、独立OOSの証拠ではない。
+- R003-Q001の保存済み12条件の台帳を読取り専用で再集計した。全12条件で取引数、Gross（slippage込みfill価格ベース）、手数料、slippage帰属額、Net、期待値、Net PFが既存集計と一致した。全件で `Net = Gross - fees`。slippageはreference/fill差からの帰属であり、Netから二重控除していない。
+- 同じ親Development data version `f6c267…22a7db0` とwhole-session隔離規則を再現した。非5刻みを含む45セッション（day 20、night 25）・27,345バーを除外し、2,216セッション・1,326,086バーを残した。今回生成した隔離対象一覧とhashをpreflightへ保存した。旧R003-Q001成果物には対象一覧自体は永続保存されていなかったため、同一親ビューと凍結済み規則から再構成して件数・入力識別子を照合した。
+- raw/Goldの変更、丸め、補間、年単位の除外、PnLによるセッション除外は行っていない。OOS/Final Holdoutのパーティションを読み込んでいない。
+
+### Hypothesis and frozen implementation
+
+最初の30分初動レンジを確定し、初回の終値が1 tick（5）以上外へ出た後、連続する次の5分以内に終値がレンジへ復帰した場合、その失敗ブレイクを逆張りして中央へ戻る期待値がコスト後も正かを反証する。
+
+主条件Aは復帰足 `r` の確定後、次足始値で逆張りする。対照Bは同じ初回ブレイク足 `b` の確定後、復帰を待たずに次足始値で逆張りする。両者は確認待ち、参入時刻、固定Stopを含む規則全体の比較であり、復帰確認だけの因果効果とは主張しない。初動30分、break探索offset 30..119、復帰5分、保有60分、1枚、片道1 tickと30円、既存の15分新規締切と5分前強制決済を固定した。バー時刻はJST始値時刻で、判断は同1分足終値確定後、最短約定は次足始値である。
+
+R001の「初動方向」追随／反転、R002の「固定初動レンジを終値突破」追随、R003の圧縮条件付き追随ブレイクとは異なり、今回だけが「最初のδ超え→直後のレンジ復帰→逆張り」を固定ルールとして検証した。同一規則を未検証扱いで再ID化したものではない。
+
+### Development result
+
+対象はtrade_date 2021-01-01～2025-06-30だけ（2025年は前半のみ）である。
+
+| 条件 | 取引 | Gross円 | 手数料円 | slippage帰属円 | Net円 | 期待値円/取引 | Net PF | 最大実現DD円 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| A: 5分以内の復帰確認後 | 1,206 | -1,315,000 | 72,360 | 1,206,000 | -1,387,360 | -1,150.381 | 0.529 | 1,387,360 |
+| B: 復帰を待たない対照 | 2,032 | -2,555,500 | 121,920 | 2,032,000 | -2,677,420 | -1,317.628 | 0.277 | 2,677,800 |
+
+Aの2,216対象セッションは、初回ブレイク2,032、初回ブレイクなし184、復帰なし820、復帰時点で保護価格条件不成立6、注文・約定1,206だった。決済はStop 734、Target 435、時間決済37、end-of-data 0、注文取消0。Aのday/night Netは -804,440円 / -582,920円、long/short Netは -730,620円 / -656,740円であり、良い部分だけを選ぶ再実行は行わない。年別Netは2021 -230,020円、2022 -409,880円、2023 -241,580円、2024 -267,200円、2025前半 -238,680円。詳細な年別・session別・方向別の同じ指標と日次0円を含む整列系列は各条件の `metrics_research.json` / `daily_net_pnl.parquet` に保存した。
+
+同一1,120 trade_dateの日次Netにday/nightを合わせ、20取引日のmoving-block bootstrap 10,000回（seed=20260913、A/B共通の再標本化index）を実施した。Aの日次平均Netは -1,238.714円、95% percentile区間 [-1,486.232, -944.143]円。A-B日次平均Net差は +1,151.839円、区間 [+929.625, +1,392.982]円だった。対照より損失が小さいことは、A自体の正の期待値を示さない。
+
+Aの各往復に追加1,000円を控除する費用感応度は -2,593,360円である。注文・fillを変えない帰属感度であり、完全な再約定ストレスではない。
+
+### Validation and decision
+
+合成テストは初動前シグナル禁止、同一break足の復帰禁止、5分境界、復帰なし時のA/B差、次足約定、固定Stop、非tick-grid中央の注文価格離散化、entry/Stop gap、同一足TP/SLの保守的Stop優先、60分決済、最大1取引、prefix不変性、Final Holdout入力拒否を確認した。Ruff、mypy、関連pytest 16件が通過した。
+
+**REJECT**。必要件数（1,206 >= 200）は満たしたが、A Net<0、PF<1、A日次平均Net区間下限<0、追加費用後Net<0である。A-B差の区間下限のみ正でも採用・派生条件探索はしない。これは今回の研究継続基準に不合格という意味であり、市場一般で失敗ブレイク現象が存在しないことの証明ではない。
+
+### Unresolved limitations and next minimum work
+
+隔離ビューの品質は **PASS_LIMITED** を超えない。セッション全体の事後品質隔離に条件付けられた連続系列研究であり、contract ID、roll時刻、調整方式、実限月の約定可能性は未解決である。外部roll表・調整証跡の再取得は、この実験の前提条件や次作業には戻さない。
+
+最小の次作業は、R004を救済せず、このREJECTとR003-Q001のREJECTを研究記録として固定し、Plannerが未重複の別仮説を事前登録するまで追加実行を行わないことである。WFA、OOS、Final Holdoutは実行しない。
+
+成果物: `results/research/r004-q001-20260913-failed-breakout-01/`（preregistration、実効設定・source snapshot、限定preflight、R003会計照合、条件別events/trades/orders/fills、日次Net、集計、区間推定、費用感度、完了状態）。
+
+## R005-Q001 / corrected EXIT execution: REJECT（2026-09-13）
+
+### 記録訂正と実行前ゲート
+
+旧R005実行 `r005-q001-20260913-session-end-momentum-03` は、AのF-1で必要なEXIT callbackがnew-entry cutoffにより抑止されたため、**BLOCKED / NOT_RUN_VALID** のまま保存した。EXIT診断 `r005-q001-20260913-exit-path-diagnostic-01` はこれをAの規範仕様逸脱として再現し、held positionのEXITだけをcutoff後も許可する最小の共有エンジン修正を合成ケースで検証した。
+
+同時に、旧BLOCKED記録の「Bも全件force-flat」は訂正する。旧Bイベント台帳にはscheduled F-120での `signal` EXITが2,122件、no-position行が94件ある。この2,122件は診断上の訂正であり、本実行の取引数・PnL・選定には一切流用していない。
+
+R001--R004の保存済みEXIT診断を新旧合成台帳として再比較した。R001--R003はentry注文・entry fill・往復60円手数料・slippage帰属が不変だが、scheduled EXITがforce-flat 15:40からsignal/fill 15:31へ変わり、当該一定価格ケースではexit価格・Gross・Netも変わった。R004は同じ一定価格ケースで時刻・reasonだけが変わり、価格・Gross・Netは不変だった。いずれも通常EXITの規範仕様への修正結果であり、実データの旧研究は再実行・再集計・再判定していない。R003-Q001/R004-Q001のREJECTは旧版の歴史的判定として保持し、修正版で確認済みとは表現しない。
+
+新ID `r005-q001-20260913-corrected-exit-02` は、R005固有の価格統計・イベント集計・PnLより前に事前登録した。同固定仮説の修正版実行であり、新規仮説または未使用Developmentではない。AはE=F-55、BはE=F-175、各直前60本のD=close(E-1)-open(E-60)の符号を次足始値で1枚追随し、予定55分後にEXITする。Fは観測終端ではなく版管理された予定終了時刻-5分で固定した。基本費用は片道1 tick/30円、Aだけ2 tick/30円を既存エンジンで再約定した。Stop/Target、再entry、フィルター、時間探索、ポートフォリオ化は行っていない。A/B差を終了時刻の因果効果とは扱わない。
+
+R004のwhole-session隔離を再現し、45セッション（27,345バー、day 20/night 25）を除外、2,216セッション・1,326,086バーを残した。hashと入力識別子は一致した。物理I/OはDevelopmentの選択済みParquetだけ、論理アクセスはtrade_date 2021-01-01..2025-06-30だけであり、OOSとFinal Holdoutを読み込んでいない。品質は連続系列の事後的whole-session隔離に条件づく **PASS_LIMITED** で、実限月・roll・調整方式の未解決は維持する。
+
+### Development結果
+
+|条件|取引|Gross円|手数料円|slippage帰属円|Net円|期待値円/取引|PF|最大実現DD円|
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+|A: session end, 1 tick|2,114|-2,390,000|126,840|2,114,000|-2,516,840|-1,190.558|0.621|2,539,640|
+|B: time control, 1 tick|2,122|-2,113,000|127,320|2,122,000|-2,240,320|-1,055.759|0.668|2,263,660|
+|A: session end, 2 tick|2,114|-4,504,000|126,840|4,228,000|-4,630,840|-2,190.558|0.423|4,630,840|
+
+Grossはslippage込みfill間PnLで、Net=Gross-feesである。slippage帰属はreference/fill差の表示であり、Netから二重控除していない。
+
+共通1,120 trade_date（無取引は0、隔離セッションは対象外）で、20日moving-block bootstrap 10,000回、seed=20260913、同一index、末尾切詰め、95% percentile `sorted[floor((n-1)q)]` を実施した。A日次平均Netは -2,247.179円、95%区間 [-2,908.268, -1,623.661]円。A-B日次平均差は -246.893円、区間 [-1,142.321, 680.661]円。
+
+Aは正の月8/54、最大利益取引91,940円、上位10利益除去後Net -2,968,740円だった。年別A Netは2021 -641,580円、2022 -704,320円、2023 -417,340円、2024 -292,460円、2025前半 -461,140円。Aのday/nightは -1,353,040/-1,163,800円、long/shortは -1,383,620/-1,133,220円。Bについても年・月・day/night・方向別、信号と見送り理由、注文・fill・決済理由、日次損益を成果物に保存した。2025年は1--6月のみである。
+
+### 実行経路・判定
+
+各条件の予定/実際entry・exitと遅延を全件照合した。3条件すべてでscheduled signal EXIT、entry/exit遅延0、force-flat 0、end-of-data 0、取消0、最大1取引/セッション、二重費用なしだった。AのFでpending EXITをforce-flatより先に一度だけ処理する規範競合規則も台帳で一致した。
+
+関連pytest 36件、Ruff、mypyはすべて通過した。取引数はA/Bとも200以上だが、A Net>0、PF>1、A日次平均区間下限>0、A-B差区間下限>0、A 2 tick期待値>0、正の月>=27、上位10利益除去後Net>0の必要条件を満たさない。したがって本修正版の研究判定は **REJECT**。WFA、OOS、Final Holdout、3 tick、手数料増、追加遅延、パラメータ近傍は未評価であり、CANDIDATEにはしない。
+
+成果物: `results/research/r005-q001-20260913-corrected-exit-02/`。`preregistration.json`、effective config/source snapshot、preflight、R001--R004 synthetic impact、events/orders/fills/trades、日次損益、集計、bootstrap、経路監査、完了状態を保存した。途中で合成ケース構築に失敗した `...corrected-exit-01` は事前登録のみを保持し、価格・PnL未アクセスの停止記録として上書きしていない。
+
+### 研究状態
+
+- R003本体: **BLOCKED / Development PnL=NOT_RUN**。
+- R003-Q001/R004-Q001: 旧版の**REJECT維持**。修正版EXITコードでの再検証は未実施。
+- R005旧実行: **BLOCKED / NOT_RUN_VALID**。
+- R005新実行: **development complete / REJECT**。
+- Data quality: **PASS_LIMITED**。
+- OOS: **NOT_EVALUATED**。Final Holdout: **NOT_ACCESSED**。
+
+## R006-Q001: ナイト終了から日中開始までの乖離の反転（Development一次評価）
+
+新規ID `r006-q001-20260913-night-gap-reversal-01` を、R006固有のイベント数・価格統計・PnL取得前に登録した。R001--R005の既存Development結果を見た後の追加探索であり、未使用の検証標本ではない。R001--R005の再実行・仕様変更、WFA、OOS、Final Holdoutは行っていない。
+
+既存仮説との差は、日中セッション内の初動・ブレイク・終了前方向ではなく、同一OSE `trade_date` に対応する直前ナイトの予定最終通常足終値 C と日中予定開始足始値 O の乖離 `G=O-C` を使う点である。AはG>0で売り／G<0で買い、Bは常時買い、Cは常時売りである。G=0・参照不能は3条件すべて見送り、実約定の共通部分で比較対象を絞っていない。S=日中08:45、E=S+1分=08:46の始値で最短約定、S+60分足の確定後にEXITを出しS+61分=09:46始値で決済する固定60分規則である。
+
+版別Cは観測最終行から選ばず、取引日対応と予定表から固定した。2021-09-17はC足開始05:29／確定05:30、2021-09-21はナイト開始日が旧版のため同じ05:29／05:30、2021-09-22は05:59／06:00、2024-11-05はナイト開始日が旧版のため05:59／06:00、2024-11-06以降は終値オークションを除く通常足05:54／確定05:55である。週末をまたぐナイト対応もcalendar mappingで検証した。
+
+R004固定隔離を一致再現した。親Developmentから45セッション（27,345バー、day 20/night 25）を除外し、残存は2,216セッション・1,326,086バー、隔離一覧hash `2974bec…3213`で一致した。対象日中1,111のうちG非ゼロで1,058取引、G=0が38、参照ナイト隔離14、参照ナイト欠損1だった。Aのlong/shortは537/521。参照ナイト隔離・欠損は対象日中を残して共通0円無取引、日中自身の隔離は対象外とした。品質は連続系列のroll・調整方式・実限月が未解決なため **PASS_LIMITED** を超えない。とくにセッション間乖離の解釈はこれらに敏感であり、良否にかかわらず実限月で再現可能な利益とは断定しない。
+
+|条件|取引数|Gross|Fees|Net|PF|期待値/取引|
+|---|---:|---:|---:|---:|---:|---:|
+|A 乖離反転（1 tick）|1,058|-982,500円|63,480円|-1,045,980円|0.843|-988.639円|
+|B 常時買い（1 tick）|1,058|-1,171,500円|63,480円|-1,234,980円|0.816|-1,167.278円|
+|C 常時売り（1 tick）|1,058|-944,500円|63,480円|-1,007,980円|0.847|-952.722円|
+|A 乖離反転（2 tick）|1,058|-2,040,500円|63,480円|-2,103,980円|0.709|-1,988.639円|
+
+Grossはfill内slippage込み、Net=Gross-feesであり、slippage attributionは二重控除していない。Aの最大実現DDは1,212,780円（終値mark DD 1,222,340円）、正の月は18/54、最大利益取引は85,440円、上位10利益取引を除いたNetは-1,572,880円。年別A Netは2021 -138,240円、2022 -173,400円、2023 -154,080円、2024 -290,440円、2025年1--6月 -289,820円だった。
+
+共通1,111日中trade_date（対象内無取引0円）の20日非循環moving-block bootstrap 10,000回、seed=20260913、共通index、末尾切詰め、linear percentileでは、A日次平均Net -941.476円・95%CI [-1,674.568, -229.271]円、A-B +170.117円・CI [-812.804, +1,225.023]円、A-C -34.203円・CI [-1,051.305, +861.409]円だった。探索済みDevelopment上の区間であり、全仮説探索に対する多重性は補正していない。
+
+合成検証は版別時刻、制度変更日のナイトtrade_date、週末対応、Cの確定と終値オークション除外、参照不能・G=0、翌足約定、方向、固定EXIT、遅延時の保有非延長、最大1取引、費用会計、prefix不変性、Final Holdout入力拒否を確認した。実行経路は4条件すべてPASS（全filled tradeがsignal exit、force-flat/end-of-dataなし、最大遅延内、Net=Gross-fees）。関連pytest 25件、Ruff、mypyを通過した。
+
+必要件数とA両方向50件は満たしたが、A Net、PF、A平均区間、A-B/A-C区間、2 tick期待値、正の月、上位10除去後Netが不合格である。したがってR006-Q001は **REJECT**。次の最小作業は、このREJECTを固定し、Plannerが未重複の別仮説を事前登録するまでR006の時間窓・方向・参照価格・適用期間を追加探索しないことである。
+
+### 研究状態（R006追記）
+
+- R003本体: **BLOCKED / Development PnL=NOT_RUN**。
+- R003-Q001: **旧REJECT維持**、EXIT影響監査12条件は**UNAFFECTED_PROVEN**、修正版バックテスト未実行。
+- R004/R005修正版: **REJECT維持**。
+- R006: **development complete / REJECT**。Data quality: **PASS_LIMITED**。
+- OOS: **NOT_EVALUATED**。Final Holdout: **NOT_ACCESSED**。
+
+## R004-Q001 / corrected EXIT revalidation: REJECT（2026-09-13）
+
+新ID `r004-q001-20260913-corrected-exit-01` をR004固有のイベント集計・価格統計・PnLの前に登録した。これは、保有ポジションの60分EXITだけをnew-entry cutoff後にも発行可能にした規範EXIT修正後の、旧R004固定A/BのDevelopment再検証である。新仮説、独立再現標本、未使用Developmentではない。R005やR001--R003の再実行、WFA、OOS、Final Holdout、パラメータ探索は行っていない。
+
+EXIT修正が作用し得るのは、R004の実約定から60分後のEXITが15分new-entry cutoff以後となり、かつStop/TPより前に存続した取引である。旧callback gateではそのEXITが抑止され、後のforce-flatになり得る。R005の一定価格合成例はこの経路を確認したが、実データの価格・gap・保護決済・時刻を代表しないため、全件不変の根拠にはならない。今回の実データ全件照合で初めて影響を判定した。
+
+R004の固定隔離を一致再現し、45セッション・27,345バー（day 20 / night 25）を除外、2,216セッション・1,326,086バーを残した。Developmentの選択済みParquetだけを物理I/Oし、論理的価格アクセスはtrade_date 2021-01-01..2025-06-30に限定した。OOS/Final Holdoutは未読である。連続系列・事後whole-session隔離・実限月/roll/調整方式未解決のため品質は **PASS_LIMITED** を超えない。
+
+新旧比較では、対象4,432 session-event行、A 1,206取引、B 2,032取引、A 2,412注文/fill行、B 4,064注文/fill行のいずれも差分0・片側のみ0だった。event_id、初回break、復帰、見送り理由、注文、entry、exit label/timestamp/reference/fill price、Gross、slippage帰属、fee、Netはすべて同一である。よって実データにおけるEXIT修正の影響は **0取引、0円**。これは合成例の不変性を一般化した結論ではなく、保存済み旧台帳との実データ全件照合の結果である。
+
+|条件|取引|Gross円|手数料円|slippage帰属円|Net円|期待値円/取引|Net PF|最大実現DD円|
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+|A: 5分以内の復帰確認後|1,206|-1,315,000|72,360|1,206,000|-1,387,360|-1,150.381|0.529|1,387,360|
+|B: 復帰を待たない対照|2,032|-2,555,500|121,920|2,032,000|-2,677,420|-1,317.628|0.277|2,677,800|
+
+Aの決済理由はStop 734、Target 435、60分signal EXIT 37、force-flat/end-of-data/取消0。Aのyear Netは2021 -230,020円、2022 -409,880円、2023 -241,580円、2024 -267,200円、2025前半 -238,680円。day/nightは -804,440 / -582,920円、long/shortは -730,620 / -656,740円である。共通1,120 trade_date（日次無取引は0、隔離sessionは対象外）の20日moving-block bootstrap 10,000回、seed=20260913、no-wrap・末尾切詰め・`sorted[floor((n-1)q)]` percentileでは、A日次平均Net -1,238.714円、95%区間 [-1,486.232, -944.143]円、A-B差 +1,151.839円、区間 [+929.625, +1,392.982]円だった。Aの追加1,000円/往復の注文経路不変な費用感応度Netは -2,593,360円。
+
+関連pytest 33件、Ruff、mypyを通過した。R004修正版は、Aの件数条件（1,206 >= 200）**とA−B日次平均Net差の95%区間下限>0**を通過した。一方で、A自体の収益性（Net>0）・PF>1・A日次平均Netの95%区間下限>0・追加費用後Net>0は不合格である。したがってA-B差下限だけを採用根拠にせず、修正版判定は **REJECT**、旧R004の**REJECTも維持**である。R005修正版についても「全条件不合格」ではなく、**件数条件は合格、他の継続条件に未達のためREJECT** が正しい記述である。
+
+成果物: `results/research/r004-q001-20260913-corrected-exit-01/`。事前登録、実効設定・識別情報、検証/品質ゲート、A/B events/orders/fills/trades、日次系列、指標、区間、費用感応度、全件新旧影響表、完了状態を保存した。最小の次作業は、R004を救済せずこの修正版REJECTを固定し、Plannerが未重複仮説を事前登録するまで新規実行をしないことである。
+
+### 研究状態（更新）
+
+- R003本体: **BLOCKED / Development PnL=NOT_RUN**。
+- R003-Q001: **旧REJECT維持・修正版未再検証**。
+- R004旧実行: **旧REJECT維持**。
+- R004修正版: **development complete / REJECT**（EXIT実影響0）。
+- R005旧実行: **BLOCKED / NOT_RUN_VALID**。
+- R005修正版: **REJECT維持**（件数条件は合格、他の継続条件に未達）。
+- Data quality: **PASS_LIMITED**。
+- OOS: **NOT_EVALUATED**。Final Holdout: **NOT_ACCESSED**。
+
+## R006-Q001: 最終記録（Development一次評価）
+
+上記のR006記録を最新判断として追記する。`r006-q001-20260913-night-gap-reversal-01` は、事前登録後にDevelopment限定で実行し、45セッション・27,345バー隔離／残存2,216セッション・1,326,086バーを再現した。日中1,111対象、1,058取引（A long/short=537/521）で、A/B/Cの1 tick Netはそれぞれ-1,045,980円/-1,234,980円/-1,007,980円、A 2 tick Netは-2,103,980円だった。AのPF=0.843、期待値=-988.639円、正の月18/54、上位10利益除去後Net=-1,572,880円である。
+
+20日moving-block bootstrap（10,000回、seed=20260913、linear percentile）の95%区間はA日次平均[-1,674.568, -229.271]円、A-B[-812.804, +1,225.023]円、A-C[-1,051.305, +861.409]円であり、全継続条件を満たさない。実行経路・会計検証はPASS（signal exit、force-flat/end-of-dataなし、Net=Gross-fees）だが、研究判定は **R006=REJECT**。時間窓・方向・参照価格・期間の追加探索、WFA、OOS、Final Holdoutは実行しない。
+
+- R003本体: **BLOCKED / Development PnL=NOT_RUN**。
+- R003-Q001: **旧REJECT維持**、EXIT影響監査12条件は**UNAFFECTED_PROVEN**、修正版バックテスト未実行。
+- R004/R005修正版: **REJECT維持**。Data quality: **PASS_LIMITED**。
+- OOS: **NOT_EVALUATED**。Final Holdout: **NOT_ACCESSED**。

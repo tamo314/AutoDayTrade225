@@ -96,7 +96,11 @@ class BacktestEngine:
             ):
                 self._force_flat(portfolio, bar)
             history.append(bar)
-            if pending is None and not self._entry_cutoff(bar):
+            # The cutoff is for *new entries*.  A held position must still be
+            # able to issue a bar-close EXIT before forced-flat applies on a
+            # later bar.  Keeping flat strategies out after the cutoff also
+            # preserves the former no-new-entry callback behavior.
+            if pending is None and self._strategy_callback_allowed(portfolio.position is not None, bar):
                 signal = strategy.on_bar(
                     StrategyContext(history_view, portfolio.position is not None), bar
                 )
@@ -187,6 +191,10 @@ class BacktestEngine:
         return bar.ts_jst >= close - timedelta(
             minutes=self.config.risk.new_entry_cutoff_minutes_before_session_close
         )
+
+    def _strategy_callback_allowed(self, has_position: bool, bar: Bar) -> bool:
+        """Allow held-position EXIT decisions after the new-entry cutoff."""
+        return has_position or not self._entry_cutoff(bar)
 
     def _at_force_flat(self, bar: Bar) -> bool:
         close = self.classifier.session_close(bar.trade_date, bar.session)
