@@ -38,3 +38,27 @@ seed=225、1,000回、取引10%欠落・順序shuffle・復元抽出bootstrap。
 
 ## 実行前データ追記
 初回読み込み時に年次ファイル間の完全同一バー重複を検出。PnL計算前に、Bar全列が一致する重複のみ1バー化し品質集計に記録する方針を追加。価格・品質等に相違する重複は拒否する。詳しくは05_data_overlap.md。
+
+## R019-Q001: 過去同種セッション値幅状態による初動追随／反転（事前登録）
+
+登録日: 2026-09-14。Developmentの価格統計・event・PnLにアクセスする前に固定する。R003の現在初動圧縮＋突破、R008のsession内圧縮、R009の現在経路一貫性、R013の直前同種session方向とは、参照窓・状態変数・方向規則・時刻・出口が異なる。既知Developmentでの追加探索であり、独立確認または研究全体の多重性補正済み検証とは扱わない。
+
+day/nightを同一規則で扱う。版管理された予定開始をS、`t=S+29`、`E=S+30`、`X=S+90`とし、予定時刻で`E<=new-entry cutoff`かつ`X<=F`を確認する。現在より前に終了したcalendar上の直前20同種予定sessionを直近から`p1..p20`とする。観測バーから予定列を作らず、欠落・隔離・範囲外・不適格な`pi`を古いsessionで補充しない。各`pi`の`[P_i,P_i+59]`に連続60本の適格足を要求し、`Ri=max(high)-min(low)`とする。`Ri=0`は正当に観測した値として残す。`V=3*sum(R1..R5)-sum(R6..R20)`で、`V>0`を拡大、`V<0`を縮小、`V=0`を見送りとする。現在`[S,t]`の連続30本から`M=close_t-open_S`を計算し、`M=0`も見送る。現在価格をVに含めず、閾値、現在値幅、曜日・年・方向の追加選別はしない。
+
+共通event上でAは拡大時`sign(M)`追随・縮小時`-sign(M)`反転、Bは常時買い、Cは常時売り、Dは常時`sign(M)`追随、Fは常時`-sign(M)`反転、A2はAを片道2 tick・手数料30円で既存engine再約定する。全て1枚、最大1ポジション、session当たり最大1event、Stop/Target/re-entry/状態変化early exitなしとする。t確定後に最短E始値でentryし、X-1確定後にEXITを出して最短X始値で決済する。遅延はXを延長せず、既存の翌適格バー・最大遅延取消・競合・強制決済契約を維持する。
+
+R004固定隔離を45 session／27,345 bar除外、2,216 session／1,326,086 bar残存、一覧hash `2974bec152bf385b6d006ff4c8a29e51e4e883abcd513d08920504f2ab3213fa`で再現しなければ停止する。物理I/Oは`trade_date=2021-01-01..2025-06-30`の選択済み正規化Parquetだけとし、raw、OOS、Final Holdout、外部価格、出来高は用いない。両session隔離日だけを除いた固定1,120 `trade_date`にday/nightを合算し、見送り・無取引は0円とする。
+
+合成検証はp1..p20の順序・同種限定・5/15非重複、現在session除外、60本高安、V符号／ゼロ、Ri=0、履歴不足・隔離・欠損・範囲外拒否、同じMで過去値幅だけを変えたA反転、過去価格水準の平行移動不変性、30本初動、翌足entry、固定exit、遅延時非延長、cutoff後EXIT、prefix不変性、最大1ポジション、費用会計を含める。実行後は全条件のevents/orders/fills/trades、予定／実際時刻、取消・見送り理由、日次系列、経路・会計照合を保存する。拡大ではA=D、縮小ではA=Fの注文方向・経路・損益を照合し、A-D差は縮小、A-F差は拡大からのみ生じることを確認する。
+
+共通日次系列に20 trade_dateの非循環moving-block bootstrapを10,000回、seed=20260913、全条件共通index、末尾切詰め、linear percentileで行い、A平均、A-B/A-C/A-D/A-Fの95%区間を保存する。V正負×M正負の4群で事前event数、取引数、遅延、費用、Net、期待値を保存する。情報量はA/B/C/D/F各200取引、4群各50事前event。充足後、A Net>0、PF>1、全区間下限>0、A2期待値>0、正の月27/54以上、上位10利益取引除去後Net>0をすべて必要とする。入力・合成・実行・会計ゲート失敗はBLOCKED、情報量不足はINCONCLUSIVE、それ以外の未達はREJECT、全通過もDevelopment一次のINVESTIGATE止まりとする。WFA、追加費用・遅延、救済探索、OOS、Final Holdoutは実行しない。
+
+## R020-Q001: 現物昼休み中の先物変化の後場再開反転（事前登録）
+
+登録日: 2026-09-14。正式登録は `r020-q001-20260914-tse-lunch-reversal-02`。`…-01`は月末日カレンダー生成の実装不備で、登録・Development価格アクセス・event/orders/fills/trades/PnL/bootstrap前に停止し不変保持する。R001初動、R006ナイトgap、R007局所急変、R011開始120分後平均乖離とは窓・時刻・方向・出口が異なり、R001--R019に同等仕様はない。既知Development上の追加探索であり、独立確認・未使用標本・研究全体の多重性補正済み検証ではない。
+
+公式JPX取引時間PDFと内閣府祝日CSVを取得元・SHA-256付きで保存し、TSE営業日をOSE日程から推定しない。TSE休業日は全条件見送り。日中のみ、TSE営業日に10:30--12:29 JSTの連続120適格足を要求し、`P=close_11:29-open_10:30`、`L=close_12:29-open_11:30`とする。P/L=0、窓欠損・不適格は共通見送りで、閾値・標準化・gap充足率・値幅・曜日/年/方向フィルター・現物価格・裁定・出来高・流動性・注文フローは使わない。
+
+A=`-sign(L)`、B=常時買い、C=常時売り、D=`-sign(P)`、F=`sign(L)`を独立した1枚・最大1ポジションで、12:29確定後最短12:30始値entry、13:29確定後最短13:30始値exitとする。A2のみAを片道2 tick・手数料30円で既存engine再約定する。Stop/Target/reference-price exit/re-entryを置かず、遅延でXを延長しない。R004隔離45 session/27,345 bar、残存2,216 session/1,326,086 bar、hash `2974bec…3213`を再現する。物理I/OはDevelopment正規化Parquetのみ、R006/R012/R015の保存済み1,111日中trade_dateを日次軸として日中隔離を除外し、TSE休業・欠損・ゼロ・取消・無取引は0円とする。
+
+合成でTSE/OSE日程、JST/trade_date、10:30/11:29/11:30/12:29、P/Lの符号・ゼロ・欠損、同じPまたはLの反実例、prefix、翌足entry、固定exit、遅延非延長、cutoff後EXIT、費用会計、Final Holdout拒否を確認する。A/A2事前event・方向・時刻を照合し、P/L同符号でA=Dのside・経路・PnL一致、差が異符号群のみで生じることを検査する。20日非循環moving-block bootstrap 10,000回、seed=20260913、共通index、末尾切詰め、linear percentileでA/A-B/A-C/A-D/A-Fを評価する。情報量は各A/B/C/D/F>=200、A long/short>=50、P符号×L符号4群各>=50事前event。全充足後、A Net>0、PF>1、全CI下限>0、A2期待値>0、正の月>=27/54、上位10除去後Net>0が必要である。失敗はBLOCKED、情報量不足はINCONCLUSIVE、それ以外の未達はREJECT。WFA、追加費用/遅延、救済探索、OOS、Final Holdoutは実行しない。
