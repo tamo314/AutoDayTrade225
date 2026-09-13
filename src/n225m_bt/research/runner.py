@@ -180,7 +180,24 @@ def run_campaign(
     campaign_id: str | None = None,
     progress: Callable[[str], None] = print,
     study_config: Path | None = None,
+    stage: str | None = None,
 ) -> Path:
+    selected_study_config = study_config or config_dir / "strategy_research.yaml"
+    study_payload = yaml.safe_load(selected_study_config.read_text(encoding="utf-8"))
+    if isinstance(study_payload, dict) and study_payload.get("schema_version") == 2:
+        from n225m_bt.research.r003 import run_r003_campaign
+
+        return run_r003_campaign(
+            config_dir,
+            results_root,
+            calendar_path,
+            campaign_id,
+            progress,
+            selected_study_config,
+            stage,
+        )
+    if stage is not None:
+        raise ValueError("--stage is only supported by the explicit R003 study schema")
     instrument, sessions, data_config, baseline = load_project_config(config_dir)
     settings = load_yaml_model(
         study_config or config_dir / "strategy_research.yaml", CampaignConfig

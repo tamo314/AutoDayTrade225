@@ -22,3 +22,7 @@ results/
 # Local overrides
 config/local*.yaml
 .env
+
+!src/n225m_bt/research/
+!src/n225m_bt/research/features.py
+!src/n225m_bt/research/r003.py

@@ -216,3 +216,107 @@ Decision: REJECT。今回の単純な価格帯突破を採用候補としない�
 Next experiment（未実施）: まず入力roll-riskマーカーとtick-grid警告の出所を点検し、次の仮説では「過去20セッションだけで算出した通常の変動幅に対する現在の初動幅」など、事前に説明できる状態変数で局面を定義する。Development内の追加探索として条件数を制限し、同じ頑健性基準を適用する。複数の独立した候補が出るまではメタ戦略を組まない。
 
 保存先: `results/research/20260913T091013-506b627c/`。完成レポート: `results/research/20260913T091013-506b627c/reports/20260913T091523-7bcab951/research_report.md`。全15実験の台帳と指標の件数・Net/Gross/fees/slippage・日次equity終値が一致することをレポート生成時に照合した。
+
+## R003 / Decision: INVESTIGATE（品質ゲートで停止）
+
+### Hypothesis
+
+同種の直近20セッションに比べ、初動30分のレンジが小さい場合に限る終値ブレイクが、無条件ブレイクよりコスト後の期待値を改善するかを検証する。仕様は `07_r003_compression_breakout_plan.md` に固定した。
+
+### Implementation
+
+`CompressionBreakoutStrategy v1.0.0`、因果的な初動レンジ履歴、R003の厳格な設定読取り、Development限定preflightを追加した。注文・fill・費用・強制決済は既存 `BacktestEngine` のままである。
+
+### Parameters tested
+
+設定をPnL前に凍結したが、品質ゲートにより売買実験は未実行。θ=[0.60, 0.75, 0.90]、H=[30, 60, 90]、代表点θ=0.75/H=60、B=20、1 tick/片道30円の事前登録は保存済み。
+
+### Development result
+
+**NOT_RUN**。Development Gold（trade_date 2021-01-01～2025-06-30）のpreflightで、1,221本の未解明 `TICK_GRID_VIOLATION` を検出した。価格を丸めず、原因（取り込み・連続系列調整・市場区分等）を特定するまでPnLを計算しない。
+
+### Validation result
+
+合成テストでは、圧縮率の等号境界、偶数本中央値、終値ブレイク、翌適格バー始値約定、実fill起点の時間決済を確認した。全テストは47 passed、Ruff・mypyは通過。
+
+### Robustness result
+
+NOT_RUN。品質ゲート前のため、20条件、WFA、bootstrap、遅延・コスト感度は未実行。
+
+### Problems discovered
+
+rollの実観測根拠（contract ID/切替時刻）が入力に供給されていないため `roll_observation_status=unknown`。この問題はtick-grid原因と併せて品質ゲートに保存した。
+
+### Decision
+
+**INVESTIGATE**。`quality_status=BLOCKED` のため、経済性について結論を出さない。OOSは `NOT_EVALUATED`、Final Holdoutは `NOT_ACCESSED`。
+
+### Next experiment
+
+R003を続行する前に、Development対象行に限定してtick-grid違反の出所・正規化経路・連続系列加工を監査し、実限月/roll証跡を供給する。原因が解決して新データ版・PnL回帰を凍結するまで、同一R003のPnL・OOSを実行しない。
+
+### Reproduction / artifact locations
+
+最終preflight: `results/research/r003-20260913-preflight-final/`。`preflight/quality_gate.json`、`tick_grid_audit.parquet`、`roll_audit.parquet`、`session_coverage.parquet`、`provenance.json`、事前登録hashとsource snapshotを保存した。
+
+## R003 / Development price-lineage audit: INVESTIGATE（2026-09-13）
+
+監査ID `r003-20260913-dev-price-audit-01` を、R003 v1.0.0の仮説・パラメータ・採否基準（settings hash `968158…e1cc6`、hypothesis hash `ec0988…8fa4e0b`）を変更せず、結果を見る前に登録した。命題は「観測価格の生成過程と商品仕様から、既存エンジンで価格・tick・約定を一貫して解釈できる」。固定許容差はN225Mの5ポイントで、丸め、バー除外、raw/Gold変更、品質ゲート緩和、BacktestEngine/PnL集計を行わない。
+
+### Confirmed facts
+
+- `trade_date=2021-01-01..2025-06-30` の正規化済みGoldのみを返すフィルタで、既存の完全一致重複規約後に **1,221違反バー** を再現した。これは **1,556 OHLC違反フィールド** とは別の単位である。入力1,358,628行から完全一致重複5,197行を1バー化し、1,353,431バーを監査した。
+- 年別では2021年dayが880バー/1,134フィールド、2021年nightが341バー/422フィールドであり、2022年以降と2025年前半は0件。全1,221バーは `N225M` / `center_continuous` / `225labo` で、`contract_month` は全件null、`TICK_GRID_VIOLATION` フラグと完全一致した。
+- 入力ファイル別では `N225minif_2021.xlsx` が1,221バー/1,556フィールド、その他のDevelopmentに対応する6ファイルは0件だった。817連続違反区間のうち205区間が複数バー、最長12バーであり、孤立例だけではない。OHLC全列が同一の非ゼロ剰余を共有するバーは4件である。
+- Gold OHLCは整数であり、残差は整数mod 5で算出したため、Gold上の観測は浮動小数点残差ではない。取り込みは整数化、正規化はOHLCをそのままBarへコピー、Goldは派生列追加のみである。固定層別規則で選んだday/night各1行ではrawとGold OHLCが完全一致し、少なくともその層の非5刻み値は正規化後に作られたものではない。
+
+### Inference and unresolved items
+
+- 1,221バー/1,556フィールドの場所は225Labo 2021 raw center seriesと特定できた。ただしこれは市場データ異常とも約定可能価格とも断定しない。連続系列の無調整・加算調整・比率調整、ロール選択規則、実効時刻を示す供給者証跡がないためである。
+- `contract_month=null` と既定`roll_risk=false` は実ロールなしの証拠ではない。価格ジャンプから限月やロール日を推定していない。canonical label上の商品混在は検出されなかったが、元データの市場区分・価格種別は未証明である。
+- よって既存品質ゲートの「tickの説明」「観測済みroll証拠」「価格の約定可能性解釈」の必須根拠が不足し、**quality_status=BLOCKED / Decision=INVESTIGATE** を維持する。Development PnL=**NOT_RUN**、OOS=**NOT_EVALUATED**、Final Holdout=**NOT_ACCESSED**。
+
+### Next minimum work
+
+225Laboのcenter series構築仕様とDevelopmentのcontract ID・選択規則・切替実効時刻・調整方式を示すroll表を取得し、この監査の`source_file/source_row_number`来歴へ読取り専用で結合する。その証跡で各offset classを「実限月の約定可能価格」「明示的な調整研究価格」「source anomaly」のいずれかに分類するまでは、R003のPnL/OOSは開かない。
+
+成果物: `results/research/r003-20260913-dev-price-audit-01/`（事前登録、stratum集計、連続区間、固定層別raw照合、原因分類、入力・コードhashを保存）。
+
+## R003 / Development continuous-series provenance audit: INVESTIGATE（2026-09-13）
+
+監査ID `r003-20260913-dev-roll-provenance-01` を事前登録し、価格やPnLを読まずに公開225Labo/JPX仕様、ローカル設定、Development 2021 workbookのsheet名・headerだけを照合した。R003の仮説・パラメータ・採否基準は変更していない。
+
+### Confirmed facts
+
+- 225Laboの2021年ページは、miniを「出来高の一番多いラージ期近と同じ限月」のつなぎ足と説明し、単純なmini期近と異なる場合があると明記する。これは中心系列の**選択原則**の証跡である。
+- JPXは通常立会の日経225mini呼値を5円、J-NETは別の呼値単位として示す。従って5ポイントは通常立会の品質許容差として維持するが、データ行の市場区分はこれだけでは分からない。
+- 2021 raw workbookのheaderは日付・時間・OHLC・出来高だけで、contract ID、observed contract change、切替実効時刻、調整方式の列を持たない。canonical `contract_month` はnullであり、`roll_risk=false` を実ロールなしの証拠にしていない。
+- JPXのQUICK提供情報は同社チャートの中心限月を前日取引高で日次見直しすると説明するが、225Laboが同じ時点・方法を用いた証拠ではない。類似の中心限月説明を225Laboのroll観測証拠へ読み替えなかった。
+
+### Unresolved and decision
+
+各Development日時に選択されたmini限月、切替時刻、セッション内切替、無調整／加算／比率調整のいずれか、ならびに1,221非5刻みバーの約定可能性は未証明である。満期日・SQ日・価格ジャンプからこれらを推定しなかった。よって **quality_status=BLOCKED / Decision=INVESTIGATE** を維持する。Development PnL=**NOT_RUN**、OOS=**NOT_EVALUATED**、Final Holdout=**NOT_ACCESSED**。
+
+### Next minimum work
+
+225Laboまたは権威ある供給者から、Development期間のmini contract ID、選択結果、切替実効時刻、調整方式を含む中心系列constituent/roll表を取得し、既存の`source_file/source_row_number`へ読取り専用で結合する。
+
+成果物: `results/research/r003-20260913-dev-roll-provenance-01/`。
+
+## R003-Q001 / Decision: REJECT（隔離データのDevelopment限定感度）
+
+roll・調整方式の外部証跡を得られない前提で、R003本体を修復・変更せず、別ID `r003-q001-20260913-development-campaign-01` をPnL前に登録した。`TICK_GRID_VIOLATION` を含むバーだけを抜くのではなく、初動30分・20セッション履歴の因果性を守るため、そのバーを含む `(trade_date, session)` 全体を研究ビューから隔離した。raw/Goldは変更していない。
+
+### Data policy and quality
+
+親Development 1,353,431バー・2,261セッションから、45セッション（day 20、night 25）・27,345バーを隔離し、1,326,086バー・2,216セッションを残した。残存ビューの`TICK_GRID_VIOLATION`は0で、価格丸めも許容差緩和もないため、この**隔離ビューに限り** `PASS_LIMITED` とした。実限月、roll、約定可能性は依然として未証明であり、R003本体の`BLOCKED`は変わらない。
+
+### Development result
+
+固定済みの1 tick/side・片道30円、θ=[0.60, 0.75, 0.90]、H=[30,60,90]の9条件、および同一履歴・同一隔離規則のmatched control H=[30,60,90]をDevelopmentだけで実行した。9条件はすべてNetと期待値が負だった。代表点θ=0.75/H=60は498件、Net **-594,880円**、期待値 **-1,194.538円/取引**、PF 0.637、正の月比率0.389、上位10利益除去後Net -800,280円。matched control H=60も1,994件、Net -1,521,140円、期待値 -762.859円/取引だった。
+
+### Decision
+
+**REJECT**。隔離により元データを修復したとは扱わず、R003を救済するために除外規則・閾値・時間帯を追加探索しない。全9条件が同じ経済方向で不合格のため、この限定感度では追加ストレス・WFAを実行しない。OOS=**NOT_EVALUATED**、Final Holdout=**NOT_ACCESSED**。
+
+成果物: `results/research/r003-q001-20260913-development-quarantine-01/`（隔離規則の事前登録）および `results/research/r003-q001-20260913-development-campaign-01/`（12条件の個別台帳と決定）。

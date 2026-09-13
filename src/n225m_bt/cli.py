@@ -28,14 +28,18 @@ def run_strategy_research(
     calendar_override: Path = typer.Option(..., exists=True, dir_okay=False),
     campaign_id: str | None = typer.Option(None),
     study_config: Path | None = typer.Option(None, exists=True, dir_okay=False),
+    stage: str | None = typer.Option(None, help="Required as 'development' for R003."),
 ) -> None:
     """Evaluate a bounded Development grid; open OOS only after its selection gates pass."""
     from n225m_bt.research.runner import run_campaign
 
     output = run_campaign(
-        config_dir, results_root, calendar_override, campaign_id, typer.echo, study_config
+        config_dir, results_root, calendar_override, campaign_id, typer.echo, study_config, stage
     )
     typer.echo(f"Research results: {output}")
+    if (output / "DEVELOPMENT_COMPLETED.json").is_file():
+        typer.echo(f"R003 summary: {output / 'summary.md'}")
+        return
     from n225m_bt.research.report import render_campaign
 
     typer.echo(f"Research report: {render_campaign(output)}")

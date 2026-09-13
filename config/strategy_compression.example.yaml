@@ -1,0 +1,161 @@
+# R003 新規スキーマの設計雛形。既存ResearchConfigへの対応実装が必要。
+# このファイルはそのまま実行可能であることを保証しない。
+# 実装後は config/strategy_compression.yaml として配置し、PnL計算前に凍結する。
+schema_version: 2
+study_id: R003
+study_kind: state_conditioned_opening
+strategy_version: "1.0.0"
+hypothesis_document: docs/strategy/07_r003_compression_breakout_plan.md
+
+periods:
+  development:
+    start: "2021-01-01"
+    end: "2025-06-30"
+  oos:
+    start: "2025-07-01"
+    end: "2025-12-31"
+  final_holdout_start: "2026-01-01"
+  final_holdout_enabled: false
+  split_key: trade_date
+
+inputs:
+  gold_root: data/gold
+  series_type: center_continuous
+  backtest_config: config/backtest.yaml
+  warmup_policy: previous_observed_only
+  allow_pre_development_prices: false
+  instrument_assertions:
+    tick_size_points: 5
+    multiplier_jpy_per_point: 100
+
+strategy:
+  family: opening_compression_breakout
+  sessions: [day, night]  # 既存Session enumとの対応は設定アダプターが担当する。
+  opening_minutes: 30
+  baseline_sessions: 20
+  baseline_group_by: session
+  baseline_selection: previous_scheduled_sessions
+  require_all_baseline_members_valid: true
+  include_valid_zero_ranges_in_history: true
+  compression_thresholds: ["0.60", "0.75", "0.90"]
+  comparison: less_than_or_equal
+  holding_minutes: [30, 60, 90]
+  representative:
+    compression_threshold: "0.75"
+    holding_minutes: 60
+  signal_rule: strict_close_outside_frozen_opening_range
+  signal_bar_start_elapsed_min_inclusive: 30
+  signal_bar_start_elapsed_max_exclusive: 120
+  breakout_buffer_ticks: 0
+  entry_rule: next_eligible_bar_open
+  exit_rule: elapsed_minutes_from_actual_fill
+  max_entry_attempts_per_session: 1
+  quantity: 1
+  max_positions: 1
+  stop_loss: null
+  take_profit: null
+
+control:
+  family: matched_unfiltered_breakout
+  holding_minutes: [30, 60, 90]
+  require_same_history_and_opening_validity: true
+  diagnostic_complement_threshold: "0.75"
+  can_be_promoted: false
+
+costs:
+  fee_jpy_per_contract_per_side: 30
+  baseline_slippage_ticks_per_side: 1
+  representative_extra_development_runs:
+    - zero_tick
+    - two_tick
+    - three_tick
+    - double_fee
+    - entry_delay_1m
+    - exit_delay_1m
+  double_fee_jpy_per_contract_per_side: 60
+  entry_delay_minutes: 1
+  exit_delay_minutes: 1
+  oos_runs: [one_tick, two_tick, double_fee, entry_delay_1m, exit_delay_1m]
+
+sensitivity:
+  diagnostic_baseline_sessions: [15, 25]
+  diagnostic_threshold: "0.75"
+  diagnostic_holding_minutes: 60
+  diagnostic_can_replace_representative: false
+  max_unique_full_development_engine_conditions: 20
+  max_oos_engine_conditions: 5
+
+walk_forward:
+  train_months: 12
+  test_months: 3
+  step_months: 3
+  expected_folds: 14
+  parameter_selection: fixed_representative_only
+  train_gate:
+    min_representative_trades: 40
+    positive_expectancy_tick_levels: [1, 2]
+    min_positive_grid_points_at_one_tick: 6
+  test_gate:
+    min_active_folds: 7
+    positive_active_fraction_strictly_greater_than: 0.5
+    pooled_positive_expectancy_tick_levels: [1, 2]
+
+robustness:
+  seed: 225
+  repetitions: 1000
+  primary_block_length_trade_dates: 5
+  diagnostic_block_length_trade_dates: 10
+  block_sampling: moving_blocks_with_replacement_no_wrap
+  block_truncate_to_original_length: true
+  keep_day_night_together: true
+  quantile_method: sorted_floor_n_minus_one_times_q
+  reported_quantiles: [0.05, 0.50, 0.95]
+  independent_rng_per_method: true
+  require_defined_primary_gate_statistics: true
+  trade_drop_fraction: 0.10
+  trade_drop_count_rounding: floor
+  trade_shuffle_for_drawdown_only: true
+  adverse_exit_overlay_minutes: 1
+  adverse_exit_overlay_is_engine_replay: false
+
+gates:
+  quality:
+    development_allowed_statuses: [PASS_LIMITED, PASS_RESEARCH]
+    oos_required_status: PASS_RESEARCH
+    allow_unknown_roll_evidence_for_oos: false
+  development:
+    min_representative_trades: 200
+    positive_expectancy_tick_levels: [1, 2]
+    min_positive_grid_points_at_one_tick: 6
+    positive_month_fraction_min: 0.50
+    month_denominator: all_54_development_calendar_months
+    net_excluding_top_winners_count: 10
+    net_excluding_top_winners_strictly_positive: true
+    min_noncompression_control_trades: 200
+    compression_minus_noncompression_expectancy_strictly_positive: true
+    positive_net_stresses: [double_fee, entry_delay_1m, exit_delay_1m]
+    primary_block_bootstrap_net_p05_strictly_positive: true
+    require_walk_forward_pass: true
+    max_end_of_data_exits: 0
+    max_unexpected_forced_exits: 0
+  oos:
+    min_representative_trades: 50
+    positive_expectancy_tick_levels: [1, 2]
+    net_excluding_top_winners_count: 5
+    net_excluding_top_winners_strictly_positive: true
+    positive_net_stresses: [double_fee, entry_delay_1m, exit_delay_1m]
+    max_end_of_data_exits: 0
+    max_unexpected_forced_exits: 0
+  insufficient_sample_decision: INVESTIGATE
+  invalid_measurement_decision: INVESTIGATE
+  economic_failure_decision: REJECT
+
+execution:
+  require_explicit_stage_for_r003: true
+  automatic_oos_after_development: false
+  require_preregistration_before_pnl: true
+  require_frozen_candidate_before_oos: true
+  record_oos_access_before_loading_prices: true
+  allow_final_holdout: false
+  overwrite_existing_results: false
+  real_trading_enabled: false
