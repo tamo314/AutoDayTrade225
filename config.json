@@ -1,0 +1,52 @@
+{
+  "project_dir": ".",
+  "executor": "codex",
+  "max_iterations": 10,
+  "executor_timeout_seconds": 10800,
+  "planner_timeout_seconds": 1800,
+  "max_result_chars_for_planner": 60000,
+  "recent_history_items_for_planner": 4,
+  "stop_on_executor_error": true,
+  "min_iterations_before_done": 1,
+  "done_confirmation_required": false,
+  "codex": {
+    "command": "codex",
+    "model": "gpt-6-astra",
+    "extra_args": [
+      "--config",
+      "sandbox_workspace_write.network_access=true",
+      "--sandbox",
+      "danger-full-access"
+    ],
+
+    "executor_model": "gpt-5.6-terra",
+    "executor_sandbox": "workspace-write",
+    "executor_approval_policy": "never",
+    "executor_extra_args": [
+      "--config",
+      "sandbox_workspace_write.network_access=true",
+      "--sandbox",
+      "danger-full-access"
+    ]
+  },
+  "claude": {
+    "command": "claude",
+    "model": "sonnet",
+    "extra_args": [
+      "--output-format",
+      "json",
+      "--max-turns",
+      "60",
+      "--dangerously-skip-permissions"
+    ]
+  },
+  "antigravity": {
+    "command": "agy",
+    "extra_args": [
+      "--print-timeout",
+      "120m",
+      "--output-format",
+      "stream-json"
+    ]
+  }
+}

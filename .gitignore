@@ -22,6 +22,8 @@ results/
 # Local overrides
 config/local*.yaml
 .env
+.orchestrator/
+research/
 
 !src/n225m_bt/research/
 !src/n225m_bt/research/features.py
