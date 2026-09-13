@@ -1,107 +1,31 @@
-# AGENTS.md
+# N225M 戦略研究
 
-## Mission
+## 目的と完了条件
 
-Implement a reproducible research-grade intraday backtesting platform for Nikkei 225 mini futures (N225M) using 1-minute bars. Initial market data source is user-provided 225Labo continuous center-contract data. Architecture must allow later replacement with contract-specific JPX data without rewriting strategies.
+構築済みの1分足バックテスト基盤で、未知の期間にも期待値が残る説明可能な日中・ナイト戦略を研究する。最終目標は、過去情報で適用局面を判定する複数戦略とメタ戦略。利益が出ることを完了条件にせず、仮説の事前登録、再現可能な実験、頑健性の評価、REJECT / INVESTIGATE / CANDIDATE の根拠と次の実験まで残す。
 
-## Mandatory reading order
+## 研究の境界
 
-Before coding, read:
+- Development は 2021-01-01～2025-06-30、OOS は 2025-07-01～2025-12-31。分割は trade_date 基準。
+- 2026-01-01以降は Final Holdout。最終候補の仕様・選定記録を凍結するまで、成績を取得・表示・分析しない。OOSを見た後の変更に同じOOSを未使用の検証期間として使わない。
+- 仮説・探索範囲・判定基準を実行前に記録する。最大利益の一点を選ばず、近傍安定性、Walk Forward、コスト耐性、利益集中度で判断する。
+- 基本評価は片道1 tick + 明示した手数料。0 tickは診断用。2～3 tick、手数料増、遅延も検証する。現在の手数料はユーザー指定の片道30円。
+- data/raw/ は変更しない。225Laboの実データ・派生バー・取引明細はローカルに保持し、コミット・再配布しない。エンジン入力は正規化済みParquetのみ。
+- エンジンは明確なバグ以外で変更しない。成績改善のために約定、Stop、コスト、取引時間、欠損補完を変えない。バグ修正は再現例、修正前後、PnL回帰テスト、既存実験への影響を docs/strategy/ に記録する。
+- JSTの時刻、calendar_dateとtrade_dateの区別、版管理した取引時間、翌適格バー約定、保守的な同時Stop/Target判定、1枚・最大1ポジションを維持する。連続系列に実限月を捏造しない。スリッページを二重控除しない。
+- 実験IDは一意にし、既存結果を上書きしない。コード・データ・設定・乱数seedを保存する。
 
-1. `DECISIONS.md`
-2. `docs/infrastructure/01_scope_requirements.md`
-3. `docs/infrastructure/02_architecture.md`
-4. `docs/infrastructure/04_data_contract.md`
-5. `docs/infrastructure/05_market_calendar_sessions.md`
-6. `docs/infrastructure/06_backtest_execution_semantics.md`
-7. `docs/infrastructure/07_quality_validation.md`
-8. `docs/infrastructure/10_implementation_plan.md`
-9. `docs/infrastructure/11_acceptance_criteria.md`
+## 必要な文書への入口
 
-## Non-negotiable rules
+- 研究開始・選定: docs/strategy/01_research_protocol.md、docs/strategy/03_experiment_plan.md。
+- API・研究機能: docs/strategy/02_research_design.md。
+- 最新の判断・次の実験: docs/strategy/04_research_results.md。
+- 基盤に触れるとき: DECISIONS.md と変更対象に対応する docs/infrastructure/ の仕様。時刻は05、約定・PnLは06、品質は07、基盤受入条件は11。
 
-1. Never modify files under `data/raw/`.
-2. Never commit or redistribute 225Labo data.
-3. Do not make the backtester read raw CSV directly.
-4. All normalized timestamps must be timezone-aware `Asia/Tokyo`.
-5. Keep `calendar_date` and `trade_date` as separate concepts.
-6. Historical session rules are configuration-driven and date-versioned.
-7. Do not infer an exact futures contract code from 225Labo center-series data.
-8. Mark `contract_month` nullable for continuous data.
-9. No look-ahead: a signal using bar `t` close cannot fill before bar `t+1`.
-10. Default market fill is next eligible bar open plus adverse slippage.
-11. Long buy fills slip upward; long sell/exit fills slip downward. Reverse for shorts.
-12. If stop and take-profit are both reachable inside one minute and ordering is unknown, use conservative adverse ordering by default.
-13. Costs must be explicit: `gross_pnl`, `fees`, `slippage_cost`, `net_pnl`.
-14. V1 position size is one contract, max one open position, no pyramiding, no averaging down.
-15. Backtest results must be deterministic given identical input, config, and code version.
-16. Every bug fix that changes PnL semantics requires a regression test.
-17. No silent forward-fill of missing OHLC bars.
-18. Data-quality failures must be surfaced in a report; severe failures may abort processing.
-19. Strategy code must not contain broker/exchange adapter logic.
-20. Execution engine must not contain strategy-specific indicator logic.
+## 実装と検証
 
-## Technology constraints
+Python 3.12～3.13、Polars/Parquet、Pydantic v2、PyYAML、Typerを使用する。研究支援は src/n225m_bt/research/、売買判断は strategies/、研究文書は docs/strategy/。重い依存追加には理由を記す。
 
-- Python: `>=3.12,<3.14`
-- Prefer Polars for tabular transforms and Parquet IO.
-- Use PyArrow-backed Parquet where applicable.
-- Pydantic v2 for typed configuration/domain validation.
-- PyYAML for YAML configuration loading.
-- Typer for CLI.
-- pytest for tests.
-- Ruff for lint/format.
-- mypy with reasonably strict settings.
-- Standard library `zoneinfo` for `Asia/Tokyo`.
+公開APIに型を付け、設定と乱数を注入可能にする。因果性・期間漏洩・PnL集計・実験保存の境界を合成データで検証する。経済的意味を変える修正には回帰テストが必要。変更に応じたpytest、Ruff、mypyを実行し、実験結果まで確認する。ローカル検証・研究実行は個別の承認待ちにしない。
 
-Do not add heavy dependencies unless justified in an ADR or code comment.
-
-## Coding style
-
-- Type annotations on public functions/classes.
-- Small pure functions for time/session classification and PnL calculations.
-- Domain types/enums for `Session`, `Side`, `OrderType`, `ExitReason`, `SeriesType`.
-- Decimal is not required for N225M prices because tick size is an integer 5 JPY; store prices as integer JPY.
-- Quantity is integer contracts.
-- Monetary PnL is integer JPY wherever possible.
-- Avoid hidden global state.
-- Configuration must be injectable in tests.
-
-## Expected package structure
-
-```text
-src/n225m_bt/
-  cli.py
-  config.py
-  domain.py
-  ingest/
-  normalize/
-  calendar/
-  quality/
-  features/
-  strategies/
-  backtest/
-  reports/
-  io/
-```
-
-## Testing policy
-
-- Unit tests for pure calculations.
-- Golden/regression tests for execution semantics.
-- Property/invariant tests where practical.
-- Integration test from synthetic raw CSV fixture -> Parquet -> backtest -> report.
-- Real 225Labo data must NOT be committed as a fixture.
-- Synthetic fixtures must include night session, missing minute, regime boundary, simultaneous stop/target case, and roll-risk marker.
-
-## Git/implementation behavior
-
-- Work phase-by-phase according to `docs/infrastructure/10_implementation_plan.md`.
-- Keep each phase independently testable.
-- Run tests/lint after each material change.
-- Do not change documented semantics merely to make tests pass.
-- If source CSV layout is unknown, implement adapter discovery/configuration and fail with a useful message; do not invent an undocumented fixed column order.
-
-## Definition of done
-
-A phase is complete only when its acceptance checks in `docs/infrastructure/11_acceptance_criteria.md` pass and documentation/config examples are synchronized with code.
+並列化が明確に有効な独立作業以外はサブエージェントを起動しない。読取り・探索・機械的編集・テスト・単純修正を委任する場合はLunaを使う。

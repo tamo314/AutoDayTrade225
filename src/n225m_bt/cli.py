@@ -17,6 +17,38 @@ data_app = typer.Typer(help="Inspect and ingest source data.")
 backtest_app = typer.Typer(help="Run a strategy against an existing Gold Parquet dataset.")
 app.add_typer(data_app, name="data")
 app.add_typer(backtest_app, name="backtest")
+research_app = typer.Typer(help="Run preregistered strategy research with locked Final Holdout.")
+app.add_typer(research_app, name="research")
+
+
+@research_app.command("run")
+def run_strategy_research(
+    config_dir: Path = typer.Option(Path("config")),
+    results_root: Path = typer.Option(Path("results/research")),
+    calendar_override: Path = typer.Option(..., exists=True, dir_okay=False),
+    campaign_id: str | None = typer.Option(None),
+    study_config: Path | None = typer.Option(None, exists=True, dir_okay=False),
+) -> None:
+    """Evaluate a bounded Development grid; open OOS only after its selection gates pass."""
+    from n225m_bt.research.runner import run_campaign
+
+    output = run_campaign(
+        config_dir, results_root, calendar_override, campaign_id, typer.echo, study_config
+    )
+    typer.echo(f"Research results: {output}")
+    from n225m_bt.research.report import render_campaign
+
+    typer.echo(f"Research report: {render_campaign(output)}")
+
+
+@research_app.command("report")
+def report_strategy_research(
+    campaign: Path = typer.Argument(..., exists=True, file_okay=False),
+) -> None:
+    """Rebuild an append-only research report from saved results without reading market data."""
+    from n225m_bt.research.report import render_campaign
+
+    typer.echo(f"Research report: {render_campaign(campaign)}")
 
 
 @app.command()
@@ -24,6 +56,12 @@ def validate(config_dir: Path = typer.Option(Path("config"))) -> None:
     """Validate the project YAML configuration."""
     load_project_config(config_dir)
     load_research_config(config_dir)
+    from n225m_bt.config import load_yaml_model
+    from n225m_bt.research.config import CampaignConfig
+    from n225m_bt.research.data import validate_splits
+
+    validate_splits(load_research_config(config_dir))
+    load_yaml_model(config_dir / "strategy_research.yaml", CampaignConfig)
     typer.echo("Configuration is valid.")
 
 

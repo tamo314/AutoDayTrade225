@@ -1,97 +1,26 @@
-# 09. CLI and Outputs
+# 09. 実装済みCLIと出力
 
-## 1. Proposed CLI
+## データの取り込み
 
-Command name: `n225m-bt`
-
-### Validate config
-
-```bash
-n225m-bt config validate --config-dir config/
+```powershell
+.venv/Scripts/python.exe -m n225m_bt.cli validate
+.venv/Scripts/python.exe -m n225m_bt.cli data inspect data/raw/225labo/center/N225minif_2024.xlsx
+.venv/Scripts/python.exe -m n225m_bt.cli data build-calendar --source-root data/raw/225labo/center --source-root data/raw/225labo/forward --output config/local_calendar.yaml
+.venv/Scripts/python.exe -m n225m_bt.cli data ingest data/raw/225labo/center/N225minif_2024.xlsx --calendar-override config/local_calendar.yaml
 ```
 
-### Inspect source
+build-calendarは元ファイルの日付列からローカルカレンダーを作る。rawは変更しない。新規データの投入・カレンダー変更は既存実験とは別のデータ版として扱う。Gold研究入力の年次重複処理は [データ重複記録](../strategy/05_data_overlap.md) を参照。
 
-```bash
-n225m-bt data inspect data/raw/225labo/center/2025/file.csv
+forwardを取り込む場合は data ingest に --dataset forward --series-type next_continuous を加えてcenterと分離する。
+
+## 戦略研究
+
+```powershell
+.venv/Scripts/python.exe -m n225m_bt.cli research run --calendar-override config/local_calendar.yaml
 ```
 
-Outputs detected encoding, delimiter, candidate headers, candidate mapping and sample metadata without redistributing the data.
+研究の仕様・結果は [docs/strategy](../strategy/01_research_protocol.md)。旧 backtest run はalways-flatによる基盤確認用で、任意戦略選択や期間制限を備えない。研究には専用コマンドを使う。旧文書の config validate / data quality / backtest sweep / report build は実装済みCLIではないため、例から削除した。
 
-### Ingest
+## 保存物
 
-```bash
-n225m-bt data ingest \
-  --source 225labo \
-  --series center \
-  --input data/raw/225labo/center/ \
-  --config config/data.yaml
-```
-
-### Quality check
-
-```bash
-n225m-bt data quality --dataset <dataset_id>
-```
-
-### Backtest
-
-```bash
-n225m-bt backtest run \
-  --dataset <dataset_id> \
-  --strategy example_breakout \
-  --config config/backtest.yaml
-```
-
-### Batch slippage
-
-```bash
-n225m-bt backtest sweep \
-  --dataset <dataset_id> \
-  --strategy example_breakout \
-  --slippage-ticks 0,1,2,3
-```
-
-### Report
-
-```bash
-n225m-bt report build --run <run_id>
-```
-
-## 2. Run output
-
-```text
-results/<run_id>/
-  run_manifest.json
-  config_snapshot/
-  trades.parquet
-  orders.parquet
-  fills.parquet
-  equity.parquet
-  metrics.json
-  metrics.md
-  segment_metrics.parquet
-```
-
-## 3. Run manifest
-
-Include:
-- `run_id`
-- `created_at_jst`
-- dataset id
-- dataset schema version
-- strategy name/version
-- parameter JSON + hash
-- backtest config hash
-- instrument config hash
-- session config hash
-- source code git commit if available
-- Python/package versions
-- random seed if any
-
-## 4. Exit codes
-
-- 0 success
-- nonzero on invalid config, fatal data quality, failed ingestion, or backtest invariant failure
-
-CLI must not hide exceptions without an actionable summary.
+基盤のwrite_resultsは trades/orders/fills/equity Parquet、metrics JSON/Markdown、run_manifestを出力する。研究では別の排他的ディレクトリ作成と詳細集計を重ねる。ローカルの結果と実データはGit除外。

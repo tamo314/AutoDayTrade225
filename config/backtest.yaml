@@ -24,7 +24,7 @@ risk:
 
 fees:
   model: per_side_per_contract
-  jpy_per_side_per_contract: 0
+  jpy_per_side_per_contract: 30  # User research assumption, 2026-09-13.
 
 reporting:
   slippage_stress_ticks: [0, 1, 2, 3]

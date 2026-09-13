@@ -1,0 +1,11 @@
+schema_version: 1
+families: [opening_momentum, opening_reversal]
+lookback_minutes: [15, 30, 45]
+holding_minutes: [30, 60, 90]
+representative_lookback: 30
+representative_holding: 60
+seed: 225
+resamples: 1000
+minimum_development_trades: 200
+minimum_oos_trades: 50
+minimum_positive_neighbors: 6
