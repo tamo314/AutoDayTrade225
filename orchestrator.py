@@ -122,6 +122,8 @@ def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     config.setdefault("max_result_chars_for_planner", 60000)
     config.setdefault("recent_history_items_for_planner", 4)
     config.setdefault("stop_on_executor_error", True)
+    if isinstance(config.get("codex"), dict):
+        config["codex"].setdefault("planner_remove_windowsapps_from_path", True)
 
     # Research-completion guardrails. These defaults intentionally make an
     # early `done` decision difficult without forcing meaningless busywork.
@@ -237,10 +239,12 @@ def run_command(
     cwd: Path,
     timeout_seconds: int,
     stdin_text: str | None = None,
+    env: dict[str, str] | None = None,
 ) -> CommandResult:
     command = resolved_command(command)
     start = time.monotonic()
     stdin_bytes = stdin_text.encode("utf-8") if stdin_text is not None else None
+    process_env = os.environ.copy() if env is None else env.copy()
     try:
         proc = subprocess.run(
             command,
@@ -249,7 +253,7 @@ def run_command(
             capture_output=True,
             text=False,
             timeout=timeout_seconds,
-            env=os.environ.copy(),
+            env=process_env,
         )
         return CommandResult(
             command=command,
@@ -270,6 +274,33 @@ def run_command(
             timed_out=True,
         )
 
+
+def _planner_codex_env(config: dict[str, Any]) -> tuple[dict[str, str], dict[str, Any]]:
+    """Build the environment used only for Codex planner subprocesses.
+
+    On Windows, Microsoft Store/MSIX PowerShell can resolve through a
+    ``WindowsApps`` PATH entry but fail when Codex tries to create it inside its
+    sandbox with CreateProcessAsUserW. Removing only those PATH entries for the
+    planner subprocess lets Codex fall back to another shell without mutating
+    the user's global environment.
+    """
+    env = os.environ.copy()
+    codex_cfg = config.get("codex", {})
+    remove_windowsapps = bool(codex_cfg.get("planner_remove_windowsapps_from_path", True))
+    removed: list[str] = []
+    if os.name == "nt" and remove_windowsapps:
+        kept: list[str] = []
+        for item in env.get("PATH", "").split(os.pathsep):
+            normalized = item.replace("/", "\\").lower()
+            if "\\windowsapps" in normalized:
+                removed.append(item)
+            else:
+                kept.append(item)
+        env["PATH"] = os.pathsep.join(kept)
+    return env, {
+        "windowsapps_path_filter_enabled": os.name == "nt" and remove_windowsapps,
+        "windowsapps_path_entries_removed": removed,
+    }
 
 def _truncate_text_middle(text: str, max_chars: int) -> tuple[str, bool]:
     """Keep a bounded diagnostic excerpt while preserving both ends."""
@@ -491,6 +522,12 @@ def run_checks(config: dict[str, Any], project_dir: Path) -> bool:
     print(f"Max iterations    : {config['max_iterations']}")
     print(f"Min before done   : {config['min_iterations_before_done']}")
     print(f"Done confirmation : {config['done_confirmation_required']}")
+    print(f"Planner workdir    : {project_dir}")
+    if os.name == "nt":
+        print(
+            "Planner WinApps filter: "
+            f"{bool(config.get('codex', {}).get('planner_remove_windowsapps_from_path', True))}"
+        )
     print()
 
     for command in required_commands:
@@ -998,6 +1035,7 @@ Policy minimum iteration before done can be accepted: {config['min_iterations_be
 
 def run_planner(
     config: dict[str, Any],
+    project_dir: Path,
     iteration: int,
     executor: str,
     task: str,
@@ -1049,11 +1087,13 @@ def run_planner(
     print(f"[{iteration}] {label} model: {planner_model} [{planner_model_source}]")
     # Feed the planner prompt through UTF-8 stdin instead of argv. This avoids
     # Windows .cmd/cmd.exe command-line length limits for large executor reports.
+    planner_env, planner_env_meta = _planner_codex_env(config)
     result = run_command(
         command,
-        CODEX_SCRATCH_DIR,
+        project_dir,
         int(config["planner_timeout_seconds"]),
         stdin_text=prompt,
+        env=planner_env,
     )
     logged_stderr, stderr_meta = _prepare_codex_stderr_for_log(
         config,
@@ -1107,6 +1147,8 @@ def run_planner(
             "model_source": "Codex runtime banner" if runtime_model else planner_model_source,
             "return_code": result.return_code,
             "duration_seconds": round(result.duration_seconds, 3),
+            "planner_workdir": str(project_dir),
+            "planner_environment": planner_env_meta,
             "stdout": result.stdout,
             "stderr": logged_stderr,
             **stderr_meta,
@@ -1125,6 +1167,7 @@ def run_planner(
 
 def apply_done_policy(
     config: dict[str, Any],
+    project_dir: Path,
     iteration: int,
     executor: str,
     task: str,
@@ -1171,6 +1214,7 @@ Do not create filler work merely to satisfy the iteration count.
 """.strip()
         decision, guard_log = run_planner(
             config,
+            project_dir,
             iteration,
             executor,
             task,
@@ -1224,6 +1268,7 @@ unlikely to change the conclusion.
 """.strip()
         decision, confirm_log = run_planner(
             config,
+            project_dir,
             iteration,
             executor,
             task,
@@ -1335,6 +1380,7 @@ def orchestrate(config: dict[str, Any], project_dir: Path, reset: bool, once: bo
 
         initial_decision, planner_log = run_planner(
             config,
+            project_dir,
             iteration,
             state.executor,
             task,
@@ -1343,6 +1389,7 @@ def orchestrate(config: dict[str, Any], project_dir: Path, reset: bool, once: bo
         )
         decision, planner_attempts = apply_done_policy(
             config,
+            project_dir,
             iteration,
             state.executor,
             task,
