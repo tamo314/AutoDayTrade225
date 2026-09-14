@@ -11,12 +11,19 @@ from n225m_bt.strategies.base import StrategyContext
 class OpeningRangeCompressionBreakoutStrategy:
     strategy_version = "r033-q001-v1"
 
-    def __init__(self, strategy_id: str, signal_time: datetime, direction: str, entry_delay: int = 0) -> None:
-        if direction not in {"long", "short"} or entry_delay < 0:
+    def __init__(
+        self,
+        strategy_id: str,
+        signal_time: datetime,
+        direction: str,
+        entry_delay: int = 0,
+        exit_after_minutes: int = 60,
+    ) -> None:
+        if direction not in {"long", "short"} or entry_delay < 0 or exit_after_minutes <= 0:
             raise ValueError("invalid R033 direction or delay")
         self._strategy_id, self.direction = strategy_id, direction
         self.entry_signal_time = signal_time + timedelta(minutes=entry_delay)
-        self.exit_signal_time = signal_time + timedelta(minutes=60)
+        self.exit_signal_time = signal_time + timedelta(minutes=exit_after_minutes)
         self._entry = self._exit = False
 
     @property
