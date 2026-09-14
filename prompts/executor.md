@@ -34,3 +34,11 @@ If execution fails because of:
 report the exact failure.
 
 Do NOT fabricate results.
+
+Do not return while any test, experiment, training, evaluation, or verification process started by this task is still running.
+
+Do not intentionally launch long-running verification or experiment commands in the background unless the task explicitly requires asynchronous execution.
+
+Before returning success, collect the exit code and final output of every required process.
+
+A task is not complete merely because a process was started.
