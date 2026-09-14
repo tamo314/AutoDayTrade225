@@ -1,5 +1,165 @@
 # 戦略研究結果
 
+## R045-Q001: TSE現物昼休み変位の後場再開15分反転 — REJECT（Development一次評価）
+
+正式成果物は `results/research/r045-q001-20260914-tse-lunch-placebo-reversal-03/`。`…-01` は、全体OLSはfull rankだったが、bootstrapの13反復で不在暦年dummyがゼロ列となり最終結果保存前に停止した不変記録である。`…-02` は不在factor levelを当該再標本からだけ除外する実装訂正で完走したが、必須の昼休み／placebo方向別成績要約を独立保存していなかった。`…-03` は売買・入力・費用・seed・判定を変更せず、その要約を追加して価格読込前に再登録した完了記録である。R020（12:30--13:30の120分結合逆張り）、R038（昼休み極端の30分追随）、R029（5分確認追随）とは、共通E、15分保有、同長30分前placebo、固定方向／追随対照、pooled OLSの組合せが異なる。
+
+凍結済み `R045-LUNCH-1` 予定表からtS/tRを取り、昼休み60分 `rL=close(tR-1)-open(tS)` と、30分前境界からの同長60分placebo `rP` を使った。両窓とentry/exit固定経路が連続適格、R004隔離外、両return非zeroの日を共通Eとし、E=1,006（rL上/下=529/477、rP上/下=492/514）だった。R004隔離45 session/27,345 bar、残存2,216 session/1,326,086 bar、固定1,111日軸と入力hashを再現し、品質上限はPASS_LIMITED。物理I/OはDevelopment正規化Parquetのみで、OOSは未評価、Final Holdoutは未アクセスである。
+
+|条件|取引|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|
+|A 昼休み逆張り|1,006|-1,280,860|0.501|-1,273.22|
+|B 昼休み追随|1,006|-851,860|0.638|-846.78|
+|C 固定買い|1,006|-1,440,860|0.460|-1,432.27|
+|D 固定売り|1,006|-691,860|0.693|-687.73|
+|G placebo逆張り|1,006|-845,360|0.616|-840.32|
+|A2 / A3 / A_delay|1,006 each|-2,286,860 / -3,292,860 / -1,068,360|0.295 / 0.179 / 0.538|-2,273.22 / -3,273.22 / -1,061.99|
+
+20 trade_date非循環moving-block bootstrap（10,000回、seed=20260925、linear percentile）の95% CIは、A日次平均 `[-1,478.05,-852.61]`、A-B `[-1,142.58,+233.83]`、A-C `[-297.68,+638.17]`、A-D `[-1,080.61,-160.14]`、A-G `[-962.69,+105.77]` 円、昼休み境界係数beta=-399.95円 `[-908.88,+116.08]`。全体OLSは2,012行・9列・rank 9でfull rank、mean(z)=-6.674177を全E二行で固定した。Aの年Netは2021--2025に順に-218,900/-330,620/-330,320/-247,800/-153,220円、正月は8/54、top10利益取引除去後Netは負である。AのGross分解は再開0--5分=-712,000円、5--15分=-508,500円だった。方向別A Netも昼休み上/下=-480,740/-800,120円、placebo上/下=-500,020/-780,840円であり、詳細は `direction_performance.json` に保存した。
+
+合成pytest 14、Ruff、mypyはPASS。共通E、A/B反対side、A/C/D同event・時刻、A/G共通日、A/A2/A3/A_delayのevent・side、翌足entry、固定exit、delay非延長、最大1ポジション、取消0、`Net=Gross-fees`、slippage非二重控除を全件照合した。情報量gateは満たすが、A Net<0、PF<1、A日次平均・比較差・betaのCI下限、追加費用・遅延耐性、年/月安定性、利益集中度の固定必要条件が未達のため **R045-Q001=REJECT**。本REJECTを救済する時刻、窓、placebo、回帰形、filter、Stop/Target、WFA、OOS、Final Holdoutは実施しない。
+
+## R043-Q001: 08:45--08:59 と 09:00--09:04 の競合後60分追随 — REJECT（Development一次評価）
+
+正式成果物は `results/research/r043-q001-20260914-precash-cash-conflict-followthrough-02/`。`…-01` は売買仕様・入力・評価を変えずに完走したが、OLSの固定centerとdesign-rank拒否の合成検証が明示されていなかったため判断には使わない不変記録として残した。`…-02` はその合成検証のみを追加し、価格統計・適格件数・PnL前に再登録して実行した。R024は同じ二窓の同符号を09:05--09:30へ追随する規則であり、本件の反対符号・09:05--10:05・一致日対照・連続変化幅OLSと重複しない。R031/R041/R042もnightまたは異なる観測窓・時刻である。
+
+TSE通常営業日の連続適格15本から `rP=close_08:59-open_08:45`、5本から `rC=close_09:04-open_09:00` を作り、両nonzeroで `rP*rC<0` を競合、`>0` を一致とした。A=競合日の`sign(rC)`、B=全有効日の`sign(rC)`、C=一致日の`sign(rC)`、D/E=競合日の固定buy/sell、F=競合日の`sign(rP)`である。09:04確定後、09:05始値entry、10:05始値固定exitとし、A2/A3は片道2/3tick、A_delayは09:06 entryだがexitを延長しなかった。費用は全条件で片道30円、基本slippageは片道1tickである。
+
+R004隔離（45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、固定hash一致）と固定1,111日次軸を再現した。input manifest、source snapshot/hash、seed=20260923、凍結TSE休日根拠をprice read前に保存した。pytest 14件、Ruff、mypyはすべてexit code 0、実行・会計監査もPASSであった。A/B（競合）とB/C（一致）の経路・side・予定/実約定時刻・1tick PnL一致、A/F反対side、A/A2/A3/A_delayのevent/side一致、翌足entry、固定exit、遅延非延長、1日1取引、`Net=Gross-fees`、slippage非二重控除を全件検査した。OOS/Final Holdout、raw、現物・外部価格、出来高はアクセスしていない。品質上限は **PASS_LIMITED**。
+
+|条件|取引|Gross円|手数料円|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|---:|---:|
+|A: 競合`sign(rC)`|499|-419,000|29,940|-448,940|0.840|-899.68|
+|B: 全有効`sign(rC)`|1,005|-953,500|60,300|-1,013,800|0.830|-1,008.76|
+|C: 一致`sign(rC)`|506|-534,500|30,360|-564,860|0.820|-1,116.32|
+|D: 競合固定buy|499|-562,000|29,940|-591,940|0.790|-1,186.25|
+|E: 競合固定sell|499|-436,000|29,940|-465,940|0.830|-933.75|
+|F: 競合`sign(rP)`|499|-579,000|29,940|-608,940|0.790|-1,220.32|
+|A2: 2tick/side|499|-918,000|29,940|-947,940|0.690|-1,899.68|
+|A3: 3tick/side|499|-1,417,000|29,940|-1,446,940|0.570|-2,899.68|
+|A_delay: 09:06 entry|499|-338,000|29,940|-367,940|0.860|-737.35|
+
+情報量gateは全て充足した。競合rC上/下=259/240、一致rC上/下=262/244で、各70以上。20 trade_date非循環moving-block bootstrap（10,000回、共通index、末尾切詰め、linear percentile）の95%CIは、A日次平均 `[-916.42, +194.13]`、A−B条件付き期待値 `[-694.62, +1,116.10]`、A−C `[-1,361.84, +2,209.93]`、A−D `[-663.37, +1,027.90]`、A−E `[-587.76, +638.16]`、A−F `[-887.49, +1,341.18]` 円。固定OLSは1,005件、10列・rank 10で識別され、競合係数β=+129.12円、CI `[-1,490.04, +2,120.13]` だった。したがって全CI下限>0は満たさない。
+
+Aの年次Netは2021=-219,360円、2022=+187,100円、2023=-209,420円、2024=-256,700円、2025年1--6月=+49,440円で、2021--24の正年は1/4。正月は21/54、top5/top10利益取引除去後Netは-668,640/-841,840円。AのGrossを事前固定した時刻分解は09:05--09:30=-56,500円、09:30--10:05=-362,500円で、合計=-419,000円（全499件で分解可能）である。
+
+よって、情報量は十分だがA Net<0、PF<1、A日次・全比較・βのCI下限、A2/A3/A_delay期待値、年/月の安定性、利益集中度の固定必要条件が未達で **R043-Q001=REJECT**。本REJECTを救済する二窓、方向、entry/exit時刻、保有時間、OLS形、事後filter、WFA、OOS、Final Holdoutは実施しない。
+
+## R042-Q003: night終値方向側端部受容の08:46--09:46追随 — REJECT
+
+正式成果物は `results/research/r042-q003-20260914-night-terminal-continuous-range-03/`。Q002はrolling RN/ON診断の有効50件要件を一度も満たさず全条件0取引だったため、Q003はnight状態、端部等号、08:46--09:46、費用、条件A--Fを変えず、rolling QM／レンジ層だけを取り除き、全eligible nightの連続RN/ON OLSで交絡を調整した。`…-01`（Gross時刻分解監査式の符号）、`…-02`（bootstrap内z再中心化）は不変BLOCKED記録であり、`…-03`だけを判断に使う。
+
+R004隔離は45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、hash一致。固定day軸1,111日、品質上限は **PASS_LIMITED**。pytest 16件、Ruff、mypy、実行・会計auditはPASSで、端部ではA/B、非端部ではB/Cの経路と1tick損益が一致し、A/Fは反対side、A/A2/A3/A_delay/A_tseはevent・side・固定exitが一致した。全取引は`Net=Gross-fees`、slippage二重控除なし、08:46/08:47/09:00 entryと09:46 exit、最大1ポジションを満たす。入力はDevelopment正規化Parquetだけで、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDである。
+
+|条件|取引|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|
+|A_terminal|486|-553,660|0.820|-1,139.22|
+|B_all|853|-1,022,180|0.808|-1,198.34|
+|C_nonterminal|367|-468,520|0.790|-1,276.62|
+|D_buy / E_sell / F_reverse|486 each|-928,660 / -101,660 / -476,660|0.717 / 0.964 / 0.843|-1,910.82 / -209.18 / -980.78|
+|A2 / A3 / A_delay / A_tse|486 each|-1,039,660 / -1,525,660 / -623,160 / -552,660|0.690 / 0.580 / 0.798 / 0.812|-2,139.22 / -3,139.22 / -1,282.22 / -1,137.16|
+
+端部long/shortは311/175、非端部long/shortは162/205であり、全情報量gateを充足した。連続調整OLSは853件、design 9列・rank 9、`mean(z)=-4.538457`、β=+347.53円、95%CI `[-1,917.81, +2,484.32]`。bootstrapのA日次平均CIは`[-1,138.94, +108.65]`、A−B `[-853.21, +870.84]`、A−C `[-1,947.72, +2,050.41]`、A−buy `[-295.25, +1,018.90]`、A−sell `[-1,308.73, +374.46]`、A−reverse `[-1,352.84, +1,144.08]`円である。Aは2021--2024で正年1年、正の月21/54、top5/top10利益取引除去後Net=-750,360/-917,060円だった。
+
+情報量は足りるが、A Net<0、PF<1、全CI下限、A2/A3/A_delay/A_tseの期待値、正年数、正月数、top10除去後Netが固定基準を満たさない。従って **R042-Q003 = REJECT**。端部閾値、night完全性、時刻、保有時間、回帰形の救済探索、WFA、OOS、Final Holdoutは実施しない。
+
+## R038-Q001: 現物昼休み極端変化の後場再開追随 — INCONCLUSIVE（Development一次評価）
+
+正式成果物は `results/research/r038-q001-20260914-tse-lunch-extreme-follow-04/`。`…-01`は非極端群の層別trade集計不備、`…-02`はbootstrap／判定前の中断、`…-03`はDevelopment price access前の中断で判断に用いない不変記録である。`…-04`は売買規則・入力・費用・seedを変えず、直前にPASSした同一静的gateを再実行しないことを成果物に明記して完走した。R020は反転・120分結合窓・60分保有、R029は12:30後5分確認であり、R038のL/P独立60予定TSE営業日・75% nearest-rank・strict極端・30分固定保有と同一ではない。価格統計前に事前登録、入力manifest、source snapshot、設定、seed=20260916を保存した。入力はDevelopmentの選択済み正規化Parquetだけであり、raw、出来高、現物/外部価格、OOS、Final Holdoutにはアクセスしていない。
+
+R004固定隔離は45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、hash `2974bec…3213`で一致した。品質上限は **PASS_LIMITED**。pytest 14件、Ruff、mypy、実行・会計auditはPASSで、台帳の追加照合でも極端LのA/B、非極端LのB/Cのside・entry・exit、A/F反対side、A/A2/A3/A_delayのevent/side、A_delayのexit非延長、A/Gの予定時刻が全件一致した。
+
+L=11:30--12:29の `close-open`、P=10:30--11:29の独立placeboを、各対象日前の直前60予定TSE営業日だけで判定した。欠損・隔離・zeroを古い日で補充せず、有効nonzero returnが50以上のときだけ昇順 `ceil(.75*n)` のstrict極端を採用した。A--Fは12:30 open→13:00 open、Gは11:30 open→12:00 open、片道1 tick+30円（A2/A3は2/3 tick）で再約定した。
+
+共通軸に0円見送りを残した結果、B=957、A=214、C=743、G=245取引だった。AはNet -165,340円、PF 0.776、期待値 -772.62円/取引（A2 -1,772.62、A3 -2,772.62、A_delay -1,104.39）であった。bootstrapのA日次平均95%CIは[-397.69, 94.13]円、A-C条件付き差は[-1,334.36, 1,109.59]円、A-G条件付き差は[-1,808.20, 1,427.47]円である。A-B差は正であったが、他の事前固定条件を救済しない。
+
+固定情報量gateはA<300、G<300、およびLの4群すべて>=100を満たさないため、規約どおり **R038-Q001=INCONCLUSIVE** とする。損益・CI・頑健性の未達をREJECTへ繰り上げず、rolling日数、分位点、時刻、方向、保有時間の変更、WFA、OOS、Final Holdoutは実施しない。
+
+## R035-Q001: 同時計5分shock後15分fade — INCONCLUSIVE（Development一次評価）
+
+正式完了成果物は `results/research/r035-q001-20260914-same-clock-5m-shock-fade-02/`。`…-01`は事前登録・入力manifest・合成/静的gateとR004隔離preflightの後、executorの30秒プロセス枠で停止した不変記録であり、condition event/orders/fills/trades/PnL/bootstrap/判定を含まない。`…-02`は同一の固定仕様を価格統計前に再登録して完走した。R007は同一session内の直近60本1分変化に対する局所shockであり、直前60予定TSE営業日の同時計5分分布、strict上位10%、最初のevent、15分保有を併せ持つ本規則とは同等でない。
+
+公式TSE営業日のday通常時間で、09:30--11:20および12:35--14:25開始の46個の非重複5分区間を固定した。各区間の `r=5本目close-1本目open` を、そのdayを含めない直前60予定TSE営業日の同時計区間と比較し、有効な`|r|`が50以上のときだけ `U=ceil(0.90*n)` 順序統計を使った。`r!=0`かつ`|r|>U`の最初のshockだけを採用し、A=逆張り、B=同方向、C=常時買い、D=常時売りを同eventで比較した。5本目確定後の次適格始値EからE+15分始値Xへ固定保有し、A2/A3は片道2/3 tick、A_delayは1本遅延・X非延長である。追加filter、Stop/Target、救済探索、WFA、OOS、Final Holdoutは実施していない。
+
+R004固定隔離は45 session/27,345 bar除外、残存2,216 session/1,326,086 bar、hash `2974bec…3213`で一致した。TSE予定日とday隔離から定めた共通1,079 trade_date軸に無取引を0円で保存した。pytest 14件、Ruff、mypy、全条件のevent時刻共有、A/Bの完全反対side、A/A2/A3/A_delayのevent/side一致、翌足entry、15分固定exit、最大1ポジション、`Net=Gross-fees`、slippage非二重控除はPASSである。入力はDevelopment正規化Parquetのみで、raw・出来高・外部価格・OOS・Final Holdoutは未アクセス、品質上限は **PASS_LIMITED**。
+
+|条件|取引|Gross円|手数料円|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|---:|---:|
+|A: fade|884|-993,000|53,040|-1,046,040|0.582|-1,183.30|
+|A2: fade、2 tick/片道|884|-1,877,000|53,040|-1,930,040|0.370|-2,183.30|
+|A3: fade、3 tick/片道|884|-2,761,000|53,040|-2,814,040|0.237|-3,183.30|
+|A_delay: fade、1本遅延|884|-1,014,000|53,040|-1,067,040|0.565|-1,207.06|
+
+20 trade_date非循環moving-block bootstrap（10,000回、seed=20260914、共通index、末尾切詰め、linear percentile）の95%区間（円/trade_date）は、A `[-1,346.21, -543.48]`、A−B `[-928.64, +658.02]`、A−C `[-485.63, +415.22]`、A−D `[-584.82, +383.69]`。上/下shockは402/482、午前/午後は771/113で要件を満たしたが、4群では上shock×午後が **49** 件で固定最低50件に1件不足した（他はup×morning=353、down×morning=418、down×afternoon=64）。
+
+よって固定情報量gate不成立により **R035-Q001=INCONCLUSIVE** である。A Net/PF、Aと比較のCI下限、A2/A3/A_delay、年・月、上位10利益取引除去後Netも通過していないが、情報不足をREJECTへ繰り上げない。rolling日数、分位点、時計区間、最初のevent、方向、15分保有を変更せず、OOS・Final Holdoutも開かない。
+
+## R034-Q001: day開始30分rangeの固定15分後rejection fade — REJECT（Development一次評価）
+
+正式成果物は `results/research/r034-q001-20260914-opening-range-fixed15-rejection-05/`。`…-01`はDevelopment入力前の実行枠中断、`…-02`はpreflight/条件台帳後の実行枠中断、`…-03`は監査の`date`/ISO比較不備で停止、`…-04`は指定合成gateの明示化前の完走記録であり、いずれも判断に使わない。`…-05`だけが固定仕様と合成・実行gateを満たす完走記録である。R004は5分以内の最初のrange再入とStop/Targetを持つ別規則、R033は圧縮breakout追随であり、同等仕様ではない。
+
+予定day開始30本でH/Lを確定し、31--90本目の最初のstrict close breakoutをb、固定b+15のcloseをkとした。上方`close_k<=H`／下方`close_k>=L`（反対側通過を含む）だけをrejectionとし、Aはそのbreakout逆方向へfadeした。k確定後の次適格始値EからE+60分始値Xへ固定保有し、片道1 tick+30円で再約定した。R004隔離は45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、hash `2974bec…3213`で一致。1,111の固定day軸を使い、品質上限は **PASS_LIMITED**。Development正規化Parquetのみを読み、raw・出来高・外部価格・OOS・Final Holdoutは未アクセスである。
+
+|条件|取引|Gross円|手数料円|Net円|期待値円/取引|PF|
+|---|---:|---:|---:|---:|---:|---:|
+|A rejection fade|387|-287,000|23,220|-310,220|-801.60|0.827|
+|B_all 全event fade|943|-1,055,000|56,580|-1,111,580|-1,178.77|0.757|
+|C_persistent fade|556|-768,000|33,360|-801,360|-1,441.29|0.711|
+|D buy|387|-396,000|23,220|-419,220|-1,083.26|0.774|
+|E sell|387|-378,000|23,220|-401,220|-1,036.74|0.781|
+|F breakout追随|387|-487,000|23,220|-510,220|-1,318.40|0.731|
+|A2 / A3 / A_delay|各387|-674,000 / -1,061,000 / -308,500|各23,220|-697,220 / -1,084,220 / -331,720|-1,801.60 / -2,801.60 / -857.16|0.654 / 0.517 / 0.816|
+
+情報量gateは充足した。4群はrejection上/下=198/189、persistent上/下=274/282で、全てfillした。20 trade_date非循環moving-block bootstrap 10,000回（seed=20260914、共通index、末尾切詰め、linear percentile）の95%CIは、A日次平均 `[-642.81, 84.01]`、A−B_all `[213.61, 1,176.17]`、A−D `[-458.17, 705.67]`、A−E `[-478.85, 626.49]`、A−F `[-549.05, 918.09]` 円/day、A−C条件付き期待値差 `[-773.56, 2,002.36]` 円/tradeである。Aの年別Netは2021--2024で-11,240/-79,360/-116,500/-78,600円、正月21/54、top10利益取引除去後Netは-613,620円だった。
+
+合成17件、Ruff、mypyはPASS。旧新制度時期、calendar_date/trade_date、30本range、上下breakout、探索窓端、kのstrict/equality/反対側、欠損・隔離・Development外、prefix、翌足entry、E+60固定exit、遅延非延長、Holdout拒否を確認した。実行監査はrejectionでA/B_all、persistenceでB_all/C_persistentのsignal・side・時刻・1 tick損益一致、A/A2/A3/A_delayのevent/side一致、最大1ポジション、`Net=Gross-fees`、slippage非二重控除を全件PASSした。
+
+情報量は足りたが、A Net/PF、A日次平均とA−D/E/FおよびA−CのCI下限、A2/A3/A_delay、年別、正月、集中度が固定条件を満たさないため **R034-Q001=REJECT**。range、探索/判定/保有時間、方向、費用、遅延の救済探索、Stop/Target、WFA、OOS、Final Holdoutは実施しない。
+
+## R033-Q001: day開始30分レンジ圧縮後の最初のbreakout追随 — REJECT（Development一次評価）
+
+正式成果物は `results/research/r033-q001-20260914-opening-range-compression-breakout-06/`。R008は同一session内3×30分レンジで開始後90分以降の30分保有、R003は中央値比の未実行設計であり、本件の直前20予定day開始30分レンジの5番目順序統計、開始31--90分の最初の終値breakout、60分保有とは同等でない。`…-01`--`…-04`は静的／preflight gateで、`…-05`はbucket・bootstrap集計監査で停止した不変記録であり、判断に使わない。`…-06`だけが固定仕様を満たす完走記録である。
+
+予定day 1,131日をrolling参照軸、R004 day隔離後の1,111日を取引・日次軸に固定した。R004は45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、hash `2974bec…3213`で一致し、Developmentの選択済み正規化Parquetだけを読んだ。raw、出来高、外部価格、OOS、Final Holdoutは未アクセスで、品質上限は **PASS_LIMITED** である。
+
+|条件|取引|Net円|期待値円/取引|PF|
+|---|---:|---:|---:|---:|
+|A 圧縮breakout追随|248|-182,380|-735.40|0.828|
+|B_all 全breakout追随|823|-469,880|-570.94|0.878|
+|C 非圧縮breakout追随|575|-287,500|-500.00|0.897|
+|D A-event常時buy|248|-155,380|-626.53|0.850|
+|E A-event常時sell|248|-370,380|-1,493.47|0.685|
+|F A-event反転|248|-343,380|-1,384.60|0.708|
+|A2/A3/A_delay|各248|-430,380 / -678,380 / -215,380|-1,735.40 / -2,735.40 / -868.47|0.642 / 0.490 / 0.798|
+
+A long/shortは127/121、C long/shortは283/292で情報量gateを満たす。圧縮long/shortのA Netは-40,620円/-141,760円、非圧縮long/shortのC Netは-315,980円/+28,480円。15分bucketを含む4群分解はB_allのevent台帳に保存した。Aの年別Netは2021 +14,860円、2022 +18,360円、2023 -147,140円、2024 -1,980円、2025年1--6月 -66,480円で、正月24/54、top5/top10利益除去後Netは-327,080円/-419,780円だった。
+
+20 trade_date非循環moving-block bootstrap（10,000回、seed=20260914、共通index、末尾切詰め、linear percentile）の95%区間（円/日またはA-Cは円/取引）は、A日次平均 `[-513.13, 126.27]`、A-D `[-427.54, 387.04]`、A-E `[-278.15, 504.95]`、A-F `[-537.38, 732.67]`、A-C条件付き期待値差 `[-2,015.82, 1,353.67]`。実行・会計監査はPASSし、圧縮eventのA/Bはsignal・side・予定／実際時刻・1tick損益が一致、非圧縮eventはAが見送りB/Cが一致、A2/A3/A_delayのevent・sideがAと一致、全tradeで`Net=Gross-fees`だった。
+
+情報量は足りたが、A Net/PF、A日次平均と全対照差CI下限、A-C差CI下限、A2/A3/A_delay、年別、正月、集中度が固定条件を満たさないため **R033-Q001=REJECT**。方向、rolling日数、閾値、range、探索／保有窓、費用、遅延の救済探索、WFA、OOS、Final Holdoutは実施しない。
+
+## R032-Q001: 直前day終値からnight開始gapの5分確認追随 — REJECT（Development一次評価）
+
+正式成果物は `results/research/r032-q001-20260914-prior-day-night-gap-confirmation-02/`。`…-01` は C_nonconfirm が確認eventにも発注するランナー不備を全台帳照合で発見した無効記録で、判断には使用していない。`…-02` は C を事前登録どおり非確認eventだけに限定して再登録・完走した。R004隔離は45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、hash `2974bec…3213`で一致。Development正規化Parquetだけを読み、raw・出来高・外部価格・OOS・Final Holdoutにはアクセスしていない。品質上限は **PASS_LIMITED**、対象night共通軸は1,105日である。
+
+予定表で実時間上の直前dayだけを参照し、day最終通常足終値`C_D`、night開始`O_N`、5本目終値`C_5`から`G=O_N-C_D`、`Q=C_5-O_N`を計算した。G/Q非zeroの962基礎event中、確認487（long/short=253/234）、非確認475。4符号群G−Q−/G−Q+/G+Q−/G+Q+=234/209/266/253で、全群100以上である。5本目確定後の6本目始値entryから固定60分後始値exit、片道1 tick+30円（A2のみ2 tick）を既存engineで約定した。
+
+|条件|取引|Gross円|手数料円|Net円|期待値円/取引|PF|
+|---|---:|---:|---:|---:|---:|---:|
+|A: 確認`sign(G)`|487|-235,500|29,220|-264,720|-543.57|0.829|
+|B_all: 全基礎`sign(G)`|962|-447,500|57,720|-505,220|-525.18|—|
+|C_nonconfirm|475|-212,000|28,500|-240,500|-506.32|—|
+|D_buy|487|-395,500|29,220|-424,720|-872.11|—|
+|E_sell|487|-578,500|29,220|-607,720|-1,247.89|—|
+|F_reverse|487|-738,500|29,220|-767,720|-1,576.43|—|
+|A2: A、2 tick/片道|487|-722,500|29,220|-751,720|-1,543.57|0.590|
+
+20日非循環moving-block bootstrap（10,000回、seed=20260913、共通index、末尾切詰め、linear percentile）の95%区間（円/対象night）は、A `[-632.90, 196.32]`、A−B_all `[-107.28, 555.97]`、A−D `[-386.43, 665.16]`、A−E `[-123.98, 852.49]`、A−F `[-314.93, 1,315.86]`。確認−非確認の`sign(G)`方向0tick Gross平均差は-10.41円、95%CI `[-386.00, 412.23]`である（確認516.43円/取引、非確認553.68円/取引）。Aの正の月は26/54、上位5/10利益取引除去後Netは-439,420円/-538,620円。
+
+合成・実行・会計gateはPASS。day→night対応、週末・制度変更、calendar_date/trade_date、最終通常day足、最初の5 night足、G/Qのzero・4符号群・反実例・prefix、隔離/欠損/期間拒否、翌足entry、固定exit、遅延非延長、A/A2一致、最大1ポジション、費用とslippage非二重控除、Holdout拒否を検査した。確認eventでA/B_allのside・予定/実時刻・1tick PnLは全件一致し、非確認eventでAは無注文、B_all/C_nonconfirmは同一取引、C_nonconfirmは確認eventに無取引である。
+
+情報量gateは全て充足したが、A Net/PF、Aと全比較のCI下限、A2、確認−非確認0tick識別量、正の月、集中度が固定条件を満たさないため **R032-Q001=REJECT**。本結果からgap、確認窓、方向、60分保有、閾値を救済探索せず、3 tick、手数料増、追加遅延、WFA、OOS、Final Holdoutも実施しない。
+
 ## R030-Q001: 現物大引け直前5分の先物方向に対する大引け後10分反転 — REJECT（Development一次評価）
 
 正式完了成果物は `results/research/r030-q001-20260914-tse-cash-close-reversal-02/`。`…-01` は事前登録・manifest・合成検証・preflight後に、condition選択実装がA処理時にもplacebo専用`G_direction`を評価して `KeyError` で停止した不変成果物である。condition台帳・PnL・bootstrap・判定は保存していない。`…-02` はそのeager evaluationだけを分岐へ修正し、仮説、窓、方向、時刻、費用、入力境界、seed、判定基準を変更せず再登録・完走した。`preregistration.json`、`input_manifest.json`、`campaign_manifest.json`、実装zipに、価格統計・event・PnL前の仕様、input hash `8ab6b03c…677268d`、source hash `f881c6a9…55d6bf7`、plan hash `70fc01af…0d5f3c`、seed=20260913を保存した。
@@ -24,6 +184,30 @@ Aの0tick診断Grossは-42,500円であり、判定には用いない。AのP符
 合成15件、Ruff、mypyは通過した。旧新T、休日、JST/trade_date、P/P0の正負・zero・欠損・隔離・期間外、main/placebo独立性、T以後OHLC変更に対するprefix不変性、翌足entry、固定exit、遅延非延長、cutoff/force-flat順序、最大1ポジション、会計、Holdout拒否を検査した。実行台帳ではA/B/C/D各979、G 940のeligible eventが全件fill、取消0、entry/exit遅延0、signal exitのみで、A/B/C/Dのmain event集合一致、A/A2の事前event・方向・時刻一致、全取引の`Net=Gross-fees`を確認した。
 
 情報量ゲート（各main条件>=700、G>=700、A long/short>=250、両T制度>=100）は通過したが、A Net、PF、A/A2、全bootstrap下限、両制度Net、正の月数、集中度の固定必要条件が未達のため **REJECT**。本結果に基づく窓、方向、placebo、保有時間、費用、遅延の救済探索、WFA、OOS、Final Holdoutは実行しない。次の実験はこのREJECTを救済する変更ではなく、Plannerが別の未重複仮説を事前登録した場合に限る。
+
+## R031-Q001: 完了night全体方向の09:00--09:04確認後追随 — REJECT（Development一次評価）
+
+正式成果物は `results/research/r031-q001-20260914-night-total-cash-open-confirmation-01/`。価格統計、event、PnLより前に、固有の仮説・固定規則・全入力manifest hash・source snapshot/hash・seed=20260913・凍結済みTSE営業日証拠を保存した。R024は08:45--08:59の短期方向、R026/R027はnight極値、R006はnight終値から08:45までのgapであり、完了済みnight全体のopen-to-final-normal-close方向`S`と09:00--09:04方向`Q`の同符号だけを09:05--10:05に追随する今回と同等ではない。
+
+TSE営業日だけを対象にし、同一trade_dateの予定nightをscheduleから一つだけ選択した。nightの予定通常開始から最終通常1分足まで全足を連続適格に要求し、`S=close_final-open_first`、09:00--09:04の連続5本から`Q=close_09:04-open_09:00`を作った。両方非zeroが基礎event、同符号が確認eventである。A=確認eventの`sign(S)`、B_night=全基礎eventの`sign(S)`、C_cash=全基礎eventの`sign(Q)`、D/E/F=確認eventの常時買い／常時売り／`-sign(S)`、A2=Aの片道2tick再約定とした。片道1tick+30円を基本とし、09:04確定後の09:05始値entryから10:05始値固定exitで、遅延時もexitを延長していない。
+
+R004隔離を45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、hash `2974bec…3213`で再現した。入力はDevelopment正規化Parquetだけ、固定1,111日中trade_date軸であり、raw、出来高、現物・外部価格、OOS、Final Holdoutにはアクセスしていない。品質上限は **PASS_LIMITED**。合成13件、Ruff、mypyはPASSし、night→day対応、休日・制度、calendar_date/trade_date、night全予定足、S/Qのzero/4符号群・独立反実例、欠損／隔離、09:04因果性、prefix、翌足entry、10:05固定exit、遅延非延長、会計・Holdout拒否を検査した。
+
+|条件|取引|Gross円|手数料円|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|---:|---:|
+|A: 確認`sign(S)`|406|-534,000|24,360|-558,360|0.760|-1,375.27|
+|B_night: 全基礎`sign(S)`|816|-1,323,000|48,960|-1,371,960|0.720|-1,681.32|
+|C_cash: 全基礎`sign(Q)`|816|-565,000|48,960|-613,960|0.860|-752.40|
+|D_buy|406|-647,000|24,360|-671,360|0.720|-1,653.60|
+|E_sell|406|-165,000|24,360|-189,360|0.910|-466.40|
+|F_reverse|406|-278,000|24,360|-302,360|0.860|-744.73|
+|A2: A、2 tick/片道|406|-940,000|24,360|-964,360|0.625|-2,375.27|
+
+情報量は充足した。A long/short=245/161、非確認410、S−Q−/S−Q+/S+Q−/S+Q+=161/201/209/245で、全群100以上である。20 trade_date非循環moving-block bootstrap（10,000回、seed=20260913、共通index、末尾切詰め、linear percentile）の95%区間（円/trade_date）は、A `[-1,095.57, -2.57]`、A−B_night `[188.33, 1,246.03]`、A−C_cash `[-458.63, 598.13]`、A−D_buy `[-603.96, 758.78]`、A−E_sell `[-1,094.53, 277.25]`、A−F_reverse `[-1,396.98, 757.94]`。Aは正の月26/54、上位10利益取引除去後Net=-900,260円だった。A2期待値も負である。
+
+経路・会計監査はPASS。確認eventでA/B_night/C_cashのsignal、side、予定/実時刻、1tick PnLが完全一致し、非確認eventではAは発注せずB_night/C_cashは反対sideで全件取引、A−B/A−C日次差は各非確認control損益の符号反転と一致した。0tick Gross期待値は非確認B_nightで-924.39円/取引、C_cashで+924.39円/取引であり、両方負という確認固有の識別条件は満たさない。
+
+したがって、A Net/PF、AとB以外の差のCI下限、A2、正の月、集中度、C_cash非確認0tick診断が不合格で **R031-Q001=REJECT**。night定義、確認窓、方向、60分保有、閾値の救済探索、追加費用・遅延、WFA、OOS、Final Holdoutは実施しない。
 
 ## R021-Q001: 現物寄付き直後の先物方向による現物終了前30分の追随 — REJECT（Development一次評価）
 
@@ -991,3 +1175,130 @@ R004固定隔離は45 session/27,345 bar除外、2,216 session/1,326,086 bar残�
 4符号群の基礎eventはP−/Q−=248、P−/Q+=207、P+/Q−=245、P+/Q+=243で、全情報量gateを満たした。A long/shortは243/248、正の月は15/54、上位5/10利益取引除去後Netは-578,660/-662,860円だった。20日非循環moving-block bootstrap 10,000回（seed=20260913、共通index、末尾切詰め、linear percentile）の95%区間はA `[-640.81, -143.77]`、A-B_all `[+213.56, +605.07]`、A-C_buy `[-281.75, +526.55]`、A-D_sell `[-315.95, +385.26]`、A-F_reverse `[-339.33, +657.09]` 円/trade_dateである。B_all非確認452件の0tick Gross期待値は **+75.22円/取引**で、負raw returnを回避するという確認固有の識別条件も満たさない。
 
 情報量は充足したが、A Net、PF、Aと3対照差の区間下限、A2期待値、正月数、上位10除去後Net、nonconfirmed 0tick診断が未達である。固定判定により **R029-Q001 = REJECT**。昼休み窓、5分確認、方向、13:00 exit、閾値救済、追加費用・遅延、WFA、OOS、Final Holdoutは実施しない。2025年は1--6月の部分集計であり、独立再現やWFAと称さない。
+# R037-Q001: day開始30分経路効率の直後60分追随（Development一次評価、INCONCLUSIVE）
+
+正式成果物は `results/research/r037-q001-20260914-opening-path-efficiency-02/`。`…-01` は値幅層の高効率eventが空の場合にΔM bootstrapへ0を代入する集計不備を監査で検出したため、判断には用いない不変成果物として残した。`…-02` は取引規則・入力・費用・seed・判定基準を変えず、空層時のΔMを未推定として扱う集計訂正だけを価格統計の再取得前に登録した。R033の30分range圧縮後breakoutとは、状態量、参照窓、event時点、方向規則が異なり、R001--R036に同等登録はなかった。
+
+R004隔離は parent hash `f6c267…a7db0`、45 session／27,345 bar除外、2,216 session／1,326,086 bar残存、一覧hash `2974bec…3213` を再現した。品質上限は **PASS_LIMITED**。入力manifest hashは `77f5b839…3296f`、source hashは `44d1d2ed…7724`、seed=20260915である。物理I/OはDevelopment正規化Parquetのみで、OOSは未評価、Final Holdoutは未アクセスである。合成pytest 15件、Ruff、mypyがPASSした。制度時期とcalendar_date/trade_date、最初の連続30本、p0--p30、D/V、zero、直前60予定day・50有効日・遡及補充禁止、nearest-rank、同値、交差積、値幅層、欠損／隔離／期間外、prefix、翌足entry、固定exit、非延長delay、会計、holdout lockを検査した。
+
+実行・会計監査はPASS。高効率259件ではA/B_all、非高効率750件ではB_all/C_noneffのsignal・side・予定／実時刻・1tick損益が全件一致した。A/F_reverseは完全に逆side、A/A2/A3/A_delayはeventとsideが一致し、全取引はsignal exit、最大1ポジション、`Net=Gross-fees`、slippage二重控除なしだった。
+
+|条件|取引|Gross円|手数料円|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|---:|---:|
+|A_eff|259|-211,000|15,540|-226,540|0.838|-874.67|
+|B_all|1,009|-1,042,500|60,540|-1,103,040|0.802|-1,093.20|
+|C_noneff|750|-831,500|45,000|-876,500|0.791|-1,168.67|
+|D_buy|259|-603,000|15,540|-618,540|0.607|-2,388.19|
+|E_sell|259|85,000|15,540|69,460|1.064|268.19|
+|F_reverse|259|-307,000|15,540|-322,540|0.776|-1,245.33|
+|A2 / A3 / A_delay|259 each|-470,000 / -729,000 / -387,000|15,540 each|-485,540 / -744,540 / -402,540|0.687 / 0.563 / 0.728|-1,874.67 / -2,874.67 / -1,554.21|
+
+20 trade_date非循環moving-block bootstrap 10,000回のCIは、A日次平均 `[-570.59, +150.32]`、A−buy `[-181.84, +913.61]`、A−sell `[-745.30, +176.44]`、A−reverse `[-634.61, +798.38]`、高効率−非高効率の条件付きNet期待値差 `[-1,623.67, +2,233.43]` 円である。Aは2021--2024で正年1年だけ、正月19/54、top10利益取引除去後Net=-570,440円だった。
+
+情報量はB_all=1,009、A=259（long/short=127/132）、C_noneff=750、および高／非高×方向4群（127/132/360/390）を満たした。しかし値幅層は高効率が第1・第2層とも0件、非高効率第4層が53<60で、事前固定のΔM識別gateを満たさない。したがってΔMは未推定（0による代入なし）であり、固定判定により **R037-Q001 = INCONCLUSIVE**。負のA成績をREJECTへ繰り上げず、仕様変更、救済探索、WFA、OOS、Final Holdoutは実施しない。
+
+## R040-Q001 / Decision: INCONCLUSIVE
+
+正式成果物は `results/research/r040-q001-20260914-prior-day-range-compression-acceptance-01/`。R001--R039との重複照合、入力manifest（hash `8ab6b03c6db997aadbb1dbd48f8bdfcfd2cb5a09f48897b7348e2fb7c677268d`）、source snapshot、価格統計前の仕様、合成gateを保存してから、Development `2021-01-01..2025-06-30` のみを実行した。R004隔離は45 session/27,345 barsを除外、2,216 session/1,326,086 barsを残す既定hashと一致し、固定target day軸は1,111日、品質上限はPASS_LIMITEDだった。pytest 13件、Ruff、mypyは全てPASSし、OOSとFinal Holdoutは未読である。
+
+| 条件 | 取引数 | Net (円) | PF | 期待値/取引 (円) |
+|---|---:|---:|---:|---:|
+| A_compressed | 55 | -155,800 | 0.474 | -2,832.73 |
+| B_all | 202 | -631,120 | 0.544 | -3,124.36 |
+| C_noncompressed | 147 | -475,320 | 0.562 | -3,233.47 |
+| A2 / A3 / A_delay | 55 each | -210,800 / -265,800 / -157,300 | 0.356 / 0.276 / 0.446 | -3,832.73 / -4,832.73 / -2,860.00 |
+
+圧縮×方向のaccepted/取引はlong 27/27、short 28/28、非圧縮はlong 68/68、short 79/79である。よって情報量gateはB>=400、A>=100、A上下各>=35、C>=250、4群各>=35の全てを満たさない。Aの日次平均の20日非循環moving-block bootstrap 95%CIは `[-280.60, -11.86]` 円、A−B条件付き期待値差は `[-3,017.23, +3,600.73]`、A−Cは `[-4,095.09, +4,870.40]`、A−buy/sell/reverseの日次差はそれぞれ `[-250.25, +108.91]`、`[-348.36, +90.01]`、`[-453.65, +89.11]` 円だった。全実行・会計監査（共通event/path、A/F反対side、翌足entry、60分fixed exit、遅延非延長、最大1ポジション、Net=Gross-fees、slippage非二重控除）はPASSした。
+
+情報量が事前固定gateを満たさないため、負のA成績であっても固定判定は **INCONCLUSIVE** である。救済的な窓・分位点・受容・方向・保有時間変更、WFA、OOS、Final Holdoutは実施しない。
+## R044-Q001: TSE現物終了前25分／最終5分競合の終了後10分逆張り — REJECT
+
+正式成果物は `results/research/r044-q001-20260914-tse-close-conflict-reversal-01/`。R001--R043を価格統計前に照合し、R030の全最終5分反転とは異なり、本件だけが予定TSE引けの25分対5分符号競合、一致日対照、all／固定方向／追随対照、60分前の同型競合placebo、および固定連続変化幅OLSを同時に持つことを保存した。入力manifest、source snapshot/hash、seed=20260924、凍結済みTSE休日・時刻証跡、全仕様は価格読込み前に保存した。
+
+予定TSE終了 `tC`（15:00から15:30への制度変更を版管理予定表から取得）について、`rP=close(tC-6)-open(tC-30)` の連続25本と、`rL=close(tC-1)-open(tC-5)` の連続5本を使用した。いずれもnonzeroかつ適格なら、異符号を競合、同符号を一致とした。Aは競合日に `-sign(rL)`、Bは全有効日、Cは一致日、D/EはA event固定long/short、FはA event `sign(rL)`、Gは `tC-60` の同型競合日に `-sign(rLB)` とした。A--FはtC始値entry、tC+10始値exitで、A2/A3は片道2/3 tick、A_delayはtC+1 entryかつexit非延長である。費用は片道1 tick＋30円である。
+
+R004隔離（45 session／27,345 bar除外、2,216 session／1,326,086 bar残存、固定hash一致）、固定1,111日軸、品質上限PASS_LIMITEDを再現した。合成pytest 13件、Ruff、mypyはPASSし、実行・会計監査もPASSした。競合ではA/B、一致ではB/Cのevent・side・予定／実時刻・1 tick PnLが一致し、A/Fは反対side、A/A2/A3/A_delayはevent・side一致、最大1ポジション、固定exit、遅延非延長、`Net=Gross-fees`、slippage二重控除なしを確認した。OOSは未評価、Final Holdoutは未アクセスである。
+
+|条件|取引|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|
+|A_close_conflict|434|-406,040|0.59|-935.58|
+|B_close_all|923|-1,001,380|0.52|-1,084.92|
+|C_close_agreement|489|-595,340|0.46|-1,217.46|
+|D_buy / E_sell / F_continue|434 each|-377,040 / -543,040 / -514,040|0.61 / 0.49 / 0.51|-868.76 / -1,251.24 / -1,184.42|
+|G_placebo_conflict|452|-510,120|0.39|-1,128.58|
+
+Aはlong/short=228/206、競合／一致×rL方向の4群は206--248、Gはlong/short=208/244で、固定情報量gateをすべて満たした。20 trade_date非循環moving-block bootstrap 10,000回の95%CIは、A日次平均 `[-528.59, -191.34]`、A−B `[-135.14, +411.70]`、A−C `[-255.59, +775.85]`、A−buy `[-222.32, +219.62]`、A−sell `[-111.61, +357.34]`、A−follow `[-216.94, +441.94]`、A−G `[-312.74, +812.28]` 円である。固定OLSの競合係数β=326.01円、CI=`[-154.65, +804.78]`だった。A2/A3/A_delayの期待値は全て負、2021--2024は正年0、正月13/54、上位10利益取引除去後Net=-533,940円である。
+
+情報量充足後にA Net<0、PF<1、Aと比較差およびβの必要CI下限、費用・遅延耐性、年・月・利益集中度の条件が未達のため、固定判定は **R044-Q001 = REJECT**。窓、placebo距離、時刻、保有時間、回帰式、Stop/Target、WFA、OOS、Final Holdoutの救済探索は行わない。
+
+## R041-Q001: night方向と09:00--09:29方向の競合後追随 — INCONCLUSIVE
+
+正式成果物は `results/research/r041-q001-20260914-night-conflict-opening-followthrough-03/`。`…-01` は条件A台帳保存直前の診断時刻参照例外、`…-02` は後から合成gateの明示ケース不足を監査した不変記録で、いずれも数値判断には使わない。`…-03`だけが、価格統計前の重複照合、input manifest/source snapshot/hash、seed=20260919、TSE休日証拠、固定仕様、補強済み合成gateを保存して完走した。R004隔離は45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、hash一致。入力はDevelopment正規化Parquetのみで、品質上限は **PASS_LIMITED**、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDである。
+
+pytest 14件、Ruff、mypyはPASS。night→day対応、calendar_date/trade_date、night通常全足、09:00--09:29の30足、rN/rOのzero・4符号・競合/一致、直前60予定TSE日・50有効・QM同値・遡及補充禁止、9:30以降改変へのprefix不変性、隔離・欠損、翌足entry、10:30固定exit、delay非延長、費用・Holdout lockを確認した。実行・会計監査もPASSし、競合でA/B、同意でB/Cの全経路一致、A/F反対side、A/A2/A3/A_delay event・side一致、最大1ポジション、`Net=Gross-fees`、slippage非二重控除を満たした。
+
+|条件|取引|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|
+|A_conflict|407|-77,420|0.955|-190.22|
+|B_all_open|794|-332,640|—|—|
+|C_agreement|387|-255,220|—|—|
+|A2 / A3 / A_delay|407 each|—|—|-1,190.22 / -2,190.22 / +61.62|
+
+20日非循環moving-block bootstrapの95%CIは、A日次平均`[-519.16, +394.18]`、A−B`[-502.06, +1,029.26]`、A−C`[-1,041.82, +2,095.35]`、A−buy`[-201.62, +1,025.20]`、A−sell`[-285.33, +791.18]`、A−night`[-250.25, +1,578.76]`、ΔM`[-1,005.13, +2,136.28]`円である。低/高×競合/一致の全4層は各188--218 eventでΔM識別量は充足したが、B_all_open=794で固定下限800に6件届かない。
+
+よって他の成績条件をREJECT判定に用いず、固定判定は **INCONCLUSIVE**。rN/rO窓、QM、方向、保有、費用、delayの救済探索、WFA、OOS、Final Holdoutは実施しない。
+## R046-Q001: OSE day開始30分方向効率と通常午前placeboの60分追随 — REJECT（Development一次評価）
+
+正式実行成果物は `results/research/r046-q001-20260914-opening-path-efficiency-placebo-01/`。R037は開始30分経路効率の先行実験だが、strict tie除外、通常午前placebo共通Eなし、q70/q80なし、別OLS診断のため同等登録ではない。R046は`e>=q`（等号を高効率）で、W0=08:45--09:14とWP=09:45--10:14を、それぞれ過去60予定TSE営業日（当日除外、遡及補充なし）の因果的nearest-rank q70/q75/q80で分類し、両窓・両閾値・09:15/10:15/11:15経路が揃う共通Eに限定した。既知Development上の追加探索であり、独立確認ではない。`…-02-audit-supplement`は親B台帳の文字列/date結合不一致で停止した不変記録である。`…-03-audit-supplement`は価格・event・execution・費用・bootstrap・OLS・判定を再実行せず、親台帳だけから要求済みのplacebo非高効率方向群とA70/A80の明示台帳を追補した。
+
+入力manifest/hash、source snapshot/hash、seed=20260926、TSE予定表根拠、設定は価格統計前に保存した。R004固定隔離は45 session/27,345 bar除外、2,216 session/1,326,086 bar残存、固定1,111日軸と一致し、品質上限はPASS_LIMITED。物理I/OはDevelopment正規化Parquetのみで、OOSは未評価、Final Holdoutは未アクセスである。
+
+共通E=975で、A=248（long/short=125/123）、B=975、C=727、G=242（long/short=131/111）、A80=214となり、全情報量gateを通過した。開始窓の高/非高×方向は125/123/344/383、placeboは131/111/345/388であり、全8群は追補成果物に保存した。実行・会計gateはPASSで、A/B（高）、B/C（非高）の1tick経路一致、A/F反対side、A/D/E同event、A/G共通E、固定exit、遅延非延長、最大1ポジション、取消・unfilled 0、`Net=Gross-fees`、slippage非二重控除を全件確認した。合成pytest 16、Ruff、mypyもPASSした。
+
+| 条件 | 取引 | Net (円) | PF | 期待値/取引 (円) |
+|---|---:|---:|---:|---:|
+| A_open_high | 248 | -133,380 | 0.90 | -537.82 |
+| B_open_all | 975 | -1,078,500 | 0.80 | -1,106.15 |
+| C_open_nonhigh | 727 | -945,120 | 0.77 | -1,300.03 |
+| D_buy | 248 | -576,380 | 0.62 | -2,324.11 |
+| E_sell | 248 | +50,620 | 1.04 | +204.11 |
+| F_reverse | 248 | -392,380 | 0.73 | -1,582.18 |
+| G_placebo_high | 242 | -73,520 | 0.93 | -303.80 |
+
+20 trade_date非循環moving-block bootstrap（10,000回、seed=20260926、linear percentile）の95% CIは、A日次平均 `[-492.22,+239.17]`、A−B `[-928.81,+2,089.79]`、A−C `[-1,248.60,+2,805.47]`、A−D `[-786.36,+4,457.40]`、A−E `[-2,882.64,+1,197.93]`、A−F `[-2,244.29,+4,237.55]`、A−G `[-2,427.79,+1,841.34]` 円である。固定pooled OLSは1,950行・12列・rank 12、増分δ=-434.37円 `[-3,221.04,+2,425.47]` であった。A70は300件、Net=-310,500円、PF=0.807、A80は214件、Net=-199,340円、PF=0.826。A2/A3/A_delayのNetは順に-381,380/-629,380/-298,380円である。Aの年Netは2021--2025で-56,640/-101,920/-18,220/+181,640/-138,240円、正月は19/54、top5/top10利益除去後Netは-342,080/-477,280円、09:15--09:30／09:30--10:15のGross分解は-146,500/+28,000円だった。
+
+情報量は十分だが、A Net<0、PF<1、A日次平均・全比較差・δのCI下限、追加費用・遅延耐性、q70/q80、年/月安定性、利益集中度の固定必要条件が未達である。よって **R046-Q001=REJECT**。このREJECTを救済する窓、閾値、時刻、方向、年、値幅filter、Stop/Target、WFA、OOS、Final Holdoutは実施しない。
+
+## R047-Q001: OSE day開始30分低レンジ圧縮後の最初の終値breakout追随 — REJECT（Development一次評価）
+
+正式成果物は `results/research/r047-q001-20260915-opening-range-compression-placebo-04/`。`…-01` と `…-02` は全条件台帳・実行会計gate後に実行ホストがbootstrap完了前に終了した不変記録であり、`…-03` は完走したが、OLSの観測行に関する事前登録文言の精密化だけを必要とした不変記録である。`…-04` は取引規則・入力・費用・seed・判定を変えず、`…-03` の事前登録文言を修正してから完走した正式成果物である。R033は20日の未正規化range、31--90分探索、60分保有であり、R046は経路効率であるため、直前60予定TSE営業日の因果的q25正規化range、09:15--09:29の最初のstrict close breakout、10:15固定exit、同型通常午前placeboを併せる本件とは同一ではない。
+
+W0=08:45--09:14 と WP=09:45--10:14 の各30本から `x=(H-L)/P0` を作り、当日を除く直前60予定TSE営業日の有効xが50以上のときnearest-rank q20/q25/q30を計算した。`x<=q` を圧縮とし、S0=09:15--09:29/SP=10:15--10:29の最初のstrict close breakoutだけを翌足entryした。A/B/C は主窓から10:15始値exit、G はplaceboから11:15始値exit、A2/A3 は片道2/3tick、A_delay はentryのみ一分追加遅延である。入力はDevelopment正規化Parquet、固定TSE予定表、R004隔離だけで、品質上限PASS_LIMITED、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDである。固定1,111日軸と隔離（45 session/27,345 bar除外、2,216 session/1,326,086 bar残存）は一致した。pytest 14、Ruff、mypy、実行・会計gate、OLS（1,103行・13列・rank 13）はPASSした。
+
+|条件|取引|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|
+|A 圧縮breakout追随|164|-229,840|0.689|-1,401.46|
+|B 全breakout追随|537|-579,220|0.790|-1,078.62|
+|C 非圧縮breakout追随|373|-349,380|0.830|-936.68|
+|D buy / E sell / F reverse|164 each|-227,840 / -119,840 / -117,840|0.689 / 0.820 / 0.820|-1,389.27 / -730.73 / -718.54|
+|G placebo圧縮breakout|170|-127,700|0.799|-751.18|
+
+共通E=1,025。Aのlong/short=85/79、主窓の圧縮/非圧縮×方向は79--187、Gのlong/short=86/84であり、全情報量gateを満たした。20日非循環moving-block bootstrap 10,000回（seed=20260927、共通index、末尾切詰め、linear percentile）の95%CIは、A日次平均 `[-454.59,-14.16]`、A-B `[-1,702.40,+870.00]`、A-C `[-2,439.45,+1,244.59]`、A-D `[-2,208.92,+2,181.86]`、A-E `[-3,069.97,+1,202.53]`、A-F `[-3,825.64,+1,913.95]`、A-G `[-2,599.19,+1,053.40]` 円である。固定OLSの圧縮増分δ=-736.73円、CI=`[-3,569.28,+1,565.34]`。A20=136件、Net=-292,660円、PF=0.549、A30=190件、Net=-259,900円、PF=0.699。A2/A3/A_delayの期待値は-2,401.46/-3,401.46/-1,517.32円であった。Aの2021--2025年Netはすべて負、正月18/54、top5/top10利益取引除去後Net=-349,540/-430,740円、09:15--09:30/09:30--10:15のGross分解は-93,000/-127,000円だった。
+
+情報量は充足したが、A Net<0・PF<1、A日次平均および全比較差・δのCI下限、費用・遅延耐性、q20/q30、年/月安定性、利益集中度の必要条件が未達である。固定判定は **R047-Q001=REJECT**。指定外の閾値・窓・buffer・exit・回帰式・事後filter・WFA・OOS・Final Holdoutは実施しない。
+## R048-Q001: OSE night終盤30分レンジのday再開失敗breakout逆張り — REJECT（Development一次評価）
+
+正式成果物は `results/research/r048-q001-20260915-night-terminal-failed-breakout-03/`。`…-01` はBの復帰なし／ambiguous初回breakoutで復帰専用fieldを参照して停止した技術記録、`…-02` は完走したがplacebo SPにnight rangeを再利用した仕様不一致の無効記録である。`…-03` は主規則・入力・費用・seed・判定を変えず、placebo rangeをWP=09:45--10:14自身のH/L/Pから作る訂正だけを価格統計・event・PnL集計前に再登録して完走した。入力manifest hash=`98c2508d…90dd8d3`、source hash=`bedbdc9b…1f6952`、implementation hash=`dcbc776e…4424513`、seed=20260928を保存した。
+
+同一trade_dateの予定normal night最終30本をW0としてH0/L0/P0を作り、day開始から30分S0の最初のstrict close breakout後、次の5予定足で最初にレンジ内closeへ戻った場合だけ、確認次足openから30分を逆張りした。接触・wick・等号は除外し、反対境界外closeはambiguousとして不取引とした。GはWP=09:45--10:14の別30本rangeとSP=10:15--10:44を同型に処理した。Development正規化Parquetだけを物理I/Oし、R004隔離45 session/27,345 bar、残存2,216 session/1,326,086 bar、固定1,111日軸を再現した。品質上限はPASS_LIMITED、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDである。
+
+|条件|取引|Net円|PF|期待値円/取引|
+|---|---:|---:|---:|---:|
+|A 主失敗breakout fade|290|-187,400|0.87|-646.21|
+|B 初回breakout無条件fade|1,086|-1,445,160|0.75|-1,330.72|
+|C buy / D sell / F continuation|290 each|-355,400 / -259,400 / -427,400|0.77 / 0.82 / 0.73|-1,225.52 / -894.48 / -1,473.79|
+|G 午前placebo失敗breakout fade|498|-429,880|0.73|-863.21|
+
+情報量gateはE=1,096、A/G=290/498、A上/下=139/151、G上/下=254/244、A_h3=227で全通過した。20 trade_date非循環moving-block bootstrap 10,000回（seed=20260928）の95%CIは、A日次平均 `[-625.72,+247.36]`、A-B `[-701.31,+1,992.50]`、A-C `[-1,528.58,+2,710.72]`、A-D `[-2,117.13,+2,300.18]`、A-F `[-2,542.55,+4,026.19]`、A-G `[-1,604.20,+2,010.65]` 円である。固定OLSは788行・11列・rank 11でfull rank、day再開境界増分delta=-558.29円、CI=`[-3,496.73,+2,027.65]`だった。A2/A3/A_delayの期待値は-1,646.21/-2,646.21/-399.66円、A_h3/A_h7はNet=-237,620/-174,920円、PF=0.80/0.89であった。Aの年Netは2021--2025に-5,720/-335,020/+100,820/+28,060/+24,460円、正月29/54、top5/top10利益取引除去後Net=-330,600/-451,300円である（2025年は1--6月部分集計）。
+
+合成pytest 14、Ruff、mypy、実行・会計gateはPASSした。A/C/D/Fのevent・entry・exit一致、A/F反対side、A/A2/A3/A_delayのevent・side一致、Bの復帰非参照、Gの同型相対時刻、翌足entry、30分exit、delay非延長、最大1ポジション、取消/未fillなし、`Net=Gross-fees`、slippage非二重控除を全件照合した。情報量は十分だが、A Net<0・PF<1、日次平均・全比較・deltaのCI下限、追加費用・遅延耐性、h3/h7、年安定性、利益集中度の固定必要条件が未達のため、**R048-Q001=REJECT**。このREJECTを救済する窓、horizon、保有、方向、回帰、filter、Stop/Target、WFA、OOS、Final Holdoutは実施しない。
