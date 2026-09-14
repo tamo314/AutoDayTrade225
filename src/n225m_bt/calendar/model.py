@@ -31,6 +31,10 @@ class ExchangeCalendar:
     def get(self, trade_date: date) -> TradingDay | None:
         return self._days.get(trade_date)
 
+    def trading_days(self) -> tuple[TradingDay, ...]:
+        """Return the explicit scheduled calendar entries in date order."""
+        return tuple(sorted(self._days.values(), key=lambda item: item.trade_date))
+
     def trade_date_for_night_start(self, calendar_date: date) -> date | None:
         for day in self._days.values():
             if day.night_calendar_start_date == calendar_date:
