@@ -1,0 +1,25 @@
+{
+  "template": true,
+  "protocol_revision": "RG-20260915-01",
+  "execution_authorized": false,
+  "status": "DRAFT_NOT_FROZEN",
+  "note": "文書雛形。既存CLIへそのまま投入しない。nullは未確定であり、推測して埋めない。",
+  "batch_id": null,
+  "batch_status": "NOT_STARTED",
+  "limits": {
+    "maximum_families": 3,
+    "maximum_new_economic_specs_total": 3,
+    "maximum_specs_per_family": 2
+  },
+  "families": [],
+  "economic_spec_versions": [],
+  "technical_attempts": [],
+  "analysis_inventory": [],
+  "consumption": {
+    "new_economic_specs": 0,
+    "note": "雛形の空バッチ。過去研究の総件数ではない。"
+  },
+  "stop_rule": "上限または固定判定に到達したら終了レビュー。別ID・バッチの自動作成で迂回しない。",
+  "prior_exploration_registry": null,
+  "next_batch_authorized": false
+}

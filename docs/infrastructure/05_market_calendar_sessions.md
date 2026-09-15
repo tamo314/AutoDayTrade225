@@ -80,3 +80,15 @@ If the calendar is incomplete, classify the uncertainty as a quality/error condi
 ## 7. Forced-flat configuration
 
 Entry/force-exit times are strategy/backtest policy, not exchange rules. Store them separately in `backtest.yaml` and validate them against the effective session schedule.
+
+## 8. 予定表・観測時点の補足 — RG-20260915-01
+
+冒頭の市場制度値と外部検証日は原文の記録を継承したもので、本改訂で外部再確認したものではない。対象期間の公式制度証拠と、データ供給者のbarラベル／auction収録方法は別に検証する。
+
+取引日対応は予定表の実時間順で固定し、nightの適用版はnight_calendar_start_dateを基準にする。深夜以後をtrade_dateの日付と仮定せず、そのnightの実開始・終了区間から導く。予定表が不明なら推測で埋めない。
+
+OSE取引日とTSE通常営業日・前後場境界を別表で扱う。元ファイルの日付集合から作ったローカルcalendarは観測カバレッジの候補であり、完全な公式予定表、休業日、欠落sessionの不存在の証明ではない。制度版・取得元・hash・有効期間を保存する。
+
+予定軸の対象外は、期間・制度・対象市場など価格非依存で先に決める。実際に後刻の足がなかったことを予定休場へ読み替えない。後日のcalendar訂正は、元の知識と訂正後の分析を別versionで管理する。
+
+R065等はn0→d0→n1の対応、週末／祝日休場、通常取引・auction、許可期間終端を [R065レビュー](15_r065_execution_review.md) で確認する。価格を使わずに予定上期間外と判定できる条件は事前除外できるが、将来の約定可否で過去の母集団を変更しない。

@@ -113,3 +113,29 @@ For each trade, calculate maximum adverse/favorable excursion from actual entry 
 ## 12. Determinism
 
 Same input dataset + same config + same code must yield same trade ledger ordering and PnL.
+
+## 13. Causality of universe and scheduled orders — RG-20260915-01
+
+Strategyのhistory制限だけでなく、loader、QC、U、E_exec、条件配線まで時点整合を要求する。将来のprice・quality・placebo・exit可用性を変更しても、変更時点より前の集合判定・特徴量・signal・orderは不変でなければならない。将来のfill、exit、最終PnLまで不変とは要求しない。
+
+bar-startラベルの1分足は、その分のcloseで全OHLCが確定する。close通知でopenを見た後、同じopenへ新規注文を遡及させない。価格非依存の予定時刻注文を追加する場合は、発注作成・受付・約定の順序を別型で定義し、実装した証拠なしに既存on_bar APIが対応すると仮定しない。
+
+## 14. New-entry cutoff, held EXIT, and missing outcomes
+
+`new_entry_cutoff`は新規entryに対する制約で、保有建玉のEXIT callbackを抑止する境界ではない。pending EXIT、force-flat、新規拒否が同時刻に競合する場合、凍結したイベント順序で一度だけ決済する。旧runでこの順序に不備があるときは、影響監査・修正・新runを分離する。
+
+一般のnext eligible observed barによる約定と、特定研究で指定されたstrict scheduled barを区別する。研究設定は、entry最大遅延、pendingの取消、exit遅延・強制決済、欠損時の不明損益を定める。entry取消とexit未約定を同じ処理にしない。建玉を消去する取消は許されない。
+
+後刻のデータ欠落で、約定済みentryを初めから存在しなかった扱いにしない。解決できないexitはOPEN_POSITION/UNKNOWN_PNLとして残し、集計は不完全とする。架空exit、事後0円化、未来欠損を使う主entryのfilterは禁止する。
+
+## 15. Holding-clock profiles
+
+`exit_clock`を `scheduled_entry_anchor` と `actual_fill_anchor` に分ける。R003原案は実fill基準、後続の多くは予定entry基準の固定exitであり、同一の保有時間設定へまとめない。entry遅延でexitを延長しない条件はscheduled profileで検査する。旧設定の解釈を無断で変更しない。
+
+`holding_policy=session_flat`を標準とする。R065のように取引session終了後の休場を跨ぐ研究は、`explicit_cross_session`の専用profile、実時間状態管理、リスク／期間末端テストを必要とする。セッション独立runの連結で持越しを偽装しない。未実装ならPnLを止める。
+
+## 16. Cost and paired-control identities
+
+同じevent・reference価格・entry/exitの反対sideでは費用前Gross和=0。対称な固定費用下ではNet和=−2×往復費用。この条件が成立する場合だけ恒等式を検査し、Stop等で経路が違う対照に機械的に当てない。
+
+固定費用還元、実遅延、再約定stress、exit不利overlayを区別する。費用と経済約定を修正する場合は別versionと影響検証を必要とし、研究を勝たせるための変更を禁止する。

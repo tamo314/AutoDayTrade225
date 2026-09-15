@@ -1,6 +1,7 @@
 # 12. Sources, Verified Facts, and Assumptions
 
-Last reviewed: 2026-09-13 JST.
+Historical external-source review recorded in the original: 2026-09-13 JST.
+Document revision: RG-20260915-01, 2026-09-15 JST; external sources not reverified in this revision.
 
 ## Primary sources
 
@@ -8,7 +9,7 @@ Last reviewed: 2026-09-13 JST.
 
 https://www.jpx.co.jp/derivatives/products/domestic/225mini/01.html
 
-Verified current facts:
+Facts recorded as verified by the original document (not reverified in this revision):
 - day opening 08:45
 - regular session through 15:40, closing auction 15:45
 - night opening 17:00
@@ -65,8 +66,32 @@ Verified:
 2. Availability/meaning of volume in each downloadable file must be inspected.
 3. Whether source bar timestamps label bar start, bar end, or auction minute must be verified from actual files/site documentation before relying on minute-level boundary semantics.
 4. Exact exchange holiday-trading calendar should be supplied/generated from authoritative JPX data for full historical reconstruction.
-5. A center-series rollover marker is not assumed to exist in source data. `roll_risk` may initially be generated conservatively from SQ/calendar rules or left false/unknown until validated.
+5. A center-series rollover marker is not assumed to exist in source data. Keep `roll_observation_status=unknown` and unobserved changes null; an existing false bool or an SQ/calendar proxy is not evidence that no actual roll occurred.
 
 ## Design response to uncertainty
 
 The adapter and calendar components must expose uncertainty rather than silently guess. Actual source inspection is an onboarding step after code is implemented.
+
+## RG-20260915-01: 証拠の版・適用範囲
+
+上記の外部URL・制度説明・確認日は旧文書から保持した記録である。本改訂では外部サイトを再取得しておらず、文書制定日を新たな外部検証日として使わない。URLが存在すること、現在の制度が分かること、対象の過去データの意味が説明できることは別である。
+
+### Evidence matrix
+
+|項目|必要な根拠|不足時の扱い|
+|---|---|---|
+|時刻ラベルと利用可能時刻|対象ファイル版のbar-start/end/auction規約、確定時点、訂正方針|境界を使うPnLを止める。モデル時刻を観測事実にしない|
+|価格種別|通常立会・別市場・清算・加工研究価格の区別|5刻み検査だけで約定可能価格としない|
+|中心限月構成・roll|対象日時の選択限月、切替有効時刻、調整方式、利用可能時刻|unknown/nullを維持。SQ予定ラベルは実切替の代用品にしない|
+|出来高|各1分の確定約定数量、単位・非累積、zero/missing/訂正|列mappingだけでVWAP等へ利用しない|
+|OSE/TSE予定表|対象期間の制度・取引日・現物営業日・休日と版hash|観測データの行だけで休業や予定を確定しない|
+|費用・遅延|ユーザー固定研究設定と、必要なら別途実測根拠|片道1tick/30円は固定モデル。実測した値と称さない|
+|実装済み機能|対象code snapshot、実測test/help/ledger|文書の名称だけで実装済みとしない|
+
+各証拠に `evidence_id`、source、対象期間、対象file/hash、確認した命題、確認していない命題、取得日、適用版、available_atの根拠、review_statusを保存する。今回の雛形は空欄・UNKNOWNを含み、監査完了ではない。
+
+### 本改訂の追加規約の出所
+
+[13_research_governance.md](13_research_governance.md)の四集合、有限バッチ、多軸判定、段階移行は、ユーザーが依頼した研究手順の修正として追加した設計判断である。元資料に書かれていた実績や市場の実証事実として扱わない。
+
+[14_research_repair_plan.md](14_research_repair_plan.md)はR031の矛盾、R046等の集合依存、R032の数値不一致を原文行へ紐付ける。実コード・実データ・取引台帳が未提供のため、影響金額や正しい再集計値は確認していない。

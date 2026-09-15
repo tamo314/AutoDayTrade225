@@ -1,37 +1,67 @@
+# 戦略研究結果 — 文書監査追記と保存済み結果
+
+## 文書監査追記 — RG-20260915-01
+
+**これは新たなバックテスト結果ではない。** アップロード文書から確認した論理・定義・表示の問題と、今後の利用制限を記録する。価格、orders/fills/trades、metrics、実コードをこの改訂で監査・再計算していない。既存REJECT／INCONCLUSIVE／BLOCKED、損益、件数、CI、テスト通過の原記録は下段にそのまま保存する。
+
+### M01 — R031のゲート成立不能
+
+原登録は非確認eventでB_nightとC_cashが同一時刻・同じ経路で反対sideになると定義し、両方の0tick費用前Gross平均<0を必須としている。同じ集合・重みなら各eventでG_C=−G_Bであり、両平均を負にすることは不可能である。原結果の−924.39円／+924.39円はその対称性と整合する。
+
+`review_status=SPEC_GATE_CONTRADICTION`を追記する。旧R031の主Net −558,360円と旧REJECTは保持し、ゲートの欠陥を利益の証拠へ反転しない。原ゲートは今後の新規研究へ使用しない。実装への修正影響は未監査。
+
+### M02/M03/M04 — 将来情報で条件付く集合
+
+R046計画の共通Eは、09:15に入る主Aへ後刻09:45～10:14のWP非zero・可用性等を要求する。これは09:15時点の実行可能集合とは異なる。`review_status=POSTHOC_UNIVERSE_CONDITIONING`として主成績の用途を限定し、旧REJECTは保存する。
+
+R049の全6anchor共通E、R060～R064等の主・感度entry/exit全可用性についてもE_exec/E_analysis分離の監査対象にする。全pipelineの因果性検査は未実施であり、影響件数やPnL差を推定して埋めない。既存prefix PASSが集合選択まで検査したことは、記載だけから確定できない。
+
+### M05 — データ品質の上限
+
+旧R004の事後whole-session隔離とPASS_LIMITEDは研究ビューの再現記録として残す。実限月／roll／adjustment／barラベル／volume意味が解決済みであるとはしない。良い候補が出るまでこの未解決点を無期限に後回しにせず、[修復計画](14_research_repair_plan.md)へ戻す。
+
+### M06 — R032の差と表示平均の不一致
+
+原結果は確認516.43円/取引、非確認553.68円/取引に対し、平均差−10.41円と記載する。同じ定義の表示値の単純差は−37.25円であり、記載が整合しない。これは表示された丸め値からの算術確認で、正しい原値やCIの再推定ではない。
+
+`review_status=RECONCILIATION_REQUIRED`。差の定義・集合・重み・bootstrap中心・集計式・台帳を照合するまで、−10.41円とそのCIを説明機構の根拠にしない。原文の値、取引数、主Net、旧REJECTを保存し、正しい値を推測して上書きしない。
+
+### M07/M08/M09 — 研究管理と記録の完全性
+
+同じDevelopment上の近縁仮説はfamilyを関連付ける。「同一仕様ではない」と「独立確認」を区別する。旧R035/R041/R064等の情報量不足ラベルを変更せず、新しいrunでは主情報量・機構情報量・経済性・頑健性を分ける。元本文の未収録の完全仕様は回収・hash化するまで不明のままにする。
+
+### M10 — R065
+
+今回の本結果文書にR065の結果節は確認できない。`document_result_status=NOT_FOUND_IN_PROVIDED_RESULTS`とし、実環境の`run_status`や価格アクセス履歴はUNKNOWNとする。旧計画は残し、[R065レビュー](15_r065_execution_review.md)の完了までは新規PnLを保留する。
+
+## 今後の報告形式
+
+新しい報告は以下を別項目にする。旧runへ新評価を遡及計算しない。
+
+|項目|記録内容|
+|---|---|
+|Hypothesis / Parameters|family、完全な主・対照・感度、目的、予算、事前freeze|
+|Implementation / Data|実code・data・calendar hash、入力意味、as-of、scheduled_axis、U/E_exec/E_analysis|
+|Execution / Outcomes|注文・約定・取消・既知無取引・不明損益・未完了建玉|
+|Economics / Information|主Net・CI・単位と分母、主情報量、基準／必須費用耐性|
+|Mechanism / Robustness|co-primaryと診断、機構情報量、推論範囲、期間安定性|
+|Decision / Next action|run_status・spec・quality・causality・経済・機構の各状態、次工程と停止理由|
+|Historical linkage|親run、変更種別、既知情報、旧判定、無効化・訂正の証拠|
+
+不明な項目をPASS/0で埋めない。採否未達と、負の真の期待値を証明したことは別である。CANDIDATEを実売買の承認としない。OOS・Final Holdoutのアクセスは実測した台帳だけで報告する。
+
+## 保存本文への注記
+
+以下には追記時点の異なる「研究状態」「次の作業」、重複した結果節、後で無効化された旧runの記録も含まれる。元の訂正・無効化の関係をそのまま保存しており、掲載順だけで現在状態を自動決定しない。現在の利用制限は本追記と[修復計画](14_research_repair_plan.md)を優先する。
+
+元ファイルは`originals/04_research_results.md`、原版hashは`review/source_inventory.json`に保存した。上記の文書監査は原記録の損益を書き換えていない。
+
+## 保存本文の読み方
+
+次の区間はアップロードされた原文をそのまま保持しています。日付・状態・「次の作業」はその記録時点の記述であり、現在の実行許可を与えません。保存済みの数値・事前登録・歴史的判定は変更していません。
+
+<!-- BEGIN PRESERVED SOURCE -->
 # 戦略研究結果
-
-## R067-Q001: OSEナイト情報のTSE開始後120予定分継続 — INCONCLUSIVE（Development限定）
-
-正式成果物は`results/research/r067-q001-20260915-night-to-day-information-continuation-03/`。R001--R066照合では、R055は全ナイトreturn＋TSE開始entryだが30分保有・効率分類なし、R062は開始15分拒否＋30分保有であり、本件の全ナイトreturn、経路効率、次TSE開始entry、120予定分exitの同一組合せではなかった。入力はDevelopment正規化Parquet、版管理予定表、R004固定隔離のみで、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDである。
-
-固定1,111日軸の各日について、直前120予定ナイトだけを参照し、隔離・欠損を古いnightで補充しなかった。R004隔離後、最大rolling有効観測数は96で、必要な100に一度も達しなかった。そのためE=0、A/B/C/D/Mと全感度の取引は0、FWL・bootstrap・損益判定は情報量不足として未評価である。rolling因果性（当日除外）、100件判定、補充なし、セル排他、A⊂B、対照のevent/time一致、delay非延長、会計、最大1取引、固定軸、感度の因果的再分類gateはPASSした。情報量gate未達により **R067-Q001=INCONCLUSIVE** とする。OOS、Final Holdout、WFA、期間・閾値・時刻・方向の救済は実行しない。
-
-## R066-Q001: TSE全体下側分位後のOSEナイト固定買い — REJECT（Development限定）
-
-正式成果物は `results/research/r066-q001-20260915-tse-lower-tail-night-reversal-01/`。R001--R065を価格・event・PnL取得前に照合し、R059（dC→n0 gap）、R065（直前n0→当日d0固定買い）、R055/R062（night情報からTSE開始後）とは同一でないことを記録した。Development正規化Parquet、版管理予定表、R004固定隔離だけを用い、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDで完走した。
-
-共通E=1,002、A/C/D=249/242/267、Aの1/5予定足entry遅延はいずれも249、q20/q30 A=188/294で全情報量gateを満たした。主AはNet +216,560円、PF 1.068だったが、20日MBBのA日次平均CIは[-797.7, +1,101.4]円で下限が負だった。条件別平均差のCIもA-C [-5,944.6, +7,296.2]、A-D [-3,557.7, +6,856.5]、A-U [-2,997.2, +4,809.5]、A-A_short [-4,923.2, +12,057.5]円で全て下限が負、FWL deltaも[-3,714.9, +5,784.0]円だった。2/3tickではA Net/PF=-32,440円/0.990、-281,440円/0.917、q30も-59,640円/0.984で、block10/40、top10除去後も必須gateを満たさない。よって **R066-Q001=REJECT** とする。rolling因果性、100件目、prefix、A/C/D排他、control時刻一致、遅延非延長、独立q20/q30再分類、会計、1日最大1取引、固定1,111日軸はすべてPASSした。曜日・月・制度の救済利用、WFA、OOS、Final Holdoutは実行しない。
-
-## R065-Q001: OSEナイト開始からTSE開始までの固定買い — REJECT（Development限定）
-
-正式成果物は `results/research/r065-q001-20260915-overnight-risk-premium-02/`。価格・event数・PnL取得前にR001--R064を照合した。R055/R062はナイト情報からTSE開始後を取引し、R059はTSE終値からOSEナイト開始へのgapを取引するため、版管理予定表の`n0→d0`固定買いと同じ`t`の`d0→n1`固定買いを同一eventで比べる本実験と同一ではない。`…-01`は予定済みの`n0+1`/`n0+5`/`d0+1` timestampをevent台帳に展開していない実装不備で、注文・fill・trade・PnL・bootstrap・判断前に停止した不変技術記録である。`…-02`はその台帳表現だけを補完して再登録し、仮説、境界、価格、費用、感度、seed、判定を変更せずに完走した。
-
-固定1,111 trade_date軸で、予定表が一意かつ相互に対応する`t`、`next_trade_date(t)`だけから`n0=OSE night(t)開始`、`d0=TSE(t)開始`、`n1=OSE night(next(t))開始`を得た。三境界、`n0+1`、`n0+5`、`d0+1`の全てが正価格・適格・R004非隔離である共通Eだけを採用し、代替boundaryへの遡及・補完はしなかった。E=1,082であり、R004固定隔離45 session/27,345 bar、残存2,216 session/1,326,086 barを再現した。休日跨ぎ、旧新取引時間制度、欠損・隔離・非相互予定表連鎖は全candidate台帳に理由付きで保存し、旧/新制度・曜日・月・境界間calendar gapは報告専用とした。物理I/OはDevelopment正規化Parquetだけで、OOSは未評価、Final Holdoutは未アクセス、品質上限は **PASS_LIMITED** である。
-
-主Aは`n0`買い・`d0`決済、Dは`d0`買い・`n1`決済、A_shortはAと同時刻の固定売りである。これは価格を見たsignalではなく、事前に置く時刻指定市場注文として全openに一回だけ不利約定を適用した。既存engineは最初の`n0` bar以前にbar-close signalを発行できないため変更せず、同じ`adverse_fill`、`gross_pnl`、fee会計primitiveで再現した。Grossにはslippageを一度だけ含め、Net=Gross-feesである。Stop/Target/re-entry/early exitはない。
-
-|条件|取引|Net円|PF|期待値 円/取引|
-|---|---:|---:|---:|---:|
-|A: n0→d0 fixed buy|1,082|134,080|1.011|123.92|
-|D: d0→n1 fixed buy|1,082|-1,352,920|0.883|-1,250.39|
-|A_short|1,082|-2,427,920|0.821|-2,243.92|
-|A2 / A3|各1,082|-947,920 / -2,029,920|0.925 / 0.847|-876.08 / -1,876.08|
-|A_fee2|1,082|69,160|1.006|63.92|
-|A_delay1 / A_delay5 / A_exitdelay1|各1,082|178,080 / 311,580 / 201,580|1.015 / 1.026 / 1.017|164.58 / 287.97 / 186.30|
-
-20 trade_date非循環moving-block bootstrap（10,000回、seed=20261007、共通index、末尾切詰め、linear percentile）の95%CIは、A日次平均 `[-1,492.16, +1,725.74]`、A-D `[-665.18, +3,632.38]`、A-A_short `[-923.54, +5,520.27]` 円/dayだった。block 10ではA `[-1,628.97,+1,809.54]`、A-D `[-856.45,+3,711.66]`、block 40ではA `[-1,436.46,+1,523.62]`、A-D `[-391.25,+3,390.66]`であり、指定した下限条件を満たさない。Aの2021--2024 Netは+308,180/-632,380/+343,080/+227,200円で正年3、正月33/54だったが、上位10利益取引1,298,400円を除くNetは-1,164,320円である。
-
-情報量gate（E>=800、A_delay1/A_delay5各>=750）は満たした。実行・会計auditも、共通E、A/Dのtarget日一致、A/A_short同時刻・反対side、遅延entryのd0 exit非延長、d0 exit遅延のみ、1日最大1ポジション、固定1,111日軸、`Net=Gross-fees`、slippage非二重控除の全項目でPASSした。pytest 2件、Ruff、mypyもPASSである。しかし主三CI下限、A2/A3のNet/PF、block 10/40のA/A-D下限、top10除去後Netの必須gateを一つ以上満たさないため、規約どおり **R065-Q001=REJECT** とする。曜日・制度・月の良い部分を採用せず、境界、side、保有期間、費用、休日filterの救済探索、WFA、OOS、Final Holdoutは実行しない。
 
 ## R064-Q001: TSE開始後のtrend-pullback continuation — INCONCLUSIVE
 
@@ -1532,3 +1562,4 @@ A2/A3/A_delayはNet -547,640/-841,640/-252,140円、q30/q40は-237,680/-306,740�
 選択済みDevelopment正規化Parquet、版管理予定表、R004固定隔離のみを使用し、予定表からTSE通常→後続OSE night→次TSE通常の対応を固定1,111 trade_date軸で監査した。OOSは未評価、Final Holdoutは未アクセスである。pytest 5件、Ruff、mypyはPASSした。完全night、直前120予定三つ組・有効100件、nearest-rank/等号、TSE最初66予定足、10/15/20分反応の因果性、翌足entry、固定exit、遅延非延長、費用・slippage、最大1取引、prefix、軸とholdout lockをgate化した。
 
 共通E台帳は、完全予定night無効237日、R004隔離14日、残る860日が直前120予定三つ組で有効x 100未満となり、**E=0**だった。従って方向有効回帰行も0で、全標本のQを識別できない。固定design block-wild bootstrap、MBB、注文、fill、trade、PnL、年/月/方向別成績、情報量・経済gateは実行していない。これは損益に基づくREJECT/INCONCLUSIVEではなく、事前固定のFWL識別不能による **R062-Q001=BLOCKED** である。指定外night窓、古い履歴補充、別rolling長・閾値・時刻・方向・filter、WFA、OOS、Final Holdoutを用いた救済は実施しない。
+<!-- END PRESERVED SOURCE -->

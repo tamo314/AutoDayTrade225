@@ -1,0 +1,130 @@
+{
+  "template": true,
+  "protocol_revision": "RG-20260915-01",
+  "execution_authorized": false,
+  "status": "DRAFT_NOT_FROZEN",
+  "note": "文書雛形。既存CLIへそのまま投入しない。nullは未確定であり、推測して埋めない。",
+  "identity": {
+    "family_id": null,
+    "study_id": null,
+    "spec_version": null,
+    "run_id": null,
+    "parent_run_id": null,
+    "change_kind": null
+  },
+  "prior_information_seen": [],
+  "hypothesis": {
+    "economic_claim": null,
+    "mechanism_claim": null,
+    "learned_from_failure": null,
+    "primary_representative": null
+  },
+  "stage": "S0_DESIGN_REVIEW",
+  "split": {
+    "key": "trade_date",
+    "development_from": "2021-01-01",
+    "development_to": "2025-06-30",
+    "oos_from": "2025-07-01",
+    "oos_to": "2025-12-31",
+    "oos_access_authorized": false,
+    "final_holdout_from": "2026-01-01",
+    "final_holdout_access_authorized": false
+  },
+  "universes": {
+    "scheduled_axis": {
+      "calendar_evidence_id": null,
+      "definition": null,
+      "hash": null
+    },
+    "U": {
+      "window_mode": null,
+      "window_length": null,
+      "minimum_valid_observations": null,
+      "maximum_lookback": null,
+      "zero_policy": null,
+      "availability_rule": null,
+      "response_entry_exit_required": false
+    },
+    "E_exec": {
+      "decision_times": null,
+      "past_only_rule": null,
+      "future_price_or_availability_filter": false
+    },
+    "E_analysis": {
+      "definition": null,
+      "selection_bias_disclosure": null,
+      "can_change_past_orders": false
+    }
+  },
+  "execution": {
+    "instrument": "N225M",
+    "quantity": 1,
+    "tick_points": 5,
+    "multiplier_jpy": 100,
+    "slippage_ticks_per_side": 1,
+    "fee_jpy_per_side": 30,
+    "holding_policy": null,
+    "exit_clock": null,
+    "entry_rule": null,
+    "exit_rule": null,
+    "pending_timeout_rule": null,
+    "missing_exit_policy": null,
+    "unknown_pnl_value": null,
+    "conditions": []
+  },
+  "estimands": {
+    "primary": null,
+    "primary_control": null,
+    "co_primary": [],
+    "diagnostic": []
+  },
+  "information_and_calibration": {
+    "minimum_main_count": null,
+    "minimum_mechanism_count": null,
+    "minimum_economic_net_effect_jpy": null,
+    "required_precision": null,
+    "null_false_positive_design_target_max": 0.05,
+    "economic_alternative_power_design_target_min": 0.8,
+    "calibration_plan_hash": null,
+    "calibration_result_evidence": null
+  },
+  "statistics": {
+    "method": null,
+    "block_unit": null,
+    "block_length": null,
+    "replications": null,
+    "seed": null,
+    "quantile_method": null,
+    "zero_sample_policy": null,
+    "event_reestimated": null,
+    "adaptive_history_adjustment": "NOT_CLAIMED"
+  },
+  "gates": {
+    "joint_satisfiability_evidence": null,
+    "economic_primary": [],
+    "mandatory_robustness": [],
+    "mechanism": [],
+    "diagnostic_only": [],
+    "early_stop": []
+  },
+  "risk": {
+    "capital_jpy": null,
+    "maximum_drawdown_jpy": null,
+    "maximum_holding_clock_minutes": null,
+    "note": "ユーザー未指定の資本・DD等は未確定。必要な段階の凍結前に解決する。"
+  },
+  "provenance": {
+    "data_id": null,
+    "code_sha256": null,
+    "config_sha256": null,
+    "calendar_sha256": null,
+    "source_semantics_evidence_id": null,
+    "access_plan_hash": null
+  },
+  "freeze": {
+    "frozen_at": null,
+    "frozen_by": null,
+    "content_hash": null,
+    "next_stage_authorized": false
+  }
+}

@@ -1,3 +1,49 @@
+# R003：実装設計とCodexへの引継ぎ — 改訂適用注記
+
+## RG-20260915-01: 実装引継ぎの差分
+
+下段のクラス・関数・CLI・commitは原案の記録で、現環境で実装済みと確認したものではない。本パッケージにproject code/config/schemasは含まれない。共通の [研究設計](02_research_design.md) と [研究統治](13_research_governance.md)を実装するときの差分として本節を使う。
+
+### 不変にするR003経済契約
+
+L/B/θ/H、1枚、翌適格足、保護注文なし、実fill基準の時間決済、旧費用、20条件、旧WFA・OOS数値は原登録として保持する。後続の予定anchor固定exitをR003の経済的同等修正と呼ばない。原登録を修復再現する場合は仕様版と新runを明示し、旧判定を上書きしない。
+
+### 追加契約
+
+|責務|変更|
+|---|---|
+|ResearchConfig|family/study/spec/run、完全なcondition list、実行stage、予算、目的別gateを持つ。未知キー・未解決必須値を拒否|
+|OpeningSummary / HistorySnapshot|観測窓のavailable_atとその時点のvalidityを凍結。後のsession異常・trade・exitで更新しない|
+|UniverseBuilder|scheduled_axis、U、時点ごとのE_exec、事後E_analysisを分離|
+|ConditionResolver|side/quantile/時計/対照の定義を明示。root defaultを暗黙に継承しない|
+|OutcomeLedger|KNOWN_NO_TRADEとUNKNOWN_PNL・OPEN_POSITIONを分離。欠測entry取消と未完了exitを混同しない|
+|Metrics/Report|全conditionで同じ予定軸。各estimandの単位・分母・重み・元値を保存し、文章と表を単一指標から生成|
+|SpecAudit|各gateの単位と全必須ANDの共同成立性。逆方向両0tick負を拒否|
+|StageGate|修復→意味監査→件数/校正→Development→時間安定性→別審査OOS。自動開封しない|
+
+### 原案の受入テストを拡張する
+
+原C01～C08に加え、loader/QC/事後隔離の前からcutoff以後を変えるテスト、後刻placebo・anchor・exit欠測を変えるテストを追加する。原P01～P07の費用算術を保持し、同経路逆方向の費用前和0も検査する。合成テストの実測結果だけをPASSとする。
+
+### 処理と保存の分離
+
+原案の逐次history更新の責務は維持する。研究用最終session statusと、初動時点のopening_validを同じ列へ上書きしない。Uの詳細は独立台帳に保存し、eventには参照ID/hashだけを持たせる。
+
+回帰・bootstrapのtarget行は不変eventから取得し、約定後のstatusを見て行が消える不備を防ぐ。再開はchunkの内容hash・依存・既知結果を保存し、予算を新run番号でリセットしない。
+
+### OOSとCLI
+
+下段の`audit-data`、`--stage`、`--frozen-candidate`は歴史的な追加案のままである。コードを確認せず実行可能と案内しない。段階指定とOOS拒否は、実際に接続したCLI/loader/cacheでテストする。Final Holdoutの解放は実装しない。
+
+### 実装完了の意味
+
+コード・schema・CLIを統合し、新規テストと既存回帰を実測した後にのみ完了を記録する。今回実施した文書パッケージの整合検査は、その代わりにならない。データ品質が未解決なら、実装が正しくてもPnLや候補昇格を止める。
+
+## 保存本文の読み方
+
+次の区間はアップロードされた原文をそのまま保持しています。日付・状態・「次の作業」はその記録時点の記述であり、現在の実行許可を与えません。保存済みの数値・事前登録・歴史的判定は変更していません。
+
+<!-- BEGIN PRESERVED SOURCE -->
 # R003：実装設計とCodexへの引継ぎ
 
 作成日：2026-09-13 / 状態：**実装仕様。以下の追加API・CLIは未実装。**
@@ -384,3 +430,4 @@ R003の実装・検証では docs/strategy/07_r003_compression_breakout_plan.md 
 ```
 
 未読のOOSは `NOT_EVALUATED`、2026は `NOT_ACCESSED` とする。品質PASS、テスト通過、合格ゲートを実際の証跡なしに記入しない。
+<!-- END PRESERVED SOURCE -->

@@ -60,10 +60,10 @@ Recommended process:
 
 1. Parse `source_date` as candidate `trade_date` for source records.
 2. Parse source time.
-3. Classify time into day/night according to the historical schedule effective for that trade date.
+3. Resolve the exchange calendar relationship first; select day rules by trade_date and night rules by the actual night calendar start date at regime boundaries.
 4. For day-session records, `calendar_date = trade_date`.
 5. For night-session evening portion (e.g. 16:30/17:00 through 23:59), map `calendar_date` to the actual prior calendar session date using exchange calendar relationships, not simply `trade_date - 1 day`.
-6. For after-midnight portion, calendar date generally equals trade date calendar date, subject to exchange trading-date rules.
+6. For the after-midnight portion, derive the actual calendar date from the resolved night-session start/interval. Do not assume that it equals trade_date; weekend/holiday relationships must be explicit.
 7. Preserve original source fields in Bronze for audit.
 
 The implementation must support weekends, exchange holidays and holiday trading. A robust solution uses a generated/maintained exchange trading calendar table rather than arithmetic subtraction.
@@ -123,3 +123,25 @@ year=2025/month=01/part-000.parquet
 ## 9. Incremental processing
 
 Ingestion should skip unchanged files by hash. A changed source file invalidates dependent normalized partitions and dataset manifest.
+
+## 10. Decision-time lineage and repair — RG-20260915-01
+
+### Source semantics evidence
+
+列名のmappingと列の意味の確認を別の工程にする。対象年・ファイル・版の時刻ラベル、OHLC種別、出来高定義、欠損／無約定、訂正、連続系列構築・切替・調整を証拠表へ結び付ける。型がinteger・非負であるだけで、価格や出来高を研究で利用可能としない。
+
+最初は供給仕様・ヘッダー・既存manifestなどのメタデータを扱い、行照合が必要ならDevelopmentのsource_rowに限定した監査を登録する。2025年ファイル全体の価格を読み込んで後半を捨てる処理は認めない。OOS/Final Holdoutのquality集計も保護対象である。
+
+### As-of and audit-only attributes
+
+canonical barの生の経済列は旧版を維持し、追加の`bar_interval_start/end`、`price_available_at`、`quality_available_at`、`quality_detected_at`、`availability_evidence`は版管理した研究sidecarへ持つ。入力がbar-endラベルなら、根拠を確認したadapterだけが開始時刻へ変換する。不明な実配信時刻を観測値として捏造せず、interval確定時点を使う場合は仮定と感度を明記する。
+
+全session事後隔離と当時のentry適格性は別レイヤーにする。過去の不変Goldを新基準で上書きせず、新dataset_idと差分・影響表を作る。QCは異常を検出しても、将来結果が悪い日を自動的に削除する機能を持たない。
+
+### Scheduled grid versus tradable stream
+
+expected gridは品質比較用であり、未観測minuteの架空OHLCを生成しない。予定上休場、無約定の記録省略、データ欠落、時計の不明を別理由で保存する。主E_execは順次観測した情報から、E_analysisは結果可観測性から作り、二つを逆流させない。
+
+### Changes and source identity
+
+データ版変更時は旧原文・raw・Gold・研究結果を保持する。変更根拠、対象行、時間・価格・volume・QC差、影響研究、検証済み範囲を記録する。同じ年月の別供給者データを使う再現は独立した市場期間ではない。

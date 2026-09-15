@@ -1,20 +1,44 @@
+# 戦略実験計画 — 現行運用と保存済み事前登録
+
+## 現行の研究進行 — RG-20260915-01
+
+**PAUSED_METHOD_REPAIR。新規の売買PnL探索を一時停止し、仕様・因果性・データ意味・共通評価基盤を先に修復する。** これは過去runの判定変更ではない。現在の作業順は [14_research_repair_plan.md](14_research_repair_plan.md)、新規登録の条件は [13_research_governance.md](13_research_governance.md) に従う。
+
+下段のR001～R065は保存済みの登録・技術訂正の履歴である。過去の「未重複なら次を実行」「全通過でもINVESTIGATEで終了」を、今後の自動進行ルールとして流用しない。新仕様はfamily管理、有限予算、品質解決、主／機構／頑健性の分離、S0～S6の段階経路を持つ。
+
+### 個別の適用制限
+
+|対象|文書改訂での扱い|旧条件・結果|
+|---|---|---|
+|R031|双方の逆方向0tick費用前Gross平均<0という必須ANDは論理的に不成立。新仕様へ流用禁止|旧登録と旧REJECTを保存。再判定・再実行なし|
+|R046|後刻WPを共通Eに含むため、09:15時点で実行可能な主成績として使わない|旧実行は事後条件付き研究として保存。影響額未監査|
+|R049|全anchorの未来有効性による主取引選別を監査。`…-05`の集計軸訂正とは別問題|旧INCONCLUSIVEと`…-02/04`無効化履歴を保存|
+|R060～R064等|主と全感度のexitまで揃う共通EをE_execへ流用しない。Uと分析集合を分離|元の集合・数値を保存。因果的再実行は新spec/runでのみ|
+|R003/R010/R052とその後の系列研究|データの意味・roll・barラベル・volume根拠を修復計画へ戻す|BLOCKED/PASS_LIMITEDを文書変更だけでPASSへ上げない|
+|R065|[専用レビュー](15_r065_execution_review.md)を先に実施。結果節未確認は実システム未実行の証明ではない|旧Q001計画を保存。cross-session・時刻注文・期間末端・集合を解決するまで新PnL保留|
+
+### 新規登録の必須記載
+
+family_id、study_id、spec_version、run_id、親ID・変更種別、既知情報、主目的・代表点、全条件・side・時間、scheduled_axis、U、E_exec、E_analysis、利用可能時刻、欠損とnull、主／co-primary／診断、情報量・最小効果量、費用、推論と多重性の扱い、探索予算、停止規則、OOS凍結経路を完全に記載する。
+
+新しい`run_id`で再実行する直前にPnLを再読込しなかったことと、過去のPnLを知らないことを混同しない。後続runは前回の価格アクセス・既知結果を継承する。「依頼本文の固定規則」にしか存在しない定義・seed・nuisanceは、正本を回収するまで新規freeze不可とする。
+
+### 再開バッチ
+
+最大3family、合計最大3新売買仕様版、同じfamily最大2。各仕様の主代表点1つと有限の条件表を凍結する。これは今後の管理予算で、過去の実験回数を修正しない。技術訂正は別記録で監査し、繰返す同種不備は共通基盤で解消する。
+
+最初に行うのはM01～M10の修復監査であり、自動的にR066を起案しない。R065も監査を満たしたうえで候補研究として扱い、直ちに実行する指示にはしない。S3/S4通過とPASS_RESEARCH・凍結を満たせばOOS審査へ進めるが、この文書改訂だけで開封しない。
+
+### 保存と出所
+
+以下の原文区間は1バイトも意味変更せず保存する。完全な元ファイルは`originals/03_experiment_plan.md`、hashは`review/source_inventory.json`にある。原文で相反する旧手順があっても、今後の実行規約は上記改訂と共通正本で判断する。旧事前登録を書き直して「当初から正しかった」ことにはしない。
+
+## 保存本文の読み方
+
+次の区間はアップロードされた原文をそのまま保持しています。日付・状態・「次の作業」はその記録時点の記述であり、現在の実行許可を与えません。保存済みの数値・事前登録・歴史的判定は変更していません。
+
+<!-- BEGIN PRESERVED SOURCE -->
 # R001: セッション初動の継続と反転（事前登録）
-
-## R067-Q001: OSEナイト情報のTSE開始後120予定分継続（事前登録）
-
-登録IDは最終的に`r067-q001-20260915-night-to-day-information-continuation-03`。価格統計前にR001--R066を照合した。R055は全ナイトreturnをTSE開始で追随するが30分保有で経路効率を持たず、R062は開始15分の拒否と30分保有を使う。同じ全ナイトreturn・経路効率・次TSE開始entry・120予定分exitの組合せは既評価ではない。`…-01`は未適格行の台帳side参照で注文前に停止、`…-02`は空の感度event集合をBLOCKEDとした監査表現で統計前に停止した。`…-03`は仮説、入力、閾値、費用、感度、seedを変えず、これら技術表現だけを訂正した不変実行である。
-
-Developmentの正規化Parquet、版管理OSE/TSE予定表、R004固定隔離のみを使う。各trade_dateの直前OSEナイトについて、全予定足の`n0` openと`nc` closeから`r=nc/n0-1`、`a=|r|`、`s=sign(r)`、`e=|nc-n0|/(|c0-n0|+Σ|ci-c(i-1)|)`を作る。rolling Uはnight観測値だけの直前120予定trade_dateであり、当日を除外して有効100件以上の場合だけaのq50/q65/q70/q75、eのq40/q50/q60をnearest-rankで作る。古い観測への補充、後続TSEの取引適格性によるU選択はしない。
-
-A=`a>=q70,e>=e_q50`、C=`q50<=a<q70,e>=e_q50`、D=`a>=q70,e<e_q50`、M=`q50<=a<q70,e<e_q50`、B=`a>=q50`の方向eventは+sで、A_fadeは−s、A_buy/A_sellは固定sideである。entryはTSE最初予定足open、exitは120予定分後open。0 tick診断、2/3 tick、手数料2倍、1/5予定足delay（exit非延長）、60/180分保有、q65/q75、e_q40/e_q60のみを固定感度とする。固定1,111日軸、20日非循環MBB 10,000回（seed=20261010）、block 10/40、nuisance-only MP-FWLと20日block-wild score bootstrap（seed=20261011）を指定どおり行い、情報不足はINCONCLUSIVE、その他の経済gate未達はREJECTとする。OOS、Final Holdout、WFA、救済探索はしない。
-
-## R066-Q001: TSE全体下側分位後のOSEナイト固定買い（事前登録）
-
-登録日: 2026-09-15。価格統計、event数、PnLを取得する前にR001--R065を照合した。R059はTSE終値から後続OSEナイト開始までのgap取引、R065は直前OSE night開始から当日TSE開始までの固定買い、R055/R062はnight情報からTSE開始後を取引する。因果的なTSE全体returnの下側分位、後続night開始entry、翌TSE開始exit、固定買いとA/C/D/U/A_short対照を同時に持つ既評価登録はない。本件は反復利用済みDevelopment上の探索である。
-
-入力はtrade_date 2021-01-01--2025-06-30の正規化Parquet、版管理済みTSE/OSE予定表、R004固定隔離のみである。各TSE日tの最初予定足openをd0、最終予定足closeをdc、r=dc/d0-1とする。rolling Uはd0/dcのみでrを計算できる直前120予定TSE営業日で、night・将来の取引適格性・当日を使わず、古い日で補充しない。100件以上でnearest-rank q20/q25/q30/q50/q70/q75/q80を算出し、下側等号は外側に含める。共通EはTSE d0/dc、後続night n0/n0+1/n0+5、次TSE d0/d0+1が一意対応の予定表連鎖に属し、正価格、適格、非隔離の日だけである。
-
-A=r<=q25、C=q25<r<=q50、D=r>=q75、U=rolling有効な全Eで、いずれもn0固定買い・翌TSE d0固定exit、A_shortはAと同一event/timeの固定売りとする。費用は片道1tick+30円、診断0tick、2/3tick、手数料2倍、n0 entryの1/5予定足遅延（exit非延長）、exitの1予定足遅延、独立再分類q20/q30（上側q80/q70）だけを固定感度とする。固定1,111日軸、20日非循環MBB 10,000回（seed=20261008）、block10/40、A/D eventの0tick Grossへのnuisance-only MP-FWLと20日block-wild 10,000回（seed=20261009）を使う。依頼記載の因果性・実行・会計・情報量・経済gateを必須とし、WFA/OOS/Final Holdout/救済探索は行わない。
 
 ## R065-Q001: OSEナイト開始からTSE開始までの固定買い（事前登録）
 
@@ -27,8 +51,6 @@ A=r<=q25、C=q25<r<=q50、D=r>=q75、U=rolling有効な全Eで、いずれもn0�
 主費用は片道1 tick+片道30円、診断用は0 tick、固定感度は片道2/3 tick、手数料2倍、Aのnight entryのみを1/5予定足遅延し`d0` exitを延長しない条件、Aの`d0` exitを1予定足遅延する条件だけである。他の時刻・曜日・月・方向filterは計算・表示しない。20 trade_date非循環moving-block bootstrapを10,000回、固定seed=20261007、共通index、末尾切詰め、linear percentileで実施し、A日次平均、paired A-D、A-A_shortの95%CIを保存する。block長10/40を推論感度とする。
 
 E>=800かつAの1/5足night-entry遅延感度各>=750を情報量gateとする。充足後はA Net>0、PF>1、三つの主CI下限>0、2/3 tick・手数料2倍・全遅延感度のNet>0かつPF>1、block 10/40でもA平均とA-DのCI下限>0、2021--2024の少なくとも3年でA Net>0、正の月27/54以上、上位10利益取引除去後Net>0をすべて必要とする。未達一つでREJECT、全通過でもDevelopment反復利用上のINVESTIGATEとする。旧新取引時間制度、曜日、月、休日までの間隔は報告専用である。WFA、OOS、Final Holdout、結果依存の境界・方向・期間救済は行わない。
-
-`r065-q001-20260915-overnight-risk-premium-01` は、事前登録、static/synthetic gate、R004隔離、Development event台帳の後、遅延条件の予定timestampが台帳に未展開である実装不備により、注文・fill・trade・PnL・bootstrap・判断の生成前に停止した不変技術記録である。`…-02` は`n0+1`、`n0+5`、`d0+1`という既登録済み予定時刻を台帳へ明示するだけで、仮説・境界・価格・費用・感度・seed・判定を変えずに再登録する。
 
 ## R064-Q001: TSE開始後のtrend-pullback continuation（事前登録）
 
@@ -518,3 +540,4 @@ Eは前回最終足、当日最初の20予定足、rolling閾値、各仕様のe
 版管理ExchangeCalendarの`target_night.previous_trade_date`だけでTSE通常sessionと後続OSE nightを一意対応させる。p=TSE最後の適格予定足close、oN=OSE最初の予定足open、`g=(oN-p)/p`、`x=|g|`、`s=sign(g)`である。各target前の直前120対応日だけの有効xから、100件以上でnearest-rank q75/q85/q90/q95を算出する。当日を含めず、古い日への補充なし、等号は上側である。Eは両端点、OSE最初の2予定足、rolling閾値、entryと15/30/45分exitが同一night segmentで適格な日だけとし、g=0はEに残し方向条件から除外する。signalはoN観測後、entry=oN+1予定足open、exit=entry+15/30/45予定分openであり、gapと第1 OSE足をPnLに含めない。
 
 A=`x>=q90`の`-s`、B=`x>=q75`の`-s`、C=`q75<=x<q90`の`-s`、A_continue=`s`、A_buy/A_sellは同一A event/timeである。A2/A3、A_delay（exit非延長）、q85/q95、15/45分だけを感度とし、1枚・最大1ポジション、Stop/Target/reentry/early exitなし、片道1 tick+30円を固定する。Bの全方向有効eventについて0 tick・費用前30分grossをy、Q、絶対gap bps、TSE最終30分のs調整return/range、TSE通常session全体のs調整return、OSE第1足のs調整return、gap-up、暦年FEをR053-Q002と同じnuisance-only FWL（rcond/tolerance=1e-12）で推定する。観測又はいずれかの20 trade_date非循環MBB 10,000回でQが非識別ならBLOCKEDである。E>=800、B>=190、A>=70、C>=100、A buy/sell各25、A95>=30を満たさなければINCONCLUSIVE、充足後の全経済・CI・対照・感度・年/月・集中度条件のいずれか未達はREJECT、全通過でもDevelopment探索上のINVESTIGATEとする。OOS、Final Holdout、WFA、救済探索を行わない。
+<!-- END PRESERVED SOURCE -->

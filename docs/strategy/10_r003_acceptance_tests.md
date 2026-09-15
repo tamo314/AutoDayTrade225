@@ -1,3 +1,45 @@
+# R003：合成データ・回帰・研究受入テスト — 改訂適用注記
+
+## RG-20260915-01: 追加受入仕様
+
+下段はR003原案のテスト定義を保存したものである。元のテストIDや期待値を新規約へ書き換えない。原案の「未実施」と後続研究の実測記録は別時点であり、本改訂でprojectテストを再実行したとはしない。
+
+次の追加項目はすべて **NOT_RUN**。実装時に既存のF/C/E/P/A/W/B/Q/Sテストと併せて実測し、対象code/spec/data hashと対応させる。
+
+|追加ID|合成操作・条件|期待結果|
+|---|---|---|
+|RG01|同event・同経路・反対sideで両0tick費用前平均<0を必須化|SpecAuditが矛盾を拒否|
+|RG02|各個別gateは成立するが全ANDは矛盾する設計|個別booleanだけでPASSにしない|
+|RG03|整合する単一の共有価格経路からgate証人を生成|全必須条件の共同成立性と単位を保存|
+|RG04|後刻placeboをzeroへ変更、主entryはそれより前|loader/QC/E_exec/主注文は不変|
+|RG05|後刻anchorだけ不適格へ変更|前刻のcandidate/first-event/注文は不変|
+|RG06|session後半のQCだけを変更|opening_valid、過去U、前刻entryは不変|
+|RG07|全感度のexit足の一つを欠測にする|主E_execを変えず、該当感度のoutcomeに欠測を残す|
+|RG08|主entry済みでexit不明|OPEN_POSITION/UNKNOWN_PNL、null。0円見送りへ戻さない|
+|RG09|既知のno-signal、未約定取消、不明建玉を混在|費用を含む0/既知額/nullを正しく区別|
+|RG10|日中隔離日の残存night Barをmetricsに渡す|主scheduled_axisが変わらず、不一致入力を検出|
+|RG11|B=q75をroot q90で代用する誤配線|包含・述語・独立first-eventで失敗|
+|RG12|A_follow/buy/sellがroot A sideを継承|同event side assertionで失敗|
+|RG13|selection_statusをfilledへ上書きし回帰行0にする|不変eventを正本とし、誤実装を拒否|
+|RG14|R032型に表示平均差と記載差が違う|単位・集合・重み・中心を照合し未解決なら表示を保留|
+|RG15|診断FWLが未識別、主PnLは正常|主結果を保持し機構NOT_IDENTIFIED。co-primaryなら昇格は停止|
+|RG16|新spec予算超過／同ID再利用／既読PnLを未使用化|価格読取り前に拒否・アクセス履歴保持|
+|RG17|原R003実fill時計と予定anchor時計を切替|経済変更として識別し、旧設定を無断変更しない|
+|RG18|cutoff後のheld EXITとforce-flatが競合|EXITを抑止せず、経済契約順に一度だけ決済|
+|RG19|PASS_LIMITEDまたは未完全specでOOSを要求|開封前に拒否|
+|RG20|OOSを読んだ直後に中断|既読記録は残り、再開で未使用へ戻さない|
+|RG21|Final Holdoutをloader/cache/QCから参照|全境界で拒否|
+|RG22|旧研究のREJECT/INCONCLUSIVEと原版hashを移行|数値・判定不変。review_statusを別列に追加|
+
+共有価格の証人テストはソフトウェア・仕様検査であり、その価格経路が市場で発生する確率や戦略の利益を示さない。検出感度校正は別のS2工程としてモデル・最小効果量・偽陽性率・検出率・不確実性を記録する。
+
+R065の専用cross-sessionテストは [15_r065_execution_review.md](15_r065_execution_review.md) を使い、R003のsession内契約へ混入させない。パッケージのhash/link/JSON検査の成功を、この表のPASSへ転記しない。
+
+## 保存本文の読み方
+
+次の区間はアップロードされた原文をそのまま保持しています。日付・状態・「次の作業」はその記録時点の記述であり、現在の実行許可を与えません。保存済みの数値・事前登録・歴史的判定は変更していません。
+
+<!-- BEGIN PRESERVED SOURCE -->
 # R003：合成データ・回帰・研究受入テスト
 
 作成日：2026-09-13 / 状態：**実装時の受入仕様。プロジェクトのテストは未実施。**
@@ -152,3 +194,4 @@ R003仕様に対応する合成テストと重要な既存回帰を実行し、R
 最低限の受入条件は、上表の因果性/時刻/費用/期間保護/対照一致/保存保護が満たされること、旧研究が意図せず変わらないこと、READMEの実行例が実装済みCLIと一致すること。
 
 実データ研究まで実施する依頼の場合は、品質ゲートに従った実験、全ゲートのbooleanと根拠、NOT_EVALUATEDのOOS、未参照のFinal Holdoutを含め、再現可能な最終報告を保存する。品質により停止した場合も、未実行項目を明確にする。
+<!-- END PRESERVED SOURCE -->

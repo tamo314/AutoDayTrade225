@@ -17,7 +17,7 @@
 
 ## 必要な文書への入口
 
-- 研究開始・選定: docs/strategy/01_research_protocol.md、docs/strategy/03_experiment_plan.md。
+- 研究開始・選定: docs/strategy/13_research_governance.md、docs/strategy/14_research_repair_plan.md。
 - API・研究機能: docs/strategy/02_research_design.md。
 - 最新の判断・次の実験: docs/strategy/04_research_results.md。
 - 基盤に触れるとき: DECISIONS.md と変更対象に対応する docs/infrastructure/ の仕様。時刻は05、約定・PnLは06、品質は07、基盤受入条件は11。
