@@ -205,3 +205,72 @@ def feasibility(
         },
         "events": {target.isoformat(): event for target, event in events.items()},
     }
+
+
+def q002_feasibility(
+    axis: list[date], bars_by_day: dict[date, list[Bar]], classifier: CalendarClassifier
+) -> dict[str, object]:
+    """Apply the pre-registered Q002 S2 gate without calculating PnL or returns.
+
+    The 886 denominator is the independently saved, price-independent calendar
+    capacity from TASK-R073-D001.  A nonzero direction is still required for an
+    executable trade, but equal directions are not counted as data or mapping
+    attrition.
+    """
+    events = {
+        target: official_night_direction_event(target, bars_by_day.get(target, []), classifier)
+        for target in axis
+    }
+    calendar_eligible = [
+        target
+        for target, event in events.items()
+        if event["status"] != "NO_SCHEDULED_CROSS_SESSION_WINDOW"
+    ]
+    unexplained = [
+        target
+        for target in calendar_eligible
+        if (event := events[target]).get("status") not in {"EXECUTABLE", "SKIPPED"}
+        or (event["status"] == "SKIPPED" and event.get("reason") != "ZERO_NIGHT_DIRECTION")
+    ]
+    executable = [target for target, event in events.items() if event["status"] == "EXECUTABLE"]
+    by_year = Counter(target.year for target in executable)
+    by_side = Counter(str(events[target]["execution_direction"]) for target in executable)
+    minimum_executable = ceil(0.95 * 886)
+    gate = {
+        "calendar_eligible_trade_dates_equals_886": len(calendar_eligible) == 886,
+        "unexplained_data_trade_date_or_implementation_exclusions": len(unexplained),
+        "unexplained_exclusions_equal_zero": len(unexplained) == 0,
+        "executable_excluding_equal_directions": len(executable),
+        "minimum_executable_95_percent_of_886": minimum_executable,
+        "executable_at_least_95_percent": len(executable) >= minimum_executable,
+        "minimum_2021_through_2024_each": 180,
+        "minimum_long_and_short_each": 300,
+        "year_direction_minima_passed": all(by_year[year] >= 180 for year in range(2021, 2025))
+        and by_side["long"] >= 300
+        and by_side["short"] >= 300,
+    }
+    gate["passed"] = all(
+        bool(gate[key])
+        for key in (
+            "calendar_eligible_trade_dates_equals_886",
+            "unexplained_exclusions_equal_zero",
+            "executable_at_least_95_percent",
+            "year_direction_minima_passed",
+        )
+    )
+    return {
+        "scheduled_trade_dates": len(axis),
+        "calendar_eligible_trade_dates": len(calendar_eligible),
+        "equal_night_direction_trade_dates": sum(
+            event.get("reason") == "ZERO_NIGHT_DIRECTION" for event in events.values()
+        ),
+        "executable_trade_dates": len(executable),
+        "executable_by_year": {str(year): by_year[year] for year in range(2021, 2026)},
+        "execution_direction_counts": dict(sorted(by_side.items())),
+        "unexplained_exclusion_trade_dates": [target.isoformat() for target in unexplained],
+        "status_counts": dict(
+            sorted(Counter(str(event.get("reason", event["status"])) for event in events.values()).items())
+        ),
+        "gate": gate,
+        "events": {target.isoformat(): event for target, event in events.items()},
+    }

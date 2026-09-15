@@ -10,7 +10,7 @@ from datetime import date, datetime, time, timezone
 from hashlib import sha256
 from pathlib import Path
 from subprocess import run
-from sys import executable
+from sys import argv, executable
 from typing import Any, cast
 
 from n225m_bt.backtest.engine import BacktestEngine
@@ -20,7 +20,7 @@ from n225m_bt.config import load_project_config
 from n225m_bt.domain import Bar, ExitReason, Side, Trade
 from n225m_bt.io.manifest import canonical_hash
 from n225m_bt.research.data import load_split, partition_paths
-from n225m_bt.research.metrics import ledger_metrics
+from n225m_bt.research.metrics import concentration, ledger_metrics
 from n225m_bt.research.r073_official_night_direction_day_reversal import (
     DEVELOPMENT_END,
     DEVELOPMENT_START,
@@ -29,6 +29,7 @@ from n225m_bt.research.r073_official_night_direction_day_reversal import (
     feasibility,
     mbb_mean_ci,
     official_night_direction_event,
+    q002_feasibility,
     scheduled_axis,
 )
 from n225m_bt.strategies.r049_fixed_time import R049FixedTimeStrategy
@@ -142,7 +143,50 @@ def net_positive(report_value: dict[str, object]) -> bool:
     return value is not None and value > 0
 
 
-def main() -> None:
+def yearly_direction_diagnostics(axis: list[date], trades: tuple[Trade, ...]) -> dict[str, object]:
+    """Save the pre-registered descriptive slices without changing any gate."""
+    by_year = {
+        str(year): tuple(trade for trade in trades if trade.trade_date.year == year)
+        for year in range(2021, 2026)
+    }
+    by_side = {
+        side.value: tuple(trade for trade in trades if trade.side is side)
+        for side in (Side.LONG, Side.SHORT)
+    }
+    return {
+        "by_year": {year: ledger_metrics(group) for year, group in by_year.items()},
+        "by_direction": {side: ledger_metrics(group) for side, group in by_side.items()},
+        "profit_concentration": concentration(trades, axis),
+    }
+
+
+def main(*, variant: str = "q001") -> None:
+    global RUN_ID, OUT
+    variants = {
+        "q001": {
+            "task_id": "TASK-R073-Q001",
+            "study_id": "R073-Q001",
+            "spec_version": "v1",
+            "run_id": "r073-q001-20260915-official-night-direction-day-reversal-01",
+            "document": Path("docs/strategy/27_r073_q001_official_night_direction_day_reversal.md"),
+            "s2_gate": ">=900 executable; >=180 in each 2021-2024; >=300 each buy/sell; failure returns INCONCLUSIVE before PnL.",
+            "feasibility": feasibility,
+        },
+        "q002": {
+            "task_id": "TASK-R073-Q002",
+            "study_id": "R073-Q002",
+            "spec_version": "v1-s2-886-calendar-gate",
+            "run_id": "r073-q002-20260915-official-night-direction-day-reversal-01",
+            "document": Path("docs/strategy/29_r073_q002_official_night_direction_day_reversal.md"),
+            "s2_gate": "TASK-R073-D001's price-independent 886 calendar-eligible dates are required; unexplained data/trade_date/implementation exclusions=0; executable non-ties >=ceil(95%*886)=842; retain >=180 in each 2021-2024 and >=300 each buy/sell; failure returns INCONCLUSIVE before PnL.",
+            "feasibility": q002_feasibility,
+        },
+    }
+    if variant not in variants:
+        raise ValueError(f"unknown R073 variant: {variant}")
+    specification = variants[variant]
+    RUN_ID = str(specification["run_id"])
+    OUT = ROOT / "results" / "research" / RUN_ID
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)
@@ -152,7 +196,7 @@ def main() -> None:
         Path("src/n225m_bt/strategies/r049_fixed_time.py"),
         Path("tests/test_r073_q001.py"),
     ]
-    prereg_document = Path("docs/strategy/27_r073_q001_official_night_direction_day_reversal.md")
+    prereg_document = cast(Path, specification["document"])
     config_files = [
         Path(f"config/{name}")
         for name in (
@@ -166,10 +210,10 @@ def main() -> None:
     ]
     _, _, data_config, _ = load_project_config(ROOT / "config")
     preregistration = {
-        "task_id": "TASK-R073-Q001",
+        "task_id": specification["task_id"],
         "family_id": "night_directional_inventory_reversal",
-        "study_id": "R073-Q001",
-        "spec_version": "v1",
+        "study_id": specification["study_id"],
+        "spec_version": specification["spec_version"],
         "run_id": RUN_ID,
         "protocol_revision": "RG-20260915-01",
         "status": "FROZEN_BEFORE_PRICE_PERFORMANCE",
@@ -186,7 +230,7 @@ def main() -> None:
         "scheduled_axis": "Every version-controlled Development trade_date 2021-01-01..2025-06-30; known nonexecution=JPY0 and filled missing exit=null.",
         "controls": "No-trade JPY0 primary control and same-date/same-entry/same-exit night-direction momentum co-primary control.",
         "costs": "One adverse tick plus JPY30 per side; slippage is included once in gross_fill.",
-        "s2_gate": ">=900 executable; >=180 in each 2021-2024; >=300 each buy/sell; failure returns INCONCLUSIVE before PnL.",
+        "s2_gate": specification["s2_gate"],
         "primary_gate": "Net>0; PF>1; primary and paired reversal-minus-momentum scheduled-axis daily mean MBB CI95 lower >0.",
         "sensitivity_profiles": [
             "night_end_0500",
@@ -280,7 +324,8 @@ def main() -> None:
             "final_holdout": "NOT_ACCESSED",
         },
     )
-    s2 = feasibility(axis, bars_by_day, classifier)
+    feasibility_function = cast(Any, specification["feasibility"])
+    s2 = feasibility_function(axis, bars_by_day, classifier)
     write_json(OUT / "s2_feasibility.json", s2)
     s2_gate = cast(dict[str, object], s2["gate"])
     if not bool(s2_gate["passed"]):
@@ -341,6 +386,13 @@ def main() -> None:
         write_json(OUT / f"{name}_daily_axis.json", daily)
     write_json(OUT / "events.json", events_by_profile)
     write_json(OUT / "profiles.json", reports)
+    write_json(
+        OUT / "yearly_direction_diagnostics.json",
+        {
+            name: yearly_direction_diagnostics(axis, trades_by_profile[name])
+            for name in ("reversal_primary", "night_direction_momentum")
+        },
+    )
     primary, momentum = reports["reversal_primary"], reports["night_direction_momentum"]
     audit = {
         "one_trade_per_trade_date": all(
@@ -471,4 +523,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(variant="q002" if argv[1:] == ["--q002"] else "q001")

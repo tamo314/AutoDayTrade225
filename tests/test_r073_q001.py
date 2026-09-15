@@ -7,6 +7,7 @@ from n225m_bt.config import JST, load_project_config
 from n225m_bt.domain import Bar, Session
 from n225m_bt.research.r073_official_night_direction_day_reversal import (
     official_night_direction_event,
+    q002_feasibility,
 )
 
 
@@ -101,3 +102,14 @@ def test_registered_time_profiles_and_holiday_spanning_night_are_rejected() -> N
         )["status"]
         == "NO_SCHEDULED_CROSS_SESSION_WINDOW"
     )
+
+
+def test_q002_gate_counts_only_zero_signal_as_permitted_calendar_attrition() -> None:
+    target, prior = date(2024, 11, 1), date(2024, 10, 31)
+    bars = _path(target, prior, time(16, 30))
+    bars[2] = _bar(target, bars[2].ts_jst, Session.NIGHT, 100)
+    result = q002_feasibility([target], {target: bars}, _classifier(target, prior))
+    assert result["calendar_eligible_trade_dates"] == 1
+    assert result["equal_night_direction_trade_dates"] == 1
+    assert result["gate"]["unexplained_exclusions_equal_zero"] is True
+    assert result["gate"]["unexplained_data_trade_date_or_implementation_exclusions"] == 0
