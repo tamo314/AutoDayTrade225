@@ -1,5 +1,48 @@
 # 戦略研究結果
 
+## R067-Q001: OSEナイト情報のTSE開始後120予定分継続 — INCONCLUSIVE（Development限定）
+
+正式成果物は`results/research/r067-q001-20260915-night-to-day-information-continuation-03/`。R001--R066照合では、R055は全ナイトreturn＋TSE開始entryだが30分保有・効率分類なし、R062は開始15分拒否＋30分保有であり、本件の全ナイトreturn、経路効率、次TSE開始entry、120予定分exitの同一組合せではなかった。入力はDevelopment正規化Parquet、版管理予定表、R004固定隔離のみで、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDである。
+
+固定1,111日軸の各日について、直前120予定ナイトだけを参照し、隔離・欠損を古いnightで補充しなかった。R004隔離後、最大rolling有効観測数は96で、必要な100に一度も達しなかった。そのためE=0、A/B/C/D/Mと全感度の取引は0、FWL・bootstrap・損益判定は情報量不足として未評価である。rolling因果性（当日除外）、100件判定、補充なし、セル排他、A⊂B、対照のevent/time一致、delay非延長、会計、最大1取引、固定軸、感度の因果的再分類gateはPASSした。情報量gate未達により **R067-Q001=INCONCLUSIVE** とする。OOS、Final Holdout、WFA、期間・閾値・時刻・方向の救済は実行しない。
+
+## R066-Q001: TSE全体下側分位後のOSEナイト固定買い — REJECT（Development限定）
+
+正式成果物は `results/research/r066-q001-20260915-tse-lower-tail-night-reversal-01/`。R001--R065を価格・event・PnL取得前に照合し、R059（dC→n0 gap）、R065（直前n0→当日d0固定買い）、R055/R062（night情報からTSE開始後）とは同一でないことを記録した。Development正規化Parquet、版管理予定表、R004固定隔離だけを用い、OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDで完走した。
+
+共通E=1,002、A/C/D=249/242/267、Aの1/5予定足entry遅延はいずれも249、q20/q30 A=188/294で全情報量gateを満たした。主AはNet +216,560円、PF 1.068だったが、20日MBBのA日次平均CIは[-797.7, +1,101.4]円で下限が負だった。条件別平均差のCIもA-C [-5,944.6, +7,296.2]、A-D [-3,557.7, +6,856.5]、A-U [-2,997.2, +4,809.5]、A-A_short [-4,923.2, +12,057.5]円で全て下限が負、FWL deltaも[-3,714.9, +5,784.0]円だった。2/3tickではA Net/PF=-32,440円/0.990、-281,440円/0.917、q30も-59,640円/0.984で、block10/40、top10除去後も必須gateを満たさない。よって **R066-Q001=REJECT** とする。rolling因果性、100件目、prefix、A/C/D排他、control時刻一致、遅延非延長、独立q20/q30再分類、会計、1日最大1取引、固定1,111日軸はすべてPASSした。曜日・月・制度の救済利用、WFA、OOS、Final Holdoutは実行しない。
+
+## R065-Q001: OSEナイト開始からTSE開始までの固定買い — REJECT（Development限定）
+
+正式成果物は `results/research/r065-q001-20260915-overnight-risk-premium-02/`。価格・event数・PnL取得前にR001--R064を照合した。R055/R062はナイト情報からTSE開始後を取引し、R059はTSE終値からOSEナイト開始へのgapを取引するため、版管理予定表の`n0→d0`固定買いと同じ`t`の`d0→n1`固定買いを同一eventで比べる本実験と同一ではない。`…-01`は予定済みの`n0+1`/`n0+5`/`d0+1` timestampをevent台帳に展開していない実装不備で、注文・fill・trade・PnL・bootstrap・判断前に停止した不変技術記録である。`…-02`はその台帳表現だけを補完して再登録し、仮説、境界、価格、費用、感度、seed、判定を変更せずに完走した。
+
+固定1,111 trade_date軸で、予定表が一意かつ相互に対応する`t`、`next_trade_date(t)`だけから`n0=OSE night(t)開始`、`d0=TSE(t)開始`、`n1=OSE night(next(t))開始`を得た。三境界、`n0+1`、`n0+5`、`d0+1`の全てが正価格・適格・R004非隔離である共通Eだけを採用し、代替boundaryへの遡及・補完はしなかった。E=1,082であり、R004固定隔離45 session/27,345 bar、残存2,216 session/1,326,086 barを再現した。休日跨ぎ、旧新取引時間制度、欠損・隔離・非相互予定表連鎖は全candidate台帳に理由付きで保存し、旧/新制度・曜日・月・境界間calendar gapは報告専用とした。物理I/OはDevelopment正規化Parquetだけで、OOSは未評価、Final Holdoutは未アクセス、品質上限は **PASS_LIMITED** である。
+
+主Aは`n0`買い・`d0`決済、Dは`d0`買い・`n1`決済、A_shortはAと同時刻の固定売りである。これは価格を見たsignalではなく、事前に置く時刻指定市場注文として全openに一回だけ不利約定を適用した。既存engineは最初の`n0` bar以前にbar-close signalを発行できないため変更せず、同じ`adverse_fill`、`gross_pnl`、fee会計primitiveで再現した。Grossにはslippageを一度だけ含め、Net=Gross-feesである。Stop/Target/re-entry/early exitはない。
+
+|条件|取引|Net円|PF|期待値 円/取引|
+|---|---:|---:|---:|---:|
+|A: n0→d0 fixed buy|1,082|134,080|1.011|123.92|
+|D: d0→n1 fixed buy|1,082|-1,352,920|0.883|-1,250.39|
+|A_short|1,082|-2,427,920|0.821|-2,243.92|
+|A2 / A3|各1,082|-947,920 / -2,029,920|0.925 / 0.847|-876.08 / -1,876.08|
+|A_fee2|1,082|69,160|1.006|63.92|
+|A_delay1 / A_delay5 / A_exitdelay1|各1,082|178,080 / 311,580 / 201,580|1.015 / 1.026 / 1.017|164.58 / 287.97 / 186.30|
+
+20 trade_date非循環moving-block bootstrap（10,000回、seed=20261007、共通index、末尾切詰め、linear percentile）の95%CIは、A日次平均 `[-1,492.16, +1,725.74]`、A-D `[-665.18, +3,632.38]`、A-A_short `[-923.54, +5,520.27]` 円/dayだった。block 10ではA `[-1,628.97,+1,809.54]`、A-D `[-856.45,+3,711.66]`、block 40ではA `[-1,436.46,+1,523.62]`、A-D `[-391.25,+3,390.66]`であり、指定した下限条件を満たさない。Aの2021--2024 Netは+308,180/-632,380/+343,080/+227,200円で正年3、正月33/54だったが、上位10利益取引1,298,400円を除くNetは-1,164,320円である。
+
+情報量gate（E>=800、A_delay1/A_delay5各>=750）は満たした。実行・会計auditも、共通E、A/Dのtarget日一致、A/A_short同時刻・反対side、遅延entryのd0 exit非延長、d0 exit遅延のみ、1日最大1ポジション、固定1,111日軸、`Net=Gross-fees`、slippage非二重控除の全項目でPASSした。pytest 2件、Ruff、mypyもPASSである。しかし主三CI下限、A2/A3のNet/PF、block 10/40のA/A-D下限、top10除去後Netの必須gateを一つ以上満たさないため、規約どおり **R065-Q001=REJECT** とする。曜日・制度・月の良い部分を採用せず、境界、side、保有期間、費用、休日filterの救済探索、WFA、OOS、Final Holdoutは実行しない。
+
+## R064-Q001: TSE開始後のtrend-pullback continuation — INCONCLUSIVE
+
+正式成果物は `results/research/r064-q001-20260915-tse-trend-pullback-continuation-03/`。R035/R049/R063は短時間shock、R033/R046/R051は開始局面の即時継続・breakout・圧縮であり、最初の60予定足の方向変動、次15足の20--50%非破壊的部分押し、次足entry、30分保有、rolling q50/q70/q75/q80四セルを併せ持つR001--R063の既登録仕様はない。これは反復利用済みDevelopment探索であり、独立再現ではない。`…-01`と`…-02`は外部executorの30秒同期枠によりU/event台帳保存後に停止した不変技術記録で、注文・fill・PnL・bootstrap・判定を含まない。`…-03`は規則・入力・費用・seed・統計・gateを変更せず、`…-02`のpytest/Ruff/mypy成功結果を研究・strategy・testのhash一致で検証して引き継ぎ、完走した。
+
+Development正規化Parquet、版管理予定表、R004固定隔離だけを使用した。固定1,111日軸でE=1,011（過去U不足100）、B/A/C/D/M=500/41/50/89/51、A long/short=20/21、q80 A=33、観測45/75のA=51/41だった。予定足、100個目の過去U、当日除外、prefix不変性、cell排他、A⊂B、同一A eventの対照時刻、翌足entry、固定exit、遅延非延長、1日最大1、固定軸、`Net=Gross-fees`、slippage非二重控除の監査はすべてPASSした。OOS=NOT_EVALUATED、Final Holdout=NOT_ACCESSEDである。
+
+しかし情報量gateのA/C各45に対してA=41で未達である。従って規約どおり **R064-Q001=INCONCLUSIVE** であり、経済gateは正式判定に使わない。参考として主AはNet=-101,960円、PF=0.499、期待値=-2,486.83円/取引、A日次平均CI=[-217.14,+27.51]円、A−C=[-191.50,+118.30]円、A−D=[-340.36,+30.21]円、A−B=[+114.74,+700.20]円、A−fade=[-346.56,+135.04]円、A−buy=[-274.53,+63.91]円、A−sell=[-154.82,+142.21]円、調整交互作用delta=-2,632.14円（CI=[-6,549.54,+1,176.52]、残差Q SS=12.4218）だった。A2/A3/A_delayのNet/PFは-142,960/0.383、-183,960/0.295、-93,460/0.530で、q70/q80、両pullback帯、45/75分観測、15/45分保有もすべてNet<0又はPF<1だった。Aの2021--2024正年は2/4、正月7/54、top10利益除去後Net=-197,860円である。
+
+情報量不足を負の参考値によってREJECTへ繰り上げず、方向反転、時刻・rolling・閾値・押し帯・保有時間の救済探索、WFA、OOS、Final Holdoutは実施しない。
+
 ## R063-Q001: TSE日中の時刻調整済み流動性shock拒否後20分継続 — REJECT
 
 正式成果物は `results/research/r063-q001-20260915-tse-liquidity-shock-rejection-03/`。R035は同時計5分shockだが60日strict q90・拒否なし・15分保有、R049は120日固定anchorだが拒否なし・15分保有であるため、R063の第31--150予定足の完全非重複block、位置別120日U、最初のq70、同長response拒否、次open entry、20分holdの同一登録ではない。これは反復利用済みDevelopment探索であり、独立再現ではない。`…-01`はParquet manifest path表記の基準不一致で価格アクセス前に停止、`…-02`は全position Uを感度eventへ重複保持して作業set約8GBに達したためevent分類・注文・PnL前に停止した不変技術記録である。`…-03`は独立U台帳への参照化だけを行い完走した。
