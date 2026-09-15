@@ -1,0 +1,72 @@
+schema_version: 1
+audit_scope:
+  provider: 225Labo
+  instrument: Nikkei 225 mini
+  series: center_continuous
+  trade_date_start: 2021-01-01
+  trade_date_end: 2025-06-30
+sources:
+  - evidence_id: 225labo-product-index-20260915
+    issuer: 225Labo
+    document_version: live provider download index retrieved 2026-09-15
+    applicability: provider's Nikkei 225 mini center-contract minute-data products
+    url: https://225labo.com/modules/downloads_data/index.php?cid=3
+    citations:
+      - lines: L26-L32
+        finding: 1-minute data is offered and the post-2011-02-14 series is described as a connected trade-center contract series aligned with Nikkei 225 large.
+      - lines: L57-L61
+        finding: a 2025 center-contract minute-data product is listed.
+      - lines: L95-L99
+        finding: a 2021 center-contract minute-data product is listed.
+    resolves:
+      - nominal_one_minute_product_availability
+      - nominal_center_contract_series_description
+    does_not_resolve:
+      - timestamp_label_start_or_end
+      - ohlc_construction
+      - price_available_at
+      - missing_policy
+      - correction_or_republication_policy
+      - actual_contract_constituent_at_bar
+      - observed_roll_timestamp
+      - adjustment_method
+  - evidence_id: 225labo-2021-center-product-20260915
+    issuer: 225Labo
+    document_version: live 2021 annual product page retrieved 2026-09-15
+    applicability: 2021 annual Nikkei 225 mini center-contract minute-data product
+    url: https://225labo.com/modules/downloads_data/index.php?cid=3&lid=115&page=singlefile
+    citations:
+      - lines: L32, L39-L43
+        finding: describes the 2021 product as minute data from January; says it is a connected series using the same trading-center maturity as the large near contract and assigns night-session dates to the next business day under the Osaka Exchange basis.
+    resolves:
+      - nominal_center_contract_selection_rule
+      - provider_trade_date_convention_for_night_session
+    does_not_resolve:
+      - timestamp_label_start_or_end
+      - ohlc_construction
+      - price_available_at
+      - missing_policy
+      - correction_or_republication_policy
+      - actual_contract_constituent_at_bar
+      - observed_roll_timestamp
+      - adjustment_method
+  - evidence_id: 225labo-download-terms-20260915
+    issuer: 225Labo
+    document_version: live download terms retrieved 2026-09-15
+    applicability: provider's downloadable historical-data files
+    url: https://225labo.com/document/download/about.html
+    citations:
+      - lines: L5-L6
+        finding: the provider disclaims a guarantee as to data contents.
+      - lines: L10-L15
+        finding: users are asked to report missing or duplicate data; no correction, revision, or publication-time policy is stated.
+    resolves: []
+    does_not_resolve:
+      - timestamp_label_start_or_end
+      - ohlc_construction
+      - price_available_at
+      - missing_policy
+      - correction_or_republication_policy
+      - actual_contract_constituent_at_bar
+      - observed_roll_timestamp
+      - adjustment_method
