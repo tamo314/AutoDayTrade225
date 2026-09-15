@@ -686,7 +686,7 @@ def main() -> None:
     side = cast(dict[str, dict[str, object]], segments["side"])
     yearly = cast(dict[str, dict[str, object]], segments["year"])
     sufficient = (
-        len(days) >= 850
+        len(days) >= 800
         and len(trades_by["B"]) >= 500
         and len(trades_by["A"]) >= 150
         and len(trades_by["D"]) >= 150

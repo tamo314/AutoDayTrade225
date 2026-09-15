@@ -35,7 +35,7 @@ def scheduled_axis(calendar: ExchangeCalendar) -> list[date]:
 
 def nearest_rank(values: list[int], percentile: int) -> int:
     """Frozen nearest-rank percentile, with no interpolation."""
-    if not values or percentile not in {20, 25, 33, 75}:
+    if not values or percentile not in {20, 25, 33, 67, 75, 80}:
         raise ValueError("unregistered R074 percentile")
     return sorted(values)[ceil(len(values) * percentile / 100) - 1]
 

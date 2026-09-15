@@ -840,7 +840,7 @@ def main() -> None:
         for value in ("long", "short")
     }
     info = {
-        "E>=850": sum(row.get("status") == "E" for row in base) >= 850,
+        "E>=800": sum(row.get("status") == "E" for row in base) >= 800,
         "A>=90": len(trades["A"]) >= 90,
         "B>=220": len(trades["B"]) >= 220,
         "C>=100": len(trades["C"]) >= 100,

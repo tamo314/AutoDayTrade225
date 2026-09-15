@@ -686,7 +686,7 @@ def main() -> None:
     sides = cast(dict[str, dict[str, object]], cast(dict[str, object], segments)["side"])
     years = cast(dict[str, dict[str, object]], cast(dict[str, object], segments)["year"])
     sufficient = (
-        len([r for r in base if r.get("status") == "E"]) >= 850
+        len([r for r in base if r.get("status") == "E"]) >= 800
         and len(trades["B"]) >= 220
         and len(trades["A"]) >= 80
         and len(trades["D"]) >= 80

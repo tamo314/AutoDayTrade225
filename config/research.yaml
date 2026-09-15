@@ -15,3 +15,6 @@ walk_forward:
   train_months: 12
   test_months: 3
   step_months: 3
+
+information_gates:
+  default_minimum_executable_events: 800

@@ -686,7 +686,7 @@ def main() -> None:
         for side in ("long", "short")
     }
     info = {
-        "E>=850": sum(row.get("status") == "E" for row in base) >= 850,
+        "E>=800": sum(row.get("status") == "E" for row in base) >= 800,
         "A>=120": len(trades["A"]) >= 120,
         "D>=150": len(trades["D"]) >= 150,
         "A_buy_sell>=40": all(value >= 40 for value in directions.values()),

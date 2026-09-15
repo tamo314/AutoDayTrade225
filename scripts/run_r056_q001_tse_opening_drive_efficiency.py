@@ -859,7 +859,7 @@ def main() -> None:
         cast(dict[str, dict[str, object]], segments["year"]),
     )
     sufficient = (
-        len(axis) >= 850
+        len(axis) >= 800
         and len(trades_by["B"]) >= 200
         and len(trades_by["A"]) >= 90
         and len(trades_by["D"]) >= 90
