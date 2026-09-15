@@ -161,6 +161,59 @@ def audit_data_semantics(
     typer.echo(f"R2 data-semantics audit: {result}")
 
 
+@research_app.command("audit-r032-ledger")
+def audit_r032_ledger(
+    audit_id: str = typer.Option(..., help="Unique audit identifier."),
+    output: Path = typer.Option(..., file_okay=False),
+    run_dir: Path = typer.Option(..., exists=True, file_okay=False),
+    run_tests: bool = typer.Option(False, help="Run the dedicated saved-ledger and R032 regression nodes."),
+) -> None:
+    """Reconcile the immutable R032 saved ledger without opening market data."""
+    from n225m_bt.research.r032_ledger_audit import R032LedgerAuditError, write_r032_ledger_audit
+
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=Path.cwd(), capture_output=True, text=True, check=True
+        ).stdout.strip()
+        result = write_r032_ledger_audit(run_dir, output, audit_id, commit)
+    except (OSError, R032LedgerAuditError, subprocess.SubprocessError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    if run_tests:
+        nodes = ["tests/test_r032_ledger_audit.py", "tests/test_r032_q001.py", "tests/test_r1_governance.py"]
+        completed = subprocess.run(
+            [sys.executable, "-m", "pytest", *nodes],
+            cwd=Path.cwd(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        (result / "test_results.json").write_text(
+            json.dumps(
+                {
+                    "status": "PASS" if completed.returncode == 0 else "FAIL",
+                    "returncode": completed.returncode,
+                    "node_ids": nodes,
+                    "stdout_file": "test_stdout.txt",
+                    "stderr_file": "test_stderr.txt",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (result / "test_stdout.txt").write_text(completed.stdout, encoding="utf-8")
+        (result / "test_stderr.txt").write_text(completed.stderr, encoding="utf-8")
+        if completed.returncode:
+            raise typer.Exit(completed.returncode)
+        (result / "COMPLETED.json").write_text(
+            json.dumps({"audit_id": audit_id, "test_status": "PASS"}, ensure_ascii=False, indent=2)
+            + "\n",
+            encoding="utf-8",
+        )
+    typer.echo(f"R3-A R032 ledger audit: {result}")
+
+
 @research_app.command("run")
 def run_strategy_research(
     config_dir: Path = typer.Option(Path("config")),
