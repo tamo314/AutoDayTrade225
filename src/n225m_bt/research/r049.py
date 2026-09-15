@@ -228,6 +228,8 @@ def r049_exec_candidate(
         execution_status="scheduled",
         reason="ANCHOR_CAUSAL_EXEC_ELIGIBLE",
         observation=observation,
+        decision_at_jst=observation["decision_at_jst"],
+        planned_entry_jst=observation["planned_entry_jst"],
         reference_count=len(references),
         **thresholds,
         q75_le_x=x >= thresholds["q75"],

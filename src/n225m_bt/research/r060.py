@@ -162,6 +162,10 @@ def r060_exec_event(
         s=s,
         breakout_direction="upper" if s == 1 else "lower",
         entry_signal_bar_start_jst=observed[-1].ts_jst.isoformat(),
+        planned_entry_jst=(observed[-1].ts_jst + timedelta(minutes=1)).isoformat(),
+        planned_exit_jst=(
+            observed[-1].ts_jst + timedelta(minutes=specification.holding_minutes + 1)
+        ).isoformat(),
         E_planned_entry_jst=(observed[-1].ts_jst + timedelta(minutes=1)).isoformat(),
         X_planned_exit_jst=(
             observed[-1].ts_jst + timedelta(minutes=specification.holding_minutes + 1)

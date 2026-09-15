@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,6 +36,92 @@ def audit_research_specification(
     except (OSError, SpecificationAuditError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
     typer.echo(f"Specification audit: {result}")
+
+
+@research_app.command("audit-synthetic-decision")
+def audit_synthetic_decision_pipeline(
+    audit_id: str = typer.Option(..., help="Unique audit identifier."),
+    output: Path = typer.Option(..., file_okay=False),
+    fixture: Path = typer.Option(..., exists=True, dir_okay=False),
+    run_tests: bool = typer.Option(False, help="Execute the dedicated synthetic acceptance nodes."),
+) -> None:
+    """Create an exclusive R1 synthetic-decision audit shell without market I/O.
+
+    This is intentionally separate from ``research run`` and never invokes a
+    loader, cache, market data, or the shared execution engine.  The dedicated
+    synthetic pytest nodes provide the measured acceptance results.
+    """
+    from n225m_bt.research.decision_audit import write_synthetic_decision_audit
+
+    root = Path(__file__).resolve().parent / "research"
+    sources = [
+        Path(__file__).resolve(),
+        root / "decision_audit.py",
+        root / "conditions.py",
+        root / "causality.py",
+        root / "execution_ledger.py",
+        *(root / f"r{number}.py" for number in ("046", "049", "060", "061", "062", "063", "064")),
+    ]
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path.cwd(),
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        result = write_synthetic_decision_audit(
+            output, audit_id=audit_id, source_files=sources, fixture_files=[fixture], commit=commit
+        )
+    except (OSError, ValueError, PermissionError, subprocess.SubprocessError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    if run_tests:
+        nodes = [
+            "tests/test_r1_synthetic_decision_audit.py",
+            "tests/test_r1_governance.py",
+            "tests/test_r1_spec_audit.py",
+            "tests/test_r046_q001.py",
+            "tests/test_r049_q001.py",
+            "tests/test_r060_q001.py",
+            "tests/test_r061_q001.py",
+            "tests/test_r062_q001.py",
+            "tests/test_r063_q001.py",
+            "tests/test_r064_q001.py",
+        ]
+        completed = subprocess.run(
+            [sys.executable, "-m", "pytest", *nodes],
+            cwd=Path.cwd(),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        (result / "test_results.json").write_text(
+            json.dumps(
+                {
+                    "status": "PASS" if completed.returncode == 0 else "FAIL",
+                    "returncode": completed.returncode,
+                    "node_ids": nodes,
+                    "stdout_file": "test_stdout.txt",
+                    "stderr_file": "test_stderr.txt",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        (result / "test_stdout.txt").write_text(completed.stdout, encoding="utf-8")
+        (result / "test_stderr.txt").write_text(completed.stderr, encoding="utf-8")
+        (result / "summary.md").write_text(
+            "# R1 synthetic decision audit\n\n"
+            f"Measured synthetic test status: {'PASS' if completed.returncode == 0 else 'FAIL'}. "
+            "This is not a Development run, an engine-integration pass, or an R1-wide acceptance. "
+            "No market data, OOS, or Final Holdout input was opened.\n",
+            encoding="utf-8",
+        )
+        if completed.returncode:
+            raise typer.Exit(completed.returncode)
+    typer.echo(f"Synthetic decision audit: {result}")
 
 
 @research_app.command("run")

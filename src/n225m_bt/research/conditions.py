@@ -112,3 +112,21 @@ def assert_gate_satisfiable(requirements: tuple[GateRequirement, ...]) -> None:
                 "unsatisfiable shared-path opposite-side 0-tick pre-fee negative means: "
                 f"path={shared_path[0]} event_set={shared_path[1]} weighting={shared_path[2]}"
             )
+
+
+def shared_path_gross_witness(
+    signed_price_changes: tuple[int, ...], multiplier_jpy_per_point: int
+) -> dict[str, float]:
+    """Construct a finite, shared-price witness for 0-tick pre-fee gates.
+
+    It is deliberately only a test witness, not a return calculator for a
+    study.  Long and short are derived from the same path, preserving the
+    identity required by the R031 logical audit.
+    """
+    if not signed_price_changes or multiplier_jpy_per_point <= 0:
+        raise ValueError("witness needs price changes and a positive multiplier")
+    long_mean = sum(signed_price_changes) * multiplier_jpy_per_point / len(signed_price_changes)
+    return {
+        "long_gross_pre_fee_mean_jpy": long_mean,
+        "short_gross_pre_fee_mean_jpy": -long_mean,
+    }
