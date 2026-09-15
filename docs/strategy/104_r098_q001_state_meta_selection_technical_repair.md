@@ -1,0 +1,5 @@
+# TASK-R098-Q001 technical repair before performance aggregation
+
+Technical run `task-r098-q001-state-conditioned-cash-meta-selection-20260916-01` froze the required six R097 constituents and reproduced the R075 state ledger, but stopped at the PnL-before-performance gate. It incorrectly removed known-state dates that had fewer than 60 same-state observations from the evaluation axis.
+
+The registered task states that A selects only when 60 observations are available and is otherwise cash. It does not make the known state unavailable. Therefore run `...-02` retains every post-calibration L/M/H date in the common evaluation axis, routes A and Q to JPY0 before the 60-observation condition is met, and continues to exclude only genuine R075 state-unavailable dates. No aggregate performance, bootstrap, PF, or sensitivity was produced by `...-01`; this correction is made before such output. Constituents, hashes, state definition, thresholds, score, tie-break, cost, comparators, gate thresholds, bootstrap, and sensitivity plan are unchanged.

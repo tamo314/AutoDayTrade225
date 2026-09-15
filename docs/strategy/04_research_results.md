@@ -34,6 +34,12 @@ R049の全6anchor共通E、R060～R064等の主・感度entry/exit全可用性�
 
 今回の本結果文書にR065の結果節は確認できない。`document_result_status=NOT_FOUND_IN_PROVIDED_RESULTS`とし、実環境の`run_status`や価格アクセス履歴はUNKNOWNとする。旧計画は残し、[R065レビュー](15_r065_execution_review.md)の完了までは新規PnLを保留する。
 
+### TASK-R102-Q001（2026-09-16）— opening range一方向突破後の再侵入fade: REJECT
+
+R001--R101とのPnL前意味照合では、R054（30分range後の31--90分break/b+5）、R076（30分range後の後刻break/re-entry/14:30 exit）、R096（60分受容と後場）は関連するが、09:00--09:14 H/L、09:15--09:29 high/low一方向突破、09:29 close Q/T/Z、09:30--10:30逆方向という同値検定ではないと確認した。Development予定軸1,131日でq-ready=729、一方向event=779、Q/T=380/399、S完了=380、8層セル=36--149となり、PnL前・因果性・R004・日次軸・未完了0の全ゲートを通過した。
+
+基本費用でSはNet **−405,800円**、PF **0.782**。20 trade_date非循環MBB（10,000回、seed=20260916）の下限はS日次=−720.39円、S−B=−717.97円、S-Q当たり−U-event当たり=−221.78円、等重みDelta=−92.33円で、主ANDの全6条件は不成立だった。2tick、relative threshold、range/confirmation窓、delay、exit、費用の全固定感度もS Net負である。よって **REJECT** とし、追加探索、Walk Forward、OOS、Final Holdoutは未アクセス。詳細は[117_r102_q001_opening_range_false_break_reentry_result.md](117_r102_q001_opening_range_false_break_reentry_result.md)、正本成果物は`results/research/task-r102-q001-opening-range-false-break-reentry-20260916-01/`に保存した。
+
 ### TASK-R088-Q001（2026-09-15）— 現物寄付き60分経路効率: INCONCLUSIVE
 
 別機序として、09:00 openから09:59 closeまでの60分について変位Mと経路効率Eをstrict-prior 120予定日参照で因果的に分位化し、HEと同一変位量のHL対照を事前登録した。p0--p60/L全60項、current除外reference、09:59後のnext eligible entry、14:55固定exit、欠損・隔離をPnL前に監査し、全4監査と説明不能除外0件はPASSした。
@@ -45,6 +51,36 @@ R049の全6anchor共通E、R060～R064等の主・感度entry/exit全可用性�
 `F=sign(D)*(p60-p45)/abs(D)`で寄付き後60分変位の直近15分への集中を測った。strict-prior 160予定日・最低140有効日、M q60/q80の帯内の過去F q30/q70、09:59後のnext eligible entry、14:55 exitを固定し、S2の可用性・因果性・M共通支持をPnL前に通過した。LC/EC=114/115、LC方向=59/55、B1=53/57、B2=61/58である。
 
 LCはNet **+134,660円**、PF **1.156**だったが、日次Net CI [−335.85,+806.11]円、LC−fade CI [−460.68,+1,837.38]円、帯標準化LC−EC CI [−1,985.93,+8,876.69]円で全CI下限条件に不合格だった。recent-20と3 tickも負、上昇・B1・2025H1・top-10勝ち除外後も負であり、登録済み主ANDに従い**REJECT**。OOS、Walk Forward、Final Holdoutには進まない。詳細は[76_r089_q001_late_concentration_continuation_result.md](76_r089_q001_late_concentration_continuation_result.md)、不変成果物は`results/research/r089-q001-20260915-late-concentration-continuation-04/`に保存した。
+
+### TASK-R096-Q001（2026-09-15）— 現物開始60分の方向側レンジ端受容: INCONCLUSIVE before PnL
+
+R001--R095をPnL前に照合し、特にR022/R042/R056/R079/R080/R088/R089とは、60分OHLCの方向側終値位置`z`、current-excluded 120予定日`x/z`閾値、版管理T-5 exitの組合せが異なるためmaterially equivalentではないと記録した。本件はR088/R089後の事後追加仮説で、反復利用済みDevelopmentの連続系列だけを読んだ。
+
+全因果性監査はPASSしたが、q-ready nonzero=990、E=197に対してK=**49**（必要各100）だった。x帯も`[0.50,0.75)` E/K=79/37、`[0.75,1.00]`=118/**12**で、後者Kが必要20を満たさない。従ってS2 ANDゲート不成立として**INCONCLUSIVE before PnL**で停止し、return/PnL/PF/bootstrap/感度/OOS/Walk Forward/Final Holdoutを取得していない。詳細は[98_r096_q001_opening_range_acceptance_continuation_result.md](98_r096_q001_opening_range_acceptance_continuation_result.md)に保存した。
+
+### TASK-R096-Q002（2026-09-16）— K*補集合対照: REJECT
+
+Q001 PnL-free台帳を値ごとに再現し、axis=1,131、q-ready=990、E/旧K=197/49、E D上/下=100/97、年・制度・x帯件数を完全照合した。高x=500日はz群Q1/Q2/Q3/Q4=49/96/158/197で、旧KはQ1、EはQ4、K*=Q1--Q3=303の排反補集合だった。全500件は可用性選別前に決まり、全てEXECUTABLE、R004・予定表・欠測・約定処理由来の説明不能除外は0である。従ってK不足は凍結下側四分位とx/z依存だけで説明された。
+
+S2と実行会計監査後、Aは197取引、Net **−156,320円**、PF **0.894**。MBB下限はA日次=−586.81円、A−B=−800.20円、A−C=−803.74円、A−D=−355.44円、二帯等重みA−K*=−6,000.03円/取引で、主ANDの7条件は全不成立だった。固定感度も30分以外はNet負、3tick診断も−550,320円である。規約に従い**REJECT**とし、追加探索・Walk Forward・2025H2 OOS・Final Holdoutは未アクセス。詳細は[100_r096_q002_opening_range_acceptance_complement_control_result.md](100_r096_q002_opening_range_acceptance_complement_control_result.md)、不変成果物は`results/research/r096-q002-20260915-opening-range-acceptance-complement-control-04/`に保存した。
+
+### TASK-R090-Q002（2026-09-15）— 現物昼休み変位の再開否定後fade: REJECT
+
+Q001はPnL前標本ゲートのみでINCONCLUSIVE（LR/LA/PR=106/109/134、2025H1 LR=7対基準8）となり、PnL・PF・bootstrap・trade ledger・感度を生成していなかった。Q002ではPnL未開示の当該ラベル件数だけを既知情報として、半年部分期の最低件数を各月平均1件に対応する6へ一度だけ事前改訂し、他の仕様を完全に固定した。改訂S2、因果性、M共通支持、説明不能除外、execution/accounting監査はすべてPASSした。
+
+基本費用でLR fadeは106取引、Net **−209,860円**、PF **0.686**。20 trade_date MBBのLR日次Net、paired continuation差、M帯標準化LR−LA、LR−PRの各95%CI下限はいずれも負であり、主ANDは不成立だった。固定感度14本、D両方向、B1/B2、2025H1、top-10勝ち除外後も正の救済根拠はない。登録済み規則に従い**REJECT**とし、OOS、Walk Forward、Final Holdoutは未アクセスである。詳細は[80_r090_q002_lunch_rejection_fade_gate_revision_result.md](80_r090_q002_lunch_rejection_fade_gate_revision_result.md)、不変成果物は`results/research/r090-q002-20260915-lunch-rejection-fade-gate-revision-01/`に保存した。
+
+### TASK-R093-Q002（2026-09-15）— cash-to-night reversal warm-up audit repair: REJECT
+
+R093-Q001 was confirmed from its immutable output to be PnL-free: it stopped at a causality-audit warm-up predicate before trades, fills, returns, PnL, PF, bootstrap, sensitivities, or execution-accounting artifacts were made. Q002 pre-registered the same hypothesis and every trading/economic setting, repairing only the audit so scheduled-axis position `i` must use exactly the ordered, unique, current-excluded `min(i,120)` immediately preceding planned dates. The Q001 PnL-free ledger was exactly reproduced: axis=1,099, q-ready nonzero=957, E=253, completed=246, signs=126/120, years=27/62/69/65/23, regimes=215/31, unexplained=0, unresolved=0, and seven frozen cancellation reasons. The repaired audit passed before PnL.
+
+The one permitted frozen run produced A reversal Net **−65,760円**, PF **0.976**, and MBB lower bounds (円/trade_date) A=**−1,090.72**, A−B=**−1,688.83**, A−C=**−1,587.83**, A−D=**−536.85**. Thus every primary-AND condition failed and the decision is **REJECT**. No Walk Forward, OOS, or Final Holdout was accessed. Details and immutable artifacts are [90_r093_q002_tse_cash_night_reversal_warmup_audit_repair_result.md](90_r093_q002_tse_cash_night_reversal_warmup_audit_repair_result.md).
+
+### TASK-R094-Q001（2026-09-15）— full cash path efficiency to following-night continuation: INCONCLUSIVE before PnL
+
+R094 was preregistered after the known R009/R046/R079/R088/R089/R093 results as a separate, repeatedly used-Development hypothesis with a hard INVESTIGATE ceiling; it did not adopt R093's continuation point estimate. It used the full versioned official TSE cash path: 09:00 open to final scheduled cash close, with path efficiency `e=abs(C-O)/V` and the 11:29→12:30 close change once. H was current-excluded prior-120 `x>=qx50,e>=qe75`; K was the same high-displacement, low-efficiency ablation. Only Development normalized Parquet was read; OOS, Walk Forward, and Final Holdout were not accessed.
+
+All PnL-free causality and schedule audits passed: 1,099-day planned TSE axis, 957 q-ready nonzero paths, R004 isolation, exact current-excluded windows, H/K decision before night availability, explicit cash→following-night mapping, first/last normal-night open timing, no unexplained exclusions, and no filled unresolved exits. H completed 222 paths (directions 133/89, old/new OSE 189/33, all frozen year/sign/regime minima passed); rolling-x bands H/M were 45/185 and 177/58. K completed **243**, seven below its fixed 250-path requirement. The S2 AND gate therefore failed and the experiment stopped as **INCONCLUSIVE before PnL**. No trade/fill-price/return/PnL/PF/bootstrap/sensitivity/execution-economics artifacts were produced, and no rescue change was made. Details: [92_r094_q001_cash_path_efficiency_night_continuation_result.md](92_r094_q001_cash_path_efficiency_night_continuation_result.md).
 
 ## 今後の報告形式
 
@@ -1645,3 +1681,35 @@ Q002 S2はEA/EO/MA=129/126/147、EA T正/負=75/54、EA年別2022--2025H1=26/44/
 Q001の `primary_events.json` をPnL-freeで監査し、Q001のPnL成果物が存在しないこと、p0--p60/L・strict-prior/current-excluded分位・09:59後entry・14:55 exit・日別分位再計算がすべてPASS、説明不能除外0件を確認した。Q001はM>=q60の411日でE中央値0.2206、同日のq30(E)中央値0.0706となり、因果的共同分布はHE/HL=290/1だった。この構造的なM/E依存だけが無条件HL支持を消失させたため、一回限りの条件付き仮説を別IDで登録した。
 
 Q002の因果的S2はCHE/CHL=254/25、CHEの上/下=127/127、年別2021--2025H1=23/62/74/66/29、B1 CHE/CHL=103/13、B2=151/12だった。因果性監査と説明不能除外0件はPASSしたが、CHLが90件未満かつ各帯のCHLが20件未満である。よって **R088-Q002=INCONCLUSIVE** とし、PnL、return、PF、paired fade、CHL対照、bootstrap、感度、Walk Forward、OOS、Final Holdoutを一切取得していない。初回`...-01`の既知実行可能理由の誤分類はPnL前に検知・技術的に修正し、最終成果物は`results/research/r088-q002-20260915-conditional-path-efficiency-continuation-02/`、詳細は[74_r088_q002_conditional_path_efficiency_result.md](74_r088_q002_conditional_path_efficiency_result.md)に保存した。
+
+## R091-Q001: 公式TSE現物取引時間の固定short — REJECT
+
+正式成果物は`results/research/task-r091-q001-tse-cash-hours-fixed-short-20260915-02/`、事前登録は[81_r091_q001_tse_cash_hours_fixed_short.md](81_r091_q001_tse_cash_hours_fixed_short.md)、詳細結果は[82_r091_q001_tse_cash_hours_fixed_short_result.md](82_r091_q001_tse_cash_hours_fixed_short_result.md)に保存した。R001--R090との重複、R070の既知ナイト固定買いREJECT、Development反復利用をPnL前に記録した。R066の09:00--14:30 fixed longは同じ無条件方向familyだが、今回の公式TSE終了T（旧15:00、新15:30）とはexitが異なるため、独立検証とは主張しない。
+
+公式TSE営業日1,099日の予定軸で、R004 day隔離20日は明示的無注文として残した。08:59 submit/decision、09:00 open short/long、版管理TSE終了T open exitを、exit可用性でentry集合から除外せずに監査した。A/Bは各1,079完了取引、年別=225/244/246/245/119、旧/新制度=920/159、説明不能除外0、未完了exit 0でPnL前gateを通過した。submit/decision/fill、trade_date、旧新T、R004、最大1ポジション、Net会計、slippage非二重控除、Stop/TargetなしはPASSし、pytest 16件、Ruff、mypyもPASSした。
+
+fixed shortはNet **-723,240円**、PF **0.932**、MBB 95% CIは日次Net`[-1,718.34,+553.16]`、paired A-B差`[-1,343.99,+3,185.67]`円だった。固定longは-1,564,240円。主ANDの4条件は全て未達であり、delay=-631,740円、09:05=-670,740円、T-5=-715,240円、2/3tick=-1,802,240/-2,881,240円、手数料2倍=-787,980円だった。旧/新制度=-798,700/+75,460円、2021--2024の正年は1、top-10除外後=-1,737,640円である。よって **R091-Q001=REJECT**。結果依存の時間・方向・曜日変更、Walk Forward、2025H2 OOS、Final Holdoutには進まない。
+
+## R092-Q001: 前回TSE通常session終値--09:00始値の大幅gap cash-close fade — INCONCLUSIVE
+
+正式成果物は`results/research/task-r092-q001-tse-open-gap-cash-close-fade-20260915-02/`、事前登録は[83_r092_q001_tse_open_gap_cash_close_fade.md](83_r092_q001_tse_open_gap_cash_close_fade.md)、詳細は[84_r092_q001_tse_open_gap_cash_close_fade_result.md](84_r092_q001_tse_open_gap_cash_close_fade_result.md)に保存した。R057を変更せずp/o/g/xと120予定TSE日の補充なしnearest-rank規則を再利用し、同一gap familyへの事後追加、既知R006/R057/R091のREJECT、Development反復利用、連続系列限定をPnL前に記録した。
+
+因果性監査はPASS、primary E_exec/完了pathは240件（gap-up/down=124/116、旧/新=206/34、2025H1=32）、説明不能除外・entry後未完了は共に0だった。一方、年別は2021=17、2022=65、2023=60、2024=66、2025H1=32であり、「2021--2024各年30件以上」だけが未達である。固定PnL前ANDに従い**INCONCLUSIVE**で停止した。PnL、PF、bootstrap、感度、OOS、Final Holdoutは取得・実行していない。
+
+## R094-Q002: cash全経路効率から対応night継続 — REJECT
+
+Q001はPnL前にK完了243件が250件に7件不足して停止しており、Q001に経済成果物がないことをPnL非開示で確認した。Q002はprimary ledgerを値ごとに再現し、K=254注文、243完了、取消11件（first normal night entryの欠測/不適格10、R004隔離1）、未解決exit 0、説明不能除外0を監査した。H/Kはfrozen current-excluded qx50/qe75と一致し、future-night availabilityで選別されず、A--Mの両rolling-x帯もH/M=45/185および177/58で通過した。以上に限りK最低件数を250から240へ一回だけ改訂し、その他の仮説、特徴量、方向、時刻、費用、対照、bootstrap、感度、判定を凍結した。
+
+固定一回評価でA continuationは222取引、Net **+123,180円**、PF **1.054**だったが、共通20 trade_date MBB（10,000回、seed=20260915）のA日次、A−B、A−C、A−Dの95%CI下限は各`−589.33/−741.70/−785.30/−361.24円`で主ANDが未達となった。二帯標準化A−M CIは`[+713.94,+13,562.04]円/取引`だったが救済には用いない。二tick=-98,820円、三tick=-320,820円、qe70=-109,260円、負cash方向=-69,840円、2025H1=-141,060円、top-10除外=-484,720円で頑健性も未達である。execution/accounting監査、pytest 15、Ruff、mypy、py_compileはPASS、OOS、Walk Forward、Final Holdoutは未アクセス。詳細は[94_r094_q002_cash_path_efficiency_night_gate_revision_result.md](94_r094_q002_cash_path_efficiency_night_gate_revision_result.md)、不変成果物は`results/research/task-r094-q002-cash-path-efficiency-night-gate-revision-20260915-01/`に保存した。登録規則どおり **REJECT** とし追加探索は行わない。
+
+## R092-Q002: 2021初期化部分期ゲート改訂 — REJECT
+
+Q001ではPnL・PF・bootstrap・trade ledger・感度を一切生成していなかったことを保存済み成果物から記録した。PnL非開示の2021監査はq-ready初日=2021-06-29、q-readyかつ非zero gap=75日、E=17日（22.67%）でPASSした。全q-readyは当日を含まない120予定日・最低100有効x、R004隔離はtarget観測に未使用であり、target-gap無効は開始境界又は直前R004隔離日にのみ説明された。Q001からの変更は、2021を最低15件のinitialization partial periodとしE/q-ready非zeroを20--30%とするPnL前gateだけである。2022--2024=65/60/66、2025H1=32、全体240、gap up/down=124/116、旧/新=206/34は全てgateを通過した。
+
+固定仕様を一度だけ実行したA=gap fadeは240取引、Net **−569,900円**、PF **0.820**。共通1,099日軸・20 trade_date MBB 10,000回（seed=20260915）の95%CIはA日次Net`[-1,367.41,+161.93]`、A−B`[-2,243.02,+769.81]`、A−C`[-1,263.90,+445.88]`、A−D`[-1,362.19,+727.05]`円である。主ANDの全6条件が未達、q70/q80・entry・T−5・2/3 tick・手数料2倍も全てNet<0だった。execution/accounting監査はPASSしたが、登録済み規約により **R092-Q002=REJECT**。詳細は[86_r092_q002_tse_open_gap_cash_close_fade_gate_revision_result.md](86_r092_q002_tse_open_gap_cash_close_fade_gate_revision_result.md)、不変成果物は`results/research/task-r092-q002-tse-open-gap-cash-close-fade-20260915-01/`に保存した。結果依存の救済変更、Walk Forward、OOS、Final Holdoutには進まない。
+
+## R101-Q001: 先物開始と現物開始の二段階確認 — REJECT
+
+R001--R100をPnL前に照合した。R024は08:45--08:59と09:00--09:04の無閾値確認・09:05--09:30保有であり、今回の二つの15分変位q50、09:14固定、K/D比較、09:15--10:30と同値ではない。予定軸1,131日でq-ready=943、E=270、K/D=135/135、A完了=135、8層セル=26--43となり、全S2・因果性・R004・日次軸・未完了0ゲートを通過した。
+
+基本費用のAはNet **−52,600円**、PF **0.934**。20 trade_date非循環MBB（10,000回、seed=20260916）の下限はA日次=−331.28円、A−R=−391.71円、A取引当たり−U E当たり=−479.66円、等重みDelta=−1,227.57円で主ANDは全不成立だった。q40/q60、第二窓、prior60/240、delay、exit、2/3tick、手数料2倍のA Netもすべて負である。登録規則どおり **REJECT** とし、Walk Forward、OOS、Final Holdoutには進まない。詳細は[115_r101_q001_precash_cash_open_confirmation_result.md](115_r101_q001_precash_cash_open_confirmation_result.md)、正本成果物は`results/research/task-r101-q001-precash-cash-confirmation-20260916-02/`に保存した。

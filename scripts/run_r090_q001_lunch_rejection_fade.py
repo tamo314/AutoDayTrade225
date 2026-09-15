@@ -8,6 +8,7 @@ import os
 import shutil
 import sys
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import asdict
 from datetime import date, datetime, time, timezone
 from pathlib import Path
@@ -128,17 +129,32 @@ def _bands(axis: list[date], events: list[dict[str, object]], flag: str) -> list
     ]
 
 
-def main() -> None:
-    if OUT.exists():
-        raise FileExistsError(f"immutable output already exists: {OUT}")
-    OUT.mkdir(parents=True)
+def main(
+    *,
+    run_id: str = RUN_ID,
+    document: Path = DOC,
+    task_id: str = "TASK-R090-Q001",
+    study_id: str = "R090-Q001",
+    s2_gate_description: str = "unexplained=0; LR/LA/PR>=90; LR up/down>=30; B1/B2 LR/LA>=25; LR 2022-2024>=15 and 2025H1>=8; per-band LR/LA M overlap plus >=10 each; otherwise INCONCLUSIVE before PnL.",
+    feasibility_function: Callable[
+        [list[dict[str, object]], list[dict[str, object]]], dict[str, object]
+    ] = feasibility,
+    extra_source_files: tuple[Path, ...] = (),
+    test_files: tuple[Path, ...] = (Path("tests/test_r090_q001.py"),),
+    mypy_files: tuple[Path, ...] = (Path("src/n225m_bt/research/r090_lunch_rejection.py"),),
+) -> None:
+    out = ROOT / "results" / "research" / run_id
+    if out.exists():
+        raise FileExistsError(f"immutable output already exists: {out}")
+    out.mkdir(parents=True)
     source_files = [
-        Path("scripts/run_r090_q001_lunch_rejection_fade.py"),
+        Path(__file__).relative_to(ROOT),
         Path("src/n225m_bt/research/r090_lunch_rejection.py"),
         Path("src/n225m_bt/strategies/r088_fixed_signal.py"),
         Path("scripts/run_r088_q001_cash_open_path_efficiency.py"),
-        Path("tests/test_r090_q001.py"),
     ]
+    source_files.extend(extra_source_files)
+    source_files.extend(test_files)
     config_files = [
         Path(f"config/{name}")
         for name in (
@@ -152,19 +168,19 @@ def main() -> None:
     ]
     _, _, data_config, _ = load_project_config(ROOT / "config")
     preregistration = {
-        "task_id": "TASK-R090-Q001",
+        "task_id": task_id,
         "family_id": "cash_lunch_reopen_rejection_price_discovery",
-        "study_id": "R090-Q001",
+        "study_id": study_id,
         "spec_version": "v1",
-        "run_id": RUN_ID,
+        "run_id": run_id,
         "protocol_revision": "RG-20260915-01",
         "status": "FROZEN_BEFORE_ADDITIONAL_PNL",
-        "preregistration_document": str(DOC),
-        "preregistration_document_sha256": digest(ROOT / DOC),
+        "preregistration_document": str(document),
+        "preregistration_document_sha256": digest(ROOT / document),
         "prior_information_seen": True,
         "development_only": [DEVELOPMENT_START.isoformat(), DEVELOPMENT_END.isoformat()],
         "frozen_rule": "Lunch p0=11:30 open,p1=12:29 close,p2=12:39 close,D=p1-p0,M=10000*abs(D)/p0,J=-sign(D)*(p2-p1)/abs(D); strict-prior 160 scheduled dates/140 valid; M q60/q80 bands and same-band J q30/q70; LR/LA fade after p2 to 14:55. Independent morning placebo p0=10:00,p1=10:59,p2=11:09, PR fade 11:10 to 13:25.",
-        "s2_gate": "unexplained=0; LR/LA/PR>=90; LR up/down>=30; B1/B2 LR/LA>=25; LR 2022-2024>=15 and 2025H1>=8; per-band LR/LA M overlap plus >=10 each; otherwise INCONCLUSIVE before PnL.",
+        "s2_gate": s2_gate_description,
         "controls": "scheduled-axis JPY0; same LR event/entry/exit sign(D) paired continuation; LA same-time fade; independent morning PR fade; LR standard M-band weights.",
         "bootstrap": {
             "seed": 20260915,
@@ -199,32 +215,32 @@ def main() -> None:
         "walk_forward": "NOT_ACCESSED",
         "final_holdout": "NOT_ACCESSED",
     }
-    write_json(OUT / "preregistration.json", preregistration)
+    write_json(out / "preregistration.json", preregistration)
     write_json(
-        OUT / "run_manifest.json",
+        out / "run_manifest.json",
         {
-            "run_id": RUN_ID,
+            "run_id": run_id,
             "preregistration_hash": canonical_hash(preregistration),
             "created_at_utc": datetime.now(timezone.utc).isoformat(),
             "status": "S0_S1_FROZEN",
         },
     )
-    snapshot(OUT / "source_snapshot", source_files)
-    snapshot(OUT / "config_snapshot", config_files)
-    (OUT / "documentation_snapshot").mkdir()
-    shutil.copy2(ROOT / DOC, OUT / "documentation_snapshot" / DOC.name)
+    snapshot(out / "source_snapshot", source_files)
+    snapshot(out / "config_snapshot", config_files)
+    (out / "documentation_snapshot").mkdir()
+    shutil.copy2(ROOT / document, out / "documentation_snapshot" / document.name)
     env = os.environ | {"PYTHONPATH": str(ROOT / "src")}
     commands = {
         "pytest": [
             sys.executable,
             "-m",
             "pytest",
-            "tests/test_r090_q001.py",
+            *map(str, test_files),
             "tests/test_execution.py",
             "-q",
         ],
         "ruff": [sys.executable, "-m", "ruff", "check", *map(str, source_files)],
-        "mypy": [sys.executable, "-m", "mypy", "src/n225m_bt/research/r090_lunch_rejection.py"],
+        "mypy": [sys.executable, "-m", "mypy", *map(str, mypy_files)],
         "py_compile": [sys.executable, "-m", "py_compile", *map(str, source_files)],
     }
     validation: dict[str, object] = {}
@@ -244,10 +260,10 @@ def main() -> None:
         )
         else "FAIL"
     )
-    write_json(OUT / "pre_execution_validation.json", validation)
+    write_json(out / "pre_execution_validation.json", validation)
     if validation["status"] != "PASS":
         write_json(
-            OUT / "COMPLETED.json", {"status": "BLOCKED_PRE_EXECUTION_VALIDATION", "run_id": RUN_ID}
+            out / "COMPLETED.json", {"status": "BLOCKED_PRE_EXECUTION_VALIDATION", "run_id": run_id}
         )
         raise ValueError("pre-execution validation failed")
     instrument, sessions, data_config, baseline = load_project_config(ROOT / "config")
@@ -264,7 +280,7 @@ def main() -> None:
         build_events(classifier, axis, bars, isolated, interval="placebo"),
     )
     s2, causal, support = (
-        feasibility(primary, placebo),
+        feasibility_function(primary, placebo),
         causality_audit(primary, placebo, axis),
         support_audit(primary),
     )
@@ -275,9 +291,9 @@ def main() -> None:
         ("causality_audit_before_pnl.json", causal),
         ("m_distribution_support_before_pnl.json", support),
     ):
-        write_json(OUT / name, value)
+        write_json(out / name, value)
     write_json(
-        OUT / "access_ledger.json",
+        out / "access_ledger.json",
         {
             "stage": "S2 PnL-free R090 availability, support and causality audit, then conditional S3",
             "split": "development",
@@ -305,8 +321,8 @@ def main() -> None:
             "walk_forward": "NOT_ACCESSED",
             "final_holdout": "NOT_ACCESSED",
         }
-        write_json(OUT / "decision.json", decision)
-        write_json(OUT / "COMPLETED.json", {"status": "COMPLETE", "run_id": RUN_ID, **decision})
+        write_json(out / "decision.json", decision)
+        write_json(out / "COMPLETED.json", {"status": "COMPLETE", "run_id": run_id, **decision})
         return
     profiles: dict[str, tuple[list[dict[str, object]], int, int, str, str]] = {
         "lr_fade": (primary, 1, 30, "HE", "fade"),
@@ -377,9 +393,9 @@ def main() -> None:
             ("trades", [asdict(x) for x in trades]),
             ("daily_axis", aligned),
         ):
-            write_json(OUT / f"{name}_{suffix}.json", value)
+            write_json(out / f"{name}_{suffix}.json", value)
     no_trade = {d.isoformat(): 0 for d in axis}
-    write_json(OUT / "no_trade_control_daily_axis.json", no_trade)
+    write_json(out / "no_trade_control_daily_axis.json", no_trade)
     if unknown_profiles:
         decision = {
             "status": "INCONCLUSIVE",
@@ -387,10 +403,10 @@ def main() -> None:
             "unknown_profiles": unknown_profiles,
         }
         write_json(
-            OUT / "profiles.json", reports | {"no_trade_control": {"daily_net_pnl_jpy": no_trade}}
+            out / "profiles.json", reports | {"no_trade_control": {"daily_net_pnl_jpy": no_trade}}
         )
-        write_json(OUT / "decision.json", decision)
-        write_json(OUT / "COMPLETED.json", {"status": "COMPLETE", "run_id": RUN_ID, **decision})
+        write_json(out / "decision.json", decision)
+        write_json(out / "COMPLETED.json", {"status": "COMPLETE", "run_id": run_id, **decision})
         return
     lr_band, la_band, pr_band = (
         _bands(axis, primary, "lr_condition"),
@@ -438,8 +454,8 @@ def main() -> None:
             for i, band in enumerate(("B1", "B2"))
         )
         cast(dict[str, object], boot[key])["estimate"] = estimate
-    np.save(OUT / "bootstrap_common_day_indices.npy", index)
-    write_json(OUT / "m_band_support.json", counts)
+    np.save(out / "bootstrap_common_day_indices.npy", index)
+    write_json(out / "m_band_support.json", counts)
     main_metrics = cast(dict[str, int | float | None], reports["lr_fade"]["metrics"])
     gates = {
         "net_positive": cast(int, main_metrics["net_pnl_jpy"]) > 0,
@@ -522,11 +538,11 @@ def main() -> None:
     if not all(audit.values()):
         raise ValueError("R090 execution/accounting/causality audit failed")
     write_json(
-        OUT / "profiles.json",
+        out / "profiles.json",
         reports | {"no_trade_control": {"daily_net_pnl_jpy": no_trade, "net_pnl_jpy": 0}},
     )
-    write_json(OUT / "bootstrap.json", boot | {"index_file": "bootstrap_common_day_indices.npy"})
-    write_json(OUT / "execution_accounting_audit.json", audit)
+    write_json(out / "bootstrap.json", boot | {"index_file": "bootstrap_common_day_indices.npy"})
+    write_json(out / "execution_accounting_audit.json", audit)
     decision = {
         "status": "INVESTIGATE" if all(gates.values()) else "REJECT",
         "decision_ceiling": "INVESTIGATE",
@@ -538,8 +554,8 @@ def main() -> None:
         "walk_forward": "NOT_ACCESSED",
         "final_holdout": "NOT_ACCESSED",
     }
-    write_json(OUT / "decision.json", decision)
-    write_json(OUT / "COMPLETED.json", {"status": "COMPLETE", "run_id": RUN_ID, **decision})
+    write_json(out / "decision.json", decision)
+    write_json(out / "COMPLETED.json", {"status": "COMPLETE", "run_id": run_id, **decision})
 
 
 if __name__ == "__main__":
