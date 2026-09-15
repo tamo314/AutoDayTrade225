@@ -130,6 +130,37 @@ def audit_synthetic_decision_pipeline(
     typer.echo(f"Synthetic decision audit: {result}")
 
 
+@research_app.command("audit-data-semantics")
+def audit_data_semantics(
+    audit_id: str = typer.Option(..., help="Unique audit identifier."),
+    output: Path = typer.Option(..., file_okay=False),
+    config: Path = typer.Option(Path("config/data.yaml"), exists=True, dir_okay=False),
+    evidence: Path | None = typer.Option(None, exists=True, dir_okay=False),
+    accept_unresolved_source_semantics: bool = typer.Option(
+        False,
+        help="Record owner risk acceptance and release only limited Development diagnostics; OOS stays locked.",
+    ),
+) -> None:
+    """Audit source-semantic evidence without opening any market-data artifact."""
+    from n225m_bt.research.semantics_audit import SemanticsAuditError, write_semantics_audit
+
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=Path.cwd(), capture_output=True, text=True, check=True
+        ).stdout.strip()
+        result = write_semantics_audit(
+            config,
+            output,
+            audit_id,
+            commit,
+            evidence,
+            accept_unresolved_source_semantics=accept_unresolved_source_semantics,
+        )
+    except (OSError, SemanticsAuditError, subprocess.SubprocessError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"R2 data-semantics audit: {result}")
+
+
 @research_app.command("run")
 def run_strategy_research(
     config_dir: Path = typer.Option(Path("config")),

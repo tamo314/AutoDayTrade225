@@ -1,0 +1,11 @@
+schema_version: 1
+provider_public_claims:
+  - evidence_id: 225labo-n225m-download-page-20260915
+    url: https://225labo.com/modules/downloads_data/index.php?cid=3
+    retrieved_date: 2026-09-15
+    claims:
+      - "Nikkei 225 mini minute data are available at a one-minute interval."
+      - "For the post-2011-02-14 period, the provider describes the series as a connected trade-center contract series aligned with the Nikkei 225 large contract."
+    limitations:
+      - "Does not establish a per-bar start/end timestamp label."
+      - "Does not define minute OHLC construction, volume units, correction policy, actual roll observations, adjustment method, or decision-time availability."
