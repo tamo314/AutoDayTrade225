@@ -21,6 +21,21 @@ research_app = typer.Typer(help="Run preregistered strategy research with locked
 app.add_typer(research_app, name="research")
 
 
+@research_app.command("audit-spec")
+def audit_research_specification(
+    specification: Path = typer.Argument(..., exists=True, dir_okay=False),
+    output: Path = typer.Option(..., file_okay=False),
+) -> None:
+    """Validate a frozen S0/S1 specification without opening market data."""
+    from n225m_bt.research.spec_audit import SpecificationAuditError, write_specification_audit
+
+    try:
+        result = write_specification_audit(specification, output)
+    except (OSError, SpecificationAuditError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"Specification audit: {result}")
+
+
 @research_app.command("run")
 def run_strategy_research(
     config_dir: Path = typer.Option(Path("config")),

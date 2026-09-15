@@ -156,6 +156,129 @@ def candidate_rows(
     return rolling_u_ledger(result)
 
 
+def r064_exec_event(
+    classifier: CalendarClassifier,
+    target: date,
+    rows: list[Bar] | None,
+    isolated: set[tuple[date, Session]],
+    ledger: dict[str, object],
+    *,
+    observation_window: int = 60,
+    extreme_quantile: int = 75,
+    pullback_low: float = 0.20,
+    pullback_high: float = 0.50,
+) -> dict[str, object]:
+    """Resolve R064 at the selected response close without common-E exits.
+
+    This is additive to ``make_event``.  It uses the selected frozen U window
+    and only the observation-plus-response prefix; entry, exit, and other
+    sensitivity windows remain outside execution-time eligibility.
+    """
+    if (
+        observation_window not in OBSERVATION_WINDOWS
+        or extreme_quantile not in {70, 75, 80}
+        or (pullback_low, pullback_high) not in {(0.20, 0.50), (0.15, 0.45), (0.25, 0.55)}
+    ):
+        raise ValueError("R064 unregistered sensitivity")
+    event: dict[str, object] = {
+        "trade_date": target.isoformat(),
+        "status": "skipped",
+        "selection_status": "not_selected",
+        "execution_status": "not_scheduled",
+        "observation_window": observation_window,
+        "extreme_quantile": extreme_quantile,
+        "pullback_band": [pullback_low, pullback_high],
+        "common_e_contract": "legacy_r064_make_event",
+    }
+    if not DEVELOPMENT_START <= target <= DEVELOPMENT_END:
+        event["reason"] = "OUTSIDE_DEVELOPMENT"
+        return event
+    if (target, Session.DAY) in isolated:
+        event["reason"] = "R004_DAY_QUARANTINED"
+        return event
+    all_u = cast(dict[str, dict[str, object]], ledger["u"])
+    feature = all_u[str(observation_window)]
+    if not bool(feature["rolling_valid"]):
+        event["reason"] = "INSUFFICIENT_PRIOR_U_REFERENCES"
+        return event
+    path = _path(classifier, target, rows, observation_window + RESPONSE)
+    if path is None:
+        event["reason"] = "OBSERVATION_OR_RESPONSE_DECISION_PATH_INVALID"
+        return event
+    open_, close = path[0].open, path[observation_window - 1].close
+    d = close - open_
+    m = abs(d) / open_
+    sign = 1 if d > 0 else -1 if d < 0 else 0
+    response_rows = path[observation_window : observation_window + RESPONSE]
+    response_close = response_rows[-1].close
+    entry_ordinal = observation_window + RESPONSE + 1
+    event.update(
+        status="E_EXEC",
+        reason="RESPONSE_CLASSIFIED",
+        q50=float(cast(float, feature["q50"])),
+        q70=float(cast(float, feature["q70"])),
+        q75=float(cast(float, feature["q75"])),
+        q80=float(cast(float, feature["q80"])),
+        o=open_,
+        c_observation=close,
+        c_response=response_close,
+        d=d,
+        m=m,
+        s=sign,
+        efficiency=float(cast(float, feature["efficiency"])),
+        direction_eligible=sign != 0,
+        planned_signal_jst=(
+            classifier.session_open(target, Session.DAY) + timedelta(minutes=entry_ordinal - 2)
+        ).isoformat(),
+        planned_entry_jst=(
+            classifier.session_open(target, Session.DAY) + timedelta(minutes=entry_ordinal - 1)
+        ).isoformat(),
+        planned_exit_jst=(
+            classifier.session_open(target, Session.DAY) + timedelta(minutes=entry_ordinal - 1 + 30)
+        ).isoformat(),
+    )
+    if not sign:
+        event.update(event_found=False, response="NONE", cell="NONE")
+        return event
+    pullback = -sign * (response_close - close) / abs(d)
+    non_destructive = all(sign * (bar.close - open_) > 0 for bar in response_rows)
+    response = (
+        "R"
+        if pullback_low <= pullback <= pullback_high and non_destructive
+        else "F"
+        if -0.10 <= pullback < 0.10
+        else "N"
+    )
+    extreme = m >= float(cast(float, feature[f"q{extreme_quantile}"]))
+    medium = float(cast(float, feature["q50"])) <= m < float(
+        cast(float, feature[f"q{extreme_quantile}"])
+    )
+    cell = (
+        "A"
+        if extreme and response == "R"
+        else "C"
+        if medium and response == "R"
+        else "D"
+        if extreme and response == "F"
+        else "M"
+        if medium and response == "F"
+        else "NONE"
+    )
+    selected = cell in {"A", "C", "D", "M"}
+    event.update(
+        event_found=m >= float(cast(float, feature["q50"])),
+        selection_status=cell if selected else "not_selected",
+        execution_status="scheduled" if selected else "not_scheduled",
+        p=pullback,
+        non_destructive=non_destructive,
+        response=response,
+        extreme=extreme,
+        medium=medium,
+        cell=cell,
+    )
+    return event
+
+
 def make_event(
     classifier: CalendarClassifier,
     target: date,

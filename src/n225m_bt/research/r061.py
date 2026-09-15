@@ -90,6 +90,153 @@ def _prior_close(
     return bar.close if bar is not None and _valid(bar, target) else None
 
 
+def r061_exec_event(
+    classifier: CalendarClassifier,
+    cash_calendar: TSECashMarketCalendar,
+    target: date,
+    target_bars: list[Bar] | None,
+    history: Iterable[tuple[date, list[Bar] | None, bool]],
+    prior_bars: list[Bar] | None,
+    *,
+    specification: R061Specification = BASE,
+    tick_size: int = TICK,
+    quarantined: bool = False,
+    prior_quarantined: bool = False,
+) -> dict[str, object]:
+    """Resolve the R061 signal at its decision time, without exit/sensitivity availability.
+
+    This is deliberately additive to :func:`r061_event`.  The legacy common-E
+    record remains the historical reporting contract; this adapter supplies the
+    execution-time eligibility required by the R1 causal audit.
+    """
+    result: dict[str, object] = {
+        "trade_date": target.isoformat(),
+        "status": "skipped",
+        "selection_status": "not_selected",
+        "execution_status": "not_scheduled",
+        "compression_minutes": specification.compression_minutes,
+        "low_percentile": specification.low_percentile,
+        "holding_minutes": specification.holding_minutes,
+        "lookback_scheduled_tse_days": LOOKBACK,
+        "common_e_contract": "legacy_r061_event",
+    }
+    if not DEVELOPMENT_START <= target <= DEVELOPMENT_END:
+        result["reason"] = "OUTSIDE_DEVELOPMENT"
+        return result
+    if tick_size <= 0 or specification.low_percentile not in {30, 35, 40}:
+        result["reason"] = "INVALID_PREREGISTERED_SPECIFICATION"
+        return result
+    try:
+        start = _block_start(specification.compression_minutes)
+    except ValueError:
+        result["reason"] = "INVALID_PREREGISTERED_SPECIFICATION"
+        return result
+    if not cash_calendar.is_open(target):
+        result["reason"] = "TSE_CLOSED"
+        return result
+    reference = list(history)
+    if len(reference) != LOOKBACK:
+        result["reason"] = "HISTORY_NOT_EXACTLY_120_SCHEDULED_TSE_DAYS"
+        return result
+    if quarantined or prior_quarantined:
+        result["reason"] = "R004_QUARANTINED"
+        return result
+
+    # Only the selected base window is needed at decision time.  Sensitivity
+    # windows remain a reporting concern and must not decide E_exec.
+    history_w: list[float] = []
+    for history_day, rows, isolated in reference:
+        if isolated:
+            continue
+        prior_rows = _path(classifier, history_day, rows, 90)
+        if prior_rows is None:
+            continue
+        observed = _range_w(prior_rows, specification.compression_minutes)
+        if observed is not None:
+            history_w.append(observed[0])
+    result.update(
+        reference_trade_dates=[item[0].isoformat() for item in reference],
+        reference_scheduled_day_count=len(reference),
+        reference_valid_w_count={str(specification.compression_minutes): len(history_w)},
+    )
+    if len(history_w) < MIN_REFERENCES:
+        result["reason"] = "INSUFFICIENT_VALID_W_REFERENCES"
+        return result
+
+    # Ordinals 1--90 are known before the breakout window.  Read the latter
+    # one bar at a time and stop at the first close breakout: no later bar,
+    # entry, or exit availability may feed back into the signal decision.
+    rows = _path(classifier, target, target_bars, 90)
+    prior = previous_tse_open_date(cash_calendar, target)
+    prior_close = _prior_close(classifier, prior, prior_bars) if prior is not None else None
+    if rows is None or prior is None or prior_close is None:
+        result["reason"] = "DECISION_PREFIX_OR_PREVIOUS_TSE_CLOSE_MISSING_OR_INELIGIBLE"
+        return result
+    observation = _range_w(rows, specification.compression_minutes)
+    if observation is None:
+        result["reason"] = "COMPRESSION_RANGE_NONPOSITIVE"
+        return result
+    w, a, high, low = observation
+    q = {percentile: nearest_rank(history_w, percentile) for percentile in (30, 35, 40, 65)}
+    by_time = {bar.ts_jst: bar for bar in target_bars or []}
+    session_open = classifier.session_open(target, Session.DAY)
+    signal_index: int | None = None
+    signal: Bar | None = None
+    s = 0
+    for index in range(90, 120):
+        candidate = by_time.get(session_open + timedelta(minutes=index))
+        if candidate is None or not _valid(candidate, target):
+            result["reason"] = "BREAKOUT_DECISION_BAR_MISSING_OR_INELIGIBLE"
+            return result
+        if candidate.close >= high + tick_size:
+            signal_index, signal, s = index, candidate, 1
+            break
+        if candidate.close <= low - tick_size:
+            signal_index, signal, s = index, candidate, -1
+            break
+
+    result.update(
+        status="E_EXEC",
+        selection_status="eligible",
+        execution_status="not_scheduled",
+        reason="NO_CLOSE_BREAKOUT_IN_91_120",
+        event_found=False,
+        q30=q[30],
+        q35=q[35],
+        q40=q[40],
+        q65=q[65],
+        w_bps=w,
+        a_points=a,
+        H_points=high,
+        L_points=low,
+        compression_start_ordinal=start + 1,
+        compression_end_ordinal=90,
+        prior_tse_trade_date=prior.isoformat(),
+        prior_tse_final_close_points=prior_close,
+    )
+    if signal_index is None or signal is None:
+        return result
+    overshoot = (
+        (signal.close - high) // tick_size if s == 1 else (low - signal.close) // tick_size
+    )
+    result.update(
+        reason="FIRST_CLOSE_BREAKOUT",
+        event_found=True,
+        execution_status="scheduled",
+        s=s,
+        breakout_direction="upper" if s == 1 else "lower",
+        breakout_signal_ordinal=signal_index + 1,
+        breakout_search_minutes=signal_index - 90 + 1,
+        signal_close_overshoot_ticks=overshoot,
+        signal_bar_start_jst=signal.ts_jst.isoformat(),
+        planned_entry_jst=(signal.ts_jst + timedelta(minutes=1)).isoformat(),
+        planned_exit_jst=(signal.ts_jst + timedelta(minutes=specification.holding_minutes + 1)).isoformat(),
+        A_qualifies=w <= q[specification.low_percentile],
+        D_qualifies=w >= q[65] and w > q[35],
+    )
+    return result
+
+
 def r061_event(
     classifier: CalendarClassifier,
     cash_calendar: TSECashMarketCalendar,

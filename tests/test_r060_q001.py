@@ -13,7 +13,7 @@ from n225m_bt.domain import Bar, ExitReason, Session, Side
 from n225m_bt.research.data import partition_paths
 from n225m_bt.research.r020 import TSECashMarketCalendar
 from n225m_bt.research.r022 import normal_session_end
-from n225m_bt.research.r060 import R060Specification, r060_event
+from n225m_bt.research.r060 import R060Specification, r060_event, r060_exec_event
 from n225m_bt.strategies.opening_range_compression_breakout import (
     OpeningRangeCompressionBreakoutStrategy,
 )
@@ -135,3 +135,15 @@ def test_common_e_scope_and_execution() -> None:
         signal + timedelta(minutes=31),
     )
     assert trade.net_pnl_jpy == trade.gross_pnl_jpy - trade.fees_jpy
+
+
+def test_r1_exec_adapter_ignores_future_exit_availability() -> None:
+    day = date(2024, 11, 5)
+    base = r060_exec_event(classifier(), cash(), day, current(day, close=105), prior(date(2024, 11, 1)))
+    missing_exit = r060_exec_event(
+        classifier(), cash(), day, current(day, close=105, missing=70), prior(date(2024, 11, 1))
+    )
+    assert base["status"] == "E_EXEC"
+    assert base["selection_status"] == "A"
+    assert missing_exit == base
+    assert event(day, close=105, missing=70)["reason"] == "COMMON_E_PATH_MISSING_OR_INELIGIBLE_OR_SEGMENT_CROSS"

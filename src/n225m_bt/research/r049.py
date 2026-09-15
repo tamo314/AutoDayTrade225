@@ -123,6 +123,120 @@ def _observation(day: date, anchor: str, rows: list[Bar] | None) -> dict[str, ob
     return result
 
 
+def _signal_observation(day: date, anchor: str, rows: list[Bar] | None) -> dict[str, object]:
+    """Read only the five completed bars available at one anchor's decision."""
+    result: dict[str, object] = {
+        "trade_date": day.isoformat(),
+        "anchor": anchor,
+        "status": "invalid",
+    }
+    if rows is None:
+        result["reason"] = "DAY_SESSION_MISSING"
+        return result
+    at = anchor_times(day)[anchor]
+    by_time = {row.ts_jst: row for row in rows}
+    window_rows = [by_time.get(at + timedelta(minutes=index)) for index in range(-5, 0)]
+    if any(row is None for row in window_rows):
+        result["reason"] = "OBSERVATION_WINDOW_MISSING"
+        return result
+    concrete = [row for row in window_rows if row is not None]
+    if any(
+        not row.is_eligible or row.trade_date != day or row.session is not Session.DAY
+        for row in concrete
+    ):
+        result["reason"] = "OBSERVATION_WINDOW_INELIGIBLE"
+        return result
+    p0, p5 = concrete[0].open, concrete[-1].close
+    change = p5 - p0
+    if p0 <= 0:
+        result.update(p0_points=p0, p5_points=p5, r_points=change, reason="NONPOSITIVE_P0")
+        return result
+    if change == 0:
+        result.update(p0_points=p0, p5_points=p5, r_points=change, reason="ZERO_R")
+        return result
+    result.update(
+        status="valid",
+        decision_at_jst=concrete[-1].ts_jst.isoformat(),
+        planned_entry_jst=at.isoformat(),
+        p0_points=p0,
+        p5_points=p5,
+        r_points=change,
+        x=abs(change) / p0,
+        r_sign=1 if change > 0 else -1,
+    )
+    return result
+
+
+def r049_exec_candidate(
+    target: date,
+    anchor: str,
+    target_bars: list[Bar] | None,
+    history: Iterable[tuple[date, list[Bar] | None, bool]],
+    cash_calendar: TSECashMarketCalendar,
+    *,
+    target_quarantined: bool = False,
+    development_start: date = date(2021, 1, 1),
+    development_end: date = date(2025, 6, 30),
+) -> dict[str, object]:
+    """Resolve one R049 anchor's E_exec without later anchors or exit paths.
+
+    The old ``r049_event`` preserves an all-six-anchor common-E research
+    population.  This adapter is a new-path decision record and must not be
+    substituted into a legacy result without a separate frozen specification.
+    """
+    event: dict[str, object] = {
+        "trade_date": target.isoformat(),
+        "anchor": anchor,
+        "status": "skipped",
+        "schedule_id": TSE_NORMAL_SCHEDULE_ID,
+    }
+    if anchor not in {name for name, _, _ in ANCHORS}:
+        event["reason"] = "UNKNOWN_ANCHOR"
+        return event
+    if not development_start <= target <= development_end:
+        event["reason"] = "OUTSIDE_DEVELOPMENT"
+        return event
+    if not cash_calendar.is_open(target):
+        event["reason"] = "TSE_CASH_MARKET_CLOSED"
+        return event
+    if target_quarantined:
+        event["reason"] = "DAY_SESSION_QUARANTINED"
+        return event
+    prior = list(history)
+    if len(prior) != 120:
+        event["reason"] = "HISTORY_NOT_EXACTLY_120_TSE_DAYS"
+        return event
+    observation = _signal_observation(target, anchor, target_bars)
+    if observation["status"] != "valid":
+        event.update(observation=observation, reason="TARGET_OBSERVATION_INVALID")
+        return event
+    references: list[float] = []
+    for day, bars, quarantined in prior:
+        if quarantined:
+            continue
+        reference = _signal_observation(day, anchor, bars)
+        if reference["status"] == "valid":
+            references.append(float(str(reference["x"])))
+    if len(references) < 100:
+        event.update(observation=observation, reason="INSUFFICIENT_ANCHOR_REFERENCES")
+        return event
+    x = float(str(observation["x"]))
+    thresholds = {f"q{q}": _rank(references, q) for q in (75, 85, 90, 95)}
+    event.update(
+        status="E_EXEC",
+        selection_status="eligible",
+        execution_status="scheduled",
+        reason="ANCHOR_CAUSAL_EXEC_ELIGIBLE",
+        observation=observation,
+        reference_count=len(references),
+        **thresholds,
+        q75_le_x=x >= thresholds["q75"],
+        q90_le_x=x >= thresholds["q90"],
+        moderate_q75_q90=thresholds["q75"] <= x < thresholds["q90"],
+    )
+    return event
+
+
 def r049_event(
     target: date,
     target_bars: list[Bar] | None,

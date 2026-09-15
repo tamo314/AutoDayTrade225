@@ -10,7 +10,7 @@ from n225m_bt.calendar.model import ExchangeCalendar
 from n225m_bt.config import load_project_config
 from n225m_bt.domain import Bar, ExitReason, Session, Side
 from n225m_bt.research.r020 import TSECashMarketCalendar
-from n225m_bt.research.r061 import R061Specification, r061_event
+from n225m_bt.research.r061 import R061Specification, r061_event, r061_exec_event
 from n225m_bt.strategies.opening_range_compression_breakout import (
     OpeningRangeCompressionBreakoutStrategy,
 )
@@ -91,6 +91,20 @@ def test_common_e_history_and_independent_sensitivities() -> None:
     for minutes, start in ((20, 71), (40, 51)):
         selected = r061_event(classifier(), cash(), day, rows(day), history(day), prior_rows(day - timedelta(days=1)), specification=R061Specification(compression_minutes=minutes))
         assert selected["compression_start_ordinal"] == start
+
+
+def test_r1_exec_adapter_ignores_future_exit_availability() -> None:
+    day = date(2024, 11, 5)
+    base = r061_exec_event(
+        classifier(), cash(), day, rows(day), history(day), prior_rows(day - timedelta(days=1))
+    )
+    missing_exit = r061_exec_event(
+        classifier(), cash(), day, rows(day, missing=150), history(day), prior_rows(day - timedelta(days=1))
+    )
+    assert base["status"] == "E_EXEC"
+    assert base["event_found"] is True
+    assert missing_exit == base
+    assert event(day, missing=150)["reason"] == "COMMON_E_PATH_OR_PREVIOUS_TSE_CLOSE_MISSING_OR_INELIGIBLE"
 
 
 def test_next_open_fixed_exit_and_delay_nonextension() -> None:

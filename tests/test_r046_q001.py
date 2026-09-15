@@ -12,7 +12,7 @@ from n225m_bt.calendar.model import ExchangeCalendar
 from n225m_bt.config import load_project_config
 from n225m_bt.domain import Bar, ExitReason, Session, Side
 from n225m_bt.research.data import partition_paths
-from n225m_bt.research.r046 import r046_event
+from n225m_bt.research.r046 import r046_event, r046_exec_event
 from n225m_bt.strategies.r046_fixed_time import R046FixedTimeStrategy
 
 
@@ -132,6 +132,15 @@ def test_prefix_invariance_and_exact_window_endpoints() -> None:
     assert source["A_entry_jst"] == (start + timedelta(minutes=30)).isoformat()
     assert source["G_entry_jst"] == (start + timedelta(minutes=90)).isoformat()
     assert source["G_exit_jst"] == (start + timedelta(minutes=150)).isoformat()
+
+
+def test_r1_exec_adapter_ignores_future_placebo_availability() -> None:
+    target, refs = date(2024, 11, 5), history(date(2024, 11, 5))
+    original = r046_exec_event(classifier(), target, bars(target), refs)
+    missing_placebo = r046_exec_event(classifier(), target, bars(target, missing=70), refs)
+    assert original["status"] == missing_placebo["status"] == "E_EXEC"
+    assert original == missing_placebo
+    assert r046_event(classifier(), target, bars(target, missing=70), refs)["status"] == "skipped"
 
 
 def test_next_open_fixed_exit_delay_and_holdout_lock() -> None:

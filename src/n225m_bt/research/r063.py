@@ -178,6 +178,143 @@ def candidate_rows(
     return rolling_u_ledger(result)
 
 
+def r063_exec_event(
+    classifier: CalendarClassifier,
+    target: date,
+    rows: list[Bar] | None,
+    isolated: set[tuple[date, Session]],
+    ledger: dict[str, object],
+    *,
+    length: int = 5,
+    extreme_quantile: int = 90,
+    rejection_fraction: float = 0.25,
+) -> dict[str, object]:
+    """Resolve a selected R063 block at response close, without common-E exits.
+
+    The stored ``make_event`` contract keeps its all-sensitivity, 191-bar
+    common-E rule.  This R1 adapter uses only the selected length's frozen U
+    thresholds, searches blocks chronologically, and stops after the selected
+    response prefix.  Entry and exit bars are intentionally not required.
+    """
+    if (
+        length not in {3, 5, 10}
+        or extreme_quantile not in {85, 90, 95}
+        or rejection_fraction not in {0.2, 0.25, 1 / 3}
+    ):
+        raise ValueError("R063 unregistered sensitivity")
+    event: dict[str, object] = {
+        "trade_date": target.isoformat(),
+        "status": "skipped",
+        "selection_status": "not_selected",
+        "execution_status": "not_scheduled",
+        "block_length": length,
+        "extreme_quantile": extreme_quantile,
+        "rejection_fraction": rejection_fraction,
+        "common_e_contract": "legacy_r063_make_event",
+    }
+    if not DEVELOPMENT_START <= target <= DEVELOPMENT_END:
+        event["reason"] = "OUTSIDE_DEVELOPMENT"
+        return event
+    if (target, Session.DAY) in isolated:
+        event["reason"] = "R004_DAY_QUARANTINED"
+        return event
+    all_u = cast(dict[str, list[dict[str, object]]], ledger["u"])
+    position_rows = all_u[str(length)]
+    if not position_rows or not all(bool(item["rolling_valid"]) for item in position_rows):
+        event["reason"] = "INSUFFICIENT_PRIOR_POSITION_U"
+        return event
+    start = classifier.session_open(target, Session.DAY)
+    by_time = {row.ts_jst: row for row in rows or []}
+
+    def decision_path(first_ordinal: int, last_ordinal: int) -> list[Bar] | None:
+        selected = [
+            by_time.get(start + timedelta(minutes=index))
+            for index in range(first_ordinal - 1, last_ordinal)
+        ]
+        if not all(_valid(row, target) for row in selected):
+            return None
+        return cast(list[Bar], selected)
+
+    first: dict[str, object] | None = None
+    shock_rows: list[Bar] | None = None
+    for item in sorted(position_rows, key=lambda row: int(cast(int, row["position"]))):
+        position = int(cast(int, item["position"]))
+        first_ordinal = START_ORDINAL + position * length
+        last_ordinal = first_ordinal + length - 1
+        block = decision_path(first_ordinal, last_ordinal)
+        if block is None:
+            event["reason"] = "BLOCK_DECISION_PATH_INVALID"
+            return event
+        block_move = abs(block[-1].close - block[0].open)
+        signed = block[-1].close - block[0].open
+        if signed and block_move >= float(cast(float, item["q70"])):
+            first, shock_rows = item, block
+            break
+    event.update(status="E_EXEC", reason="NO_Q70_BLOCK", event_found=False)
+    if first is None or shock_rows is None:
+        return event
+
+    first_ordinal = START_ORDINAL + int(cast(int, first["position"])) * length
+    last_ordinal = first_ordinal + length - 1
+    response_last = last_ordinal + length
+    response_rows = decision_path(last_ordinal + 1, response_last)
+    if response_rows is None:
+        event.update(status="skipped", reason="RESPONSE_DECISION_PATH_INVALID")
+        return event
+    shock_close, response_close = shock_rows[-1].close, response_rows[-1].close
+    sign = 1 if shock_close > shock_rows[0].open else -1
+    move: float = float(abs(shock_close - shock_rows[0].open))
+    z = sign * (response_close - shock_close)
+    response = (
+        "R" if z <= -rejection_fraction * move else "F" if z >= rejection_fraction * move else "N"
+    )
+    extreme = move >= float(cast(float, first[f"q{extreme_quantile}"]))
+    medium = float(cast(float, first["q70"])) <= move < float(
+        cast(float, first[f"q{extreme_quantile}"])
+    )
+    cell = (
+        "A"
+        if extreme and response == "R"
+        else "C"
+        if medium and response == "R"
+        else "D"
+        if extreme and response == "F"
+        else "M"
+        if medium and response == "F"
+        else "NONE"
+    )
+    selected = cell in {"A", "C", "D", "M"}
+    entry_ordinal = response_last + 1
+    event.update(
+        reason="RESPONSE_CLASSIFIED",
+        event_found=True,
+        selection_status=cell if selected else "not_selected",
+        execution_status="scheduled" if selected else "not_scheduled",
+        first_q70_position=int(cast(int, first["position"])),
+        first_ordinal=first_ordinal,
+        last_ordinal=last_ordinal,
+        response_last_ordinal=response_last,
+        m=move,
+        s=sign,
+        q70=float(cast(float, first["q70"])),
+        q85=float(cast(float, first["q85"])),
+        q90=float(cast(float, first["q90"])),
+        q95=float(cast(float, first["q95"])),
+        z=z,
+        response=response,
+        extreme=extreme,
+        medium=medium,
+        cell=cell,
+        shock_open=shock_rows[0].open,
+        shock_close=shock_close,
+        response_close=response_close,
+        planned_signal_jst=(start + timedelta(minutes=response_last - 1)).isoformat(),
+        planned_entry_jst=(start + timedelta(minutes=entry_ordinal - 1)).isoformat(),
+        planned_exit_jst=(start + timedelta(minutes=entry_ordinal - 1 + 30)).isoformat(),
+    )
+    return event
+
+
 def make_event(
     classifier: CalendarClassifier,
     target: date,

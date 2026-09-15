@@ -33,6 +33,86 @@ def _rank(paths: list[tuple[int, int]], percentile: int) -> tuple[int, int]:
     return ordered[(len(ordered) * percentile + 99) // 100 - 1]
 
 
+def r046_exec_event(
+    classifier: CalendarClassifier,
+    target: date,
+    target_bars: list[Bar] | None,
+    history: list[tuple[date, list[Bar] | None, bool]],
+    *,
+    target_quarantined: bool = False,
+    development_start: date = date(2021, 1, 1),
+    development_end: date = date(2025, 6, 30),
+) -> dict[str, object]:
+    """Build R046's opening E_exec without its later placebo/outcome inputs.
+
+    This is a new R1 adapter, not a reinterpretation of ``r046_event``'s
+    preserved all-condition common-E ledger.  It can only use the completed
+    W0 observation and strictly prior W0 references at the 09:14 decision.
+    """
+    event: dict[str, object] = {"trade_date": target.isoformat(), "status": "skipped"}
+    if not development_start <= target <= development_end:
+        event["reason"] = "OUTSIDE_DEVELOPMENT"
+        return event
+    if target_quarantined:
+        event["reason"] = "DAY_SESSION_QUARANTINED"
+        return event
+    if len(history) != 60:
+        event["reason"] = "HISTORY_NOT_EXACTLY_60_TSE_DAYS"
+        return event
+    if target_bars is None:
+        event["reason"] = "DAY_SESSION_MISSING"
+        return event
+    start = classifier.session_open(target, Session.DAY)
+    target_by_time = {bar.ts_jst: bar for bar in target_bars}
+    target_rows = [target_by_time.get(start + timedelta(minutes=index)) for index in range(30)]
+    if any(row is None for row in target_rows):
+        event["reason"] = "W0_OBSERVATION_MISSING"
+        return event
+    w0 = [row for row in target_rows if row is not None]
+    if any(row.trade_date != target for row in w0) or (current := _path(w0)) is None:
+        event["reason"] = "W0_OBSERVATION_INELIGIBLE"
+        return event
+    _p0, r, length = current
+    if r == 0 or length == 0:
+        event["reason"] = "W0_ZERO_R_OR_L"
+        return event
+    references: list[tuple[int, int]] = []
+    for prior, bars, quarantined in history:
+        if not development_start <= prior <= development_end or quarantined or bars is None:
+            continue
+        prior_start = classifier.session_open(prior, Session.DAY)
+        by_time = {bar.ts_jst: bar for bar in bars}
+        rows = [by_time.get(prior_start + timedelta(minutes=index)) for index in range(30)]
+        if any(row is None for row in rows):
+            continue
+        valid = [row for row in rows if row is not None]
+        path = _path(valid) if all(row.trade_date == prior for row in valid) else None
+        if path is not None and path[1] != 0 and path[2] != 0:
+            references.append((path[1], path[2]))
+    if len(references) < 50:
+        event["reason"] = "INSUFFICIENT_W0_REFERENCES"
+        return event
+    event.update(
+        status="E_EXEC",
+        selection_status="eligible",
+        execution_status="scheduled",
+        reason="W0_CAUSAL_EXEC_ELIGIBLE",
+        decision_at_jst=(start + timedelta(minutes=29)).isoformat(),
+        planned_entry_jst=(start + timedelta(minutes=30)).isoformat(),
+        planned_exit_jst=(start + timedelta(minutes=90)).isoformat(),
+        open_r=r,
+        open_L=length,
+        open_direction="long" if r > 0 else "short",
+        open_valid_reference_count=len(references),
+    )
+    for percentile in (70, 75, 80):
+        q_r, q_l = _rank(references, percentile)
+        event[f"open_q{percentile}_r"] = q_r
+        event[f"open_q{percentile}_L"] = q_l
+        event[f"open_high_q{percentile}"] = abs(r) * q_l >= abs(q_r) * length
+    return event
+
+
 def r046_event(
     classifier: CalendarClassifier,
     target: date,

@@ -1,14 +1,17 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import numpy as np
 import pytest
 
+from n225m_bt.domain import Bar, Session
 from n225m_bt.research.r063 import (
     MIN_REFERENCES,
     R063QNotIdentifiableError,
     fwl_delta,
+    make_event,
+    r063_exec_event,
     rolling_u_ledger,
 )
 
@@ -64,3 +67,39 @@ def test_fixed_fwl_identification_contract() -> None:
 
 def test_no_future_date_or_holdout_is_embedded_in_u_fixture() -> None:
     assert date(2025, 6, 30) < date(2026, 1, 1)
+
+
+class _Classifier:
+    def session_open(self, target: date, session: Session) -> datetime:
+        assert session is Session.DAY
+        return datetime.combine(target, datetime.min.time()).replace(hour=8, minute=45)
+
+
+def test_r1_exec_adapter_ignores_future_exit_availability() -> None:
+    target = date(2024, 11, 5)
+    start = _Classifier().session_open(target, Session.DAY)
+    rows = [
+        Bar(
+            start + timedelta(minutes=index),
+            target,
+            target,
+            Session.DAY,
+            "synthetic",
+            100,
+            120 if index == 34 else 110,
+            90,
+            120 if index == 34 else 110 if 35 <= index <= 39 else 100,
+        )
+        for index in range(191)
+        if index != 100
+    ]
+    ledger = {
+        "u": {
+            "5": [{"position": 0, "rolling_valid": True, "q70": 20.0, "q85": 20.0, "q90": 20.0, "q95": 20.0}]
+        }
+    }
+    adapter = r063_exec_event(_Classifier(), target, rows, set(), ledger)  # type: ignore[arg-type]
+    legacy = make_event(_Classifier(), target, rows, set(), ledger)  # type: ignore[arg-type]
+    assert adapter["status"] == "E_EXEC"
+    assert adapter["selection_status"] == "A"
+    assert legacy["reason"] == "TSE_1_TO_191_PATH_INVALID"

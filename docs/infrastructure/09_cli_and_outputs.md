@@ -44,6 +44,12 @@ forwardを取り込む場合は data ingest に --dataset forward --series-type 
 
 上記の名前を架空の実行可能CLIとして配布しない。実装後は`--help`、段階未指定拒否、未知設定拒否、価格範囲・cache境界、旧CLI回帰を実測する。根拠のない`audit-*`や`--stage`を動くものとして記載しない。
 
+### R1で実装した価格非読取り仕様監査
+
+`research audit-spec SPECIFICATION.json --output RESULTS_DIRECTORY` は、S0/S1の新規仕様JSONだけを読み、排他的な出力先へ`spec_audit.json`、`condition_resolution.json`、`gate_witnesses.json`、`causality_audit.json`、`access_ledger.json`を書き出す。市場データ、既存run、OOS、Final Holdoutは開かない。
+
+入力にはfamily/study/spec/run/protocol識別子、事前登録・source snapshot hash、seed、nuisance宣言、判定条件、明示side/quantile/集合関係、gateを全て含める。暗黙default、R031型の同一経路・反対side・0tick費用前双方負AND、S2以降の指定は拒否する。`gate_witnesses.json`と`causality_audit.json`が`NOT_RUN`の場合、それは次の合成・pipeline監査待ちであり、PASSではない。
+
 ### 追加出力契約
 
 `study_registry.json`、`run_registry.json`、`condition_resolution.json`、`spec_audit.json`、`causality_audit.json`、`scheduled_axis`、`rolling_u_ledger`、`exec_eligibility_ledger`、`analysis_eligibility_ledger`、`outcome_missingness`、`decision.json`、`access_ledger`を必要責務として追加する。名称・形式は実装時にschemaと合わせ、既存成果物と混同しない。

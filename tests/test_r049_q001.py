@@ -13,7 +13,7 @@ from n225m_bt.config import load_project_config
 from n225m_bt.domain import Bar, ExitReason, Session, Side
 from n225m_bt.research.data import partition_paths
 from n225m_bt.research.r020 import TSECashMarketCalendar
-from n225m_bt.research.r049 import anchor_times, r049_event
+from n225m_bt.research.r049 import anchor_times, r049_event, r049_exec_candidate
 from n225m_bt.strategies.r049_fixed_time import R049FixedTimeStrategy
 from scripts.run_r049_q001_same_clock_extreme_5m_fade import select
 
@@ -145,3 +145,12 @@ def test_independent_first_anchor_selection_when_moderate_precedes_extreme() -> 
     assert select("A_extreme_fade", event)["anchor"] == "mS+60"
     assert select("B_broad_fade", event, 75)["anchor"] == "mS+30"
     assert select("C_moderate_fade", event)["anchor"] == "mS+30"
+
+
+def test_r1_exec_candidate_ignores_later_anchor_mutation() -> None:
+    day = date(2024, 11, 5)
+    original = r049_exec_candidate(day, "mS+30", bars(day), history(day), cash())
+    later_anchor_missing = r049_exec_candidate(day, "mS+30", bars(day, missing=74), history(day), cash())
+    assert original["status"] == later_anchor_missing["status"] == "E_EXEC"
+    assert original == later_anchor_missing
+    assert r049_event(day, bars(day, missing=74), history(day), cash())["status"] == "skipped"

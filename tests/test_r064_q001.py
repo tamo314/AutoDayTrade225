@@ -15,6 +15,7 @@ from n225m_bt.research.r064 import (
     R064QNotIdentifiableError,
     fwl_delta,
     make_event,
+    r064_exec_event,
     rolling_u_ledger,
 )
 from n225m_bt.strategies.r064_trend_pullback_continuation import (
@@ -102,6 +103,15 @@ def test_event_has_partial_non_destructive_pullback_and_fixed_paths() -> None:
         make_event(classifier(), target, day_rows(target)[:-1], set(), frozen_u())["reason"]
         == "TSE_COMMON_PATH_INVALID"
     )
+
+
+def test_r1_exec_adapter_ignores_future_exit_availability() -> None:
+    target = date(2024, 11, 5)
+    adapter = r064_exec_event(classifier(), target, day_rows(target)[:-1], set(), frozen_u())
+    legacy = make_event(classifier(), target, day_rows(target)[:-1], set(), frozen_u())
+    assert adapter["status"] == "E_EXEC"
+    assert adapter["selection_status"] == "A"
+    assert legacy["reason"] == "TSE_COMMON_PATH_INVALID"
 
 
 def test_next_open_delay_nonextension_and_accounting() -> None:
