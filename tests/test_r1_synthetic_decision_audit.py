@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -11,6 +11,12 @@ import pytest
 from typer.testing import CliRunner
 
 from n225m_bt.cli import app
+from n225m_bt.research.asof_quality import QualityObservation, quality_allows_decision
+from n225m_bt.research.candidate_selection import (
+    CandidateIntent,
+    first_selected_by_condition,
+    retry_allowed_after_cancellation,
+)
 from n225m_bt.research.conditions import shared_path_gross_witness
 from n225m_bt.research.decision_audit import (
     ADAPTER_BINDINGS,
@@ -62,6 +68,42 @@ def test_ri02_shared_synthetic_price_path_preserves_opposite_side_identity() -> 
     assert witness["long_gross_pre_fee_mean_jpy"] > 0
     with pytest.raises(ValueError, match="positive multiplier"):
         shared_path_gross_witness((5,), 0)
+
+
+def test_ri07_future_qc_and_later_correction_do_not_rewrite_a_past_decision() -> None:
+    from n225m_bt.config import JST
+
+    decision = datetime(2024, 11, 5, 9, 15, tzinfo=JST)
+    later = QualityObservation(
+        decision + timedelta(minutes=1), decision + timedelta(days=1), True, "later_correction"
+    )
+    assert quality_allows_decision(decision, (later,)) == (True, ())
+    known = QualityObservation(
+        decision - timedelta(minutes=1), decision, True, "known_missing_bar"
+    )
+    assert quality_allows_decision(decision, (known,))[0] is False
+
+
+def test_ri05_r049_first_anchor_is_independent_by_condition_and_retry_is_explicit() -> None:
+    from n225m_bt.config import JST
+
+    at = datetime(2024, 11, 5, 9, 30, tzinfo=JST)
+    selected = first_selected_by_condition(
+        (
+            CandidateIntent("B", "mS+30", at, True),
+            CandidateIntent("C", "mS+30", at, True),
+            CandidateIntent("A", "mS+30", at, False),
+            CandidateIntent("A", "mS+60", at + timedelta(minutes=30), True),
+            CandidateIntent("B", "mS+60", at + timedelta(minutes=30), True),
+        )
+    )
+    assert {condition: intent.anchor_id for condition, intent in selected.items()} == {
+        "A": "mS+60", "B": "mS+30", "C": "mS+30"
+    }
+    assert retry_allowed_after_cancellation("no_retry") is False
+    assert retry_allowed_after_cancellation("retry_next_anchor") is True
+    with pytest.raises(ValueError, match="unknown"):
+        retry_allowed_after_cancellation("implicit_fallback")
 
 
 def test_ri12_and_ri13_are_fail_closed_without_cross_profile_fallback() -> None:
@@ -182,7 +224,7 @@ def test_r062_real_night_observation_reaches_the_ledger_without_a_mock() -> None
 
     start = classifier.session_open(target, Session.DAY)
 
-    def day_rows(future_close: int = 100) -> list[Bar]:
+    def day_rows(future_close: int = 100, reaction_close: int = 90) -> list[Bar]:
         return [
             Bar(
                 start + timedelta(minutes=index),
@@ -193,7 +235,7 @@ def test_r062_real_night_observation_reaches_the_ledger_without_a_mock() -> None
                 100,
                 future_close if index >= 15 else 100,
                 90,
-                future_close if index >= 15 else 90,
+                future_close if index >= 15 else reaction_close,
             )
             for index in range(66)
         ]
@@ -214,6 +256,10 @@ def test_r062_real_night_observation_reaches_the_ledger_without_a_mock() -> None
         classifier, target, night_rows(target), day_rows(999), history
     )
     assert changed_future == event
+    changed_past = r062_exec_event(
+        classifier, target, night_rows(target), day_rows(reaction_close=100), history
+    )
+    assert changed_past["selection_status"] == "not_selected"
 
 
 def test_r063_and_r064_build_rolling_u_from_synthetic_history_before_binding() -> None:
@@ -444,6 +490,7 @@ def test_ri14_cli_creates_exclusive_not_run_audit_shell(workspace_tmp: Path) -> 
     assert manifest["market_data_access"] is False
     assert len(manifest["source_sha256"]) >= 10
     assert json.loads((output / "test_results.json").read_text())["status"] == "NOT_RUN"
+    assert not (output / "COMPLETED.json").exists()
     duplicate = CliRunner().invoke(
         app,
         [

@@ -59,6 +59,8 @@ def audit_synthetic_decision_pipeline(
         root / "decision_audit.py",
         root / "conditions.py",
         root / "causality.py",
+        root / "asof_quality.py",
+        root / "candidate_selection.py",
         root / "execution_ledger.py",
         *(root / f"r{number}.py" for number in ("046", "049", "060", "061", "062", "063", "064")),
     ]
@@ -121,6 +123,10 @@ def audit_synthetic_decision_pipeline(
         )
         if completed.returncode:
             raise typer.Exit(completed.returncode)
+        (result / "COMPLETED.json").write_text(
+            json.dumps({"audit_id": audit_id, "test_status": "PASS"}, indent=2) + "\n",
+            encoding="utf-8",
+        )
     typer.echo(f"Synthetic decision audit: {result}")
 
 
