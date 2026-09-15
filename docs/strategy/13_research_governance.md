@@ -11,6 +11,8 @@
 
 本改訂の開始状態は `PAUSED_METHOD_REPAIR`。新しい売買PnL探索は、[修復計画](14_research_repair_plan.md) のR0～R3完了と、対象研究自身のS0～S2完了まで開始しない。文書整理・合成テスト設計・データ仕様確認は前進させる。文書作成だけでゲートをPASSにしない。
 
+2026-09-15の`TASK-225LABO-ONLY-01`は、225Labo中心限月1分OHLCだけを使う限定Development研究について、S2の非PnL可用性診断を明示許可する。詳細な入力列・用途・除外とR3B-R064-MR-01のS0停止理由は[20_225labo_only_scope_and_s2.md](20_225labo_only_scope_and_s2.md)を正本とする。この限定はOOS、Final Holdout、実運用、volume意味、R065能力を許可せず、旧判定も変更しない。
+
 ## 2. 期間とアクセス保護
 
 |区間|trade_date|用途・制限|

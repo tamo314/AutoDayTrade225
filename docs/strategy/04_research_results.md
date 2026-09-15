@@ -38,6 +38,10 @@ R049の全6anchor共通E、R060～R064等の主・感度entry/exit全可用性�
 
 新しい報告は以下を別項目にする。旧runへ新評価を遡及計算しない。
 
+### TASK-225LABO-ONLY-01（2026-09-15）— 非PnL scope/S2
+
+225Labo中心限月1分OHLCだけを使うDevelopment限定のscope差替えを記録した。R062/R065/volume/外部データは今回の最初のbatchから外し、R064のM04技術修正R3B-R064-MR-01だけをS2可用性診断対象とする。S2はscheduled 1,131日、U不足100、E_exec分類1,031、A/C/D/M=41/52/93/50、A/Cの後刻entry/exit可観測93を記録しただけで、PnLを生成していない。A=41は継承gate 45未達のため当該案をINCONCLUSIVEとしてS3停止する。旧R064-Q001=INCONCLUSIVE、R062-Q001=BLOCKED、R062-Q002=REJECT、R065のBLOCKは不変であり、OOS・Final Holdoutは未読である。仕様・限定品質・M09停止理由は[20_225labo_only_scope_and_s2.md](20_225labo_only_scope_and_s2.md)にある。
+
 |項目|記録内容|
 |---|---|
 |Hypothesis / Parameters|family、完全な主・対照・感度、目的、予算、事前freeze|

@@ -214,6 +214,24 @@ def audit_r032_ledger(
     typer.echo(f"R3-A R032 ledger audit: {result}")
 
 
+@research_app.command("diagnose-r3b-ohlc-availability")
+def diagnose_r3b_ohlc_availability(
+    output: Path = typer.Option(..., file_okay=False),
+    config_dir: Path = typer.Option(Path("config"), exists=True, file_okay=False),
+) -> None:
+    """Run the permitted S2 Development-only OHLC availability diagnostic."""
+    from n225m_bt.research.r3b_ohlc_availability import (
+        OhlcAvailabilityError,
+        write_s2_diagnostic,
+    )
+
+    try:
+        result = write_s2_diagnostic(output, config_dir)
+    except (OSError, OhlcAvailabilityError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"R3B OHLC S2 availability diagnostic: {result}")
+
+
 @research_app.command("run")
 def run_strategy_research(
     config_dir: Path = typer.Option(Path("config")),

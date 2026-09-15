@@ -23,6 +23,10 @@ family_id、study_id、spec_version、run_id、親ID・変更種別、既知情�
 
 新しい`run_id`で再実行する直前にPnLを再読込しなかったことと、過去のPnLを知らないことを混同しない。後続runは前回の価格アクセス・既知結果を継承する。「依頼本文の固定規則」にしか存在しない定義・seed・nuisanceは、正本を回収するまで新規freeze不可とする。
 
+### 225Labo OHLC限定の差替え（TASK-225LABO-ONLY-01）
+
+R3-BのR062案はnight→day特徴量を要するため、最初のOHLC-only day-session batchから外す。R065、VWAP/volume、板・外部価格も共通前提にしない。最初の候補はR064のM04技術修正R3B-R064-MR-01であり、既存REJECT/INCONCLUSIVEを再命名して救済するものではない。完全な限定仕様、S2読取り契約、未回収M09 gateによるS3 freeze停止は[20_225labo_only_scope_and_s2.md](20_225labo_only_scope_and_s2.md)を参照する。
+
 ### 再開バッチ
 
 最大3family、合計最大3新売買仕様版、同じfamily最大2。各仕様の主代表点1つと有限の条件表を凍結する。これは今後の管理予算で、過去の実験回数を修正しない。技術訂正は別記録で監査し、繰返す同種不備は共通基盤で解消する。
