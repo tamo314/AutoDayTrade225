@@ -1,0 +1,49 @@
+{
+  "task_id": "TASK-C03-FX-INPUT-AUDIT-07",
+  "scope": "Synthetic timing and provenance labels only; no external or market-derived observations are included.",
+  "fail_closed_rule": "A candidate input may be considered only when its documented identity, bar label/timezone, and recorded availability at or before the N225 decision are all established. A missing or ambiguous premise is not repaired by inference or by another source.",
+  "cases": [
+    {
+      "id": "known_as_of_timestamp",
+      "setup": "A candidate record has a documented source-created time, bar-start label, timezone, and a separately documented availability time that is no later than the abstract N225 decision time.",
+      "expected_handling": "REQUIRES_DOCUMENTED_AS_OF_POLICY",
+      "reason": "Even a known ordering needs a frozen policy defining which documented availability field governs and how it is retained for later reproduction.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "future_revised_quote",
+      "setup": "A later provider correction would replace information previously associated with an earlier candidate record, while the former vintage and its availability history are absent.",
+      "expected_handling": "FAIL_CLOSED",
+      "reason": "A later correction cannot stand in for the information demonstrably available at the earlier decision time.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "timezone_or_bar_label_unknown",
+      "setup": "The candidate record lacks either a documented timezone or an unambiguous statement that its label is a bar start, bar end, or observation creation time.",
+      "expected_handling": "FAIL_CLOSED",
+      "reason": "Its ordering relative to the N225 decision cannot be established from an ambiguous label.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "n225_before_fx_available",
+      "setup": "The abstract N225 decision occurs before the candidate record's documented availability time, irrespective of any earlier source-created or bar-label time.",
+      "expected_handling": "NO_SIGNAL",
+      "reason": "The input was not available at the decision and therefore cannot enter that decision.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "session_or_holiday_gap",
+      "setup": "The candidate distribution has a documented session break, holiday, halt, or absent interval and the source supplies no rule assigning a usable meaning to the gap.",
+      "expected_handling": "NO_SIGNAL",
+      "reason": "No continuity, carry-forward, or synthetic replacement is permitted without a documented source rule.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "cross_source_mismatch",
+      "setup": "Two providers would describe non-identical candidate records or timing metadata for the same abstract interval.",
+      "expected_handling": "FAIL_CLOSED",
+      "reason": "This task admits one provider only; a discrepancy cannot be resolved by combining providers or choosing retrospectively.",
+      "authorises_real_access": false
+    }
+  ]
+}

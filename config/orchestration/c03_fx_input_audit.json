@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C03-FX-INPUT-AUDIT-07",
+  "mode": "design",
+  "task_file": "docs/strategy/133_c03_fx_input_audit.md",
+  "scope_file": "docs/strategy/133_c03_fx_input_audit.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/source_contract.md",
+    "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/input_admission.json",
+    "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/synthetic_timing_cases.json",
+    "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/verification.md",
+    "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/review.md"
+  ],
+  "read_only_inputs": [
+    "config/research_execution.json",
+    "docs/strategy/20_225labo_only_scope_and_s2.md",
+    "docs/strategy/registry/20260916_review.json",
+    "docs/strategy/120_research_reconciliation_and_finite_search.md",
+    "docs/strategy/121_research_inventory_index.md",
+    "docs/strategy/124_next_research_orchestrator_handoff.md",
+    "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/input_semantics.json"
+  ],
+  "validation_scripts": ["scripts/validate_c03_fx_input_audit.py"],
+  "completion_criteria": {
+    "fixed_scope": "C03の外部USDJPY入力に関する公開資料の入場監査だけを行い、実データ・外部時系列・価格・PnL・OOS・Final Holdout・grant・manifest・engine・既存結果・registryを変更しない。",
+    "provenance": "単一候補ソースのUSDJPY定義、履歴アクセスと再配布条件、時刻・barラベル、時点可用性・訂正、session・欠損、日経225との因果的時刻整合を一次資料の支持・非支持・未確認に分けて台帳化する。",
+    "input_decision": "C03の入力状態をNOT_VERIFIED、NOT_USABLE_FOR_C03、CONDITIONALLY_DOCUMENTEDのいずれかに限定し、いずれも外部時系列取得、C03のfamily化、実データ実行を許可しない。",
+    "boundary_cases": "as-of時刻、訂正値、timezone/barラベル、日経225より遅い観測、session・休日欠損、複数ソース不一致の合成ケースを固定し、意味が曖昧ならfail-closedとする。",
+    "verification": "固定validatorと最終監査を通し、C02の入力不足、既存familyの閉鎖、C03の未評価を混同せず保存する。"
+  }
+}

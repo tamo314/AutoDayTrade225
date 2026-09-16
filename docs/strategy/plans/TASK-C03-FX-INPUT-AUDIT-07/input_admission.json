@@ -1,0 +1,96 @@
+{
+  "task_id": "TASK-C03-FX-INPUT-AUDIT-07",
+  "scope": "C03 external USDJPY public-document input admission audit only",
+  "candidate_source": {
+    "provider": "OANDA Corporation",
+    "product": "v20 REST API authenticated historical candlestick distribution",
+    "candidate_instrument": "USD_JPY",
+    "source_contract": "source_contract.md",
+    "single_source_only": true,
+    "data_or_endpoint_requested": false
+  },
+  "current_input_decision": "NOT_VERIFIED",
+  "decision_basis": "Provider documentation establishes the candidate's base/quote naming convention, components, and bar-start timestamp, but does not establish applicable target-period entitlement and reproducibility, decision-time availability/latency/finality/revision history, session and missingness semantics, or an OSE timing-alignment rule. Ambiguous timing is fail-closed.",
+  "attributes": [
+    {
+      "id": "instrument_definition_and_quote_convention",
+      "status": "VERIFIED",
+      "basis": "SRC-06 defines InstrumentName as base currency and quote currency delimited by an underscore and defines midpoint, bid, and ask components; SRC-02 defines their candle representation. No component is selected or admitted for C03 by this audit.",
+      "evidence_ids": [
+        "SRC-02",
+        "SRC-06",
+        "Q05"
+      ]
+    },
+    {
+      "id": "historical_access_and_license",
+      "status": "UNVERIFIED",
+      "basis": "SRC-01 states that authenticated historical information reaches back to 2005 and SRC-05 describes current Internal Use restrictions, but neither proves this project's target-period entitlement, reproducible archive, storage terms, or historical contract applicability.",
+      "evidence_ids": [
+        "SRC-01",
+        "SRC-05"
+      ]
+    },
+    {
+      "id": "timestamp_timezone_and_bar_label",
+      "status": "VERIFIED",
+      "basis": "SRC-02 defines a candle time as its start and documents M1; SRC-06 defines the API DateTime representations and UTC epoch. This is a format/label finding only and does not establish delivery availability.",
+      "evidence_ids": [
+        "SRC-02",
+        "SRC-06"
+      ]
+    },
+    {
+      "id": "availability_latency_finality_revision",
+      "status": "UNVERIFIED",
+      "basis": "SRC-02's complete flag and SRC-04's after-close retrieval description provide no bounded delivery delay, provisional/final lifecycle, correction history, or reproducible as-of vintage; SRC-04 says historical and live feeds can differ.",
+      "evidence_ids": [
+        "SRC-02",
+        "SRC-04"
+      ]
+    },
+    {
+      "id": "session_calendar_and_missingness",
+      "status": "UNVERIFIED",
+      "basis": "None of SRC-01 through SRC-06 documents candidate-distribution session boundaries, holidays, halts, absent-row meaning, or continuity treatment.",
+      "evidence_ids": []
+    },
+    {
+      "id": "n225_alignment_and_causality",
+      "status": "UNVERIFIED",
+      "basis": "The single-provider documents contain no OSE decision-time comparison rule and no availability timestamp with which to prove an observation preceded an N225 decision.",
+      "evidence_ids": []
+    }
+  ],
+  "research_ledger": {
+    "search_queries": 5,
+    "primary_source_bodies": 6,
+    "query_limit": 8,
+    "source_body_limit": 8,
+    "source_ids": [
+      "SRC-01",
+      "SRC-02",
+      "SRC-03",
+      "SRC-04",
+      "SRC-05",
+      "SRC-06"
+    ],
+    "search_log_reference": "source_contract.md#bounded-public-research-log-cumulative",
+    "accessed_on": "2026-09-17 JST",
+    "cumulative_scope": "All research counts for TASK-C03-FX-INPUT-AUDIT-07 through this execution; no prior task counts are reused.",
+    "public_source_constraint": "Provider-owned documentation and provider-owned contract material only; no secondary source, screen, CSV, download, or endpoint response."
+  },
+  "real_data_accessed": false,
+  "external_time_series_accessed": false,
+  "authorises_c03_family": false,
+  "authorises_market_data_access": false,
+  "authorises_c03_execution": false,
+  "authorises_grant_or_manifest": false,
+  "authorises_oos_or_final_holdout": false,
+  "market_data_attempts": 0,
+  "preserved_context": {
+    "c02_input_decision": "NOT_VERIFIED; not changed by this task",
+    "f11_status": "PARKED with no remaining variants and automatic_reopen=false; not reopened",
+    "c03_economic_status": "NOT_EVALUATED; no family created"
+  }
+}
