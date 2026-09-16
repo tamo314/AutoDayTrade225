@@ -1,0 +1,33 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C01-S1-CALENDAR-CAUSALITY-03",
+  "mode": "design",
+  "task_file": "docs/strategy/129_c01_s1_calendar_causality.md",
+  "scope_file": "docs/strategy/129_c01_s1_calendar_causality.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/labeling_spec.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/label_audit.json",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/synthetic_cases.json",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/fixture_results.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/review.md"
+  ],
+  "read_only_inputs": [
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/evidence.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/design.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/calendar_contract.json",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/review.md"
+  ],
+  "validation_scripts": ["scripts/validate_c01_s1_calendar_causality.py"],
+  "completion_criteria": {
+    "fixed_scope": "C01の単一代表ルートと準備成果物を不変にし、価格・PnL・OOS・Final Holdout・grant・閉鎖familyへアクセスしない。",
+    "deterministic_labels": "凍結カレンダーだけから全cash-open日のtreatment/control/excludedラベルと休場区間を一意に再現する。",
+    "boundary_cases": "祝日と週末、週末のみ、祝日取引非実施、年末年始、不明/矛盾入力の合成境界例を固定し検証する。",
+    "asof_availability": "ラベル根拠の公開時点と後日確定情報を区別し、後知恵の最終リストを過去時点の利用可能情報として扱わない。",
+    "verification": "固定validatorと読み取り専用監査が通り、C01の経済性をNOT_EVALUATEDのまま保持する。"
+  }
+}

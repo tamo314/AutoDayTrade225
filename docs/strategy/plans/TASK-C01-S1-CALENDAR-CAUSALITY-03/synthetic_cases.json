@@ -1,0 +1,113 @@
+{
+  "artifact_id": "TASK-C01-S1-CALENDAR-CAUSALITY-03",
+  "scope": "Price-free fixed boundary fixtures only; no row is market data.",
+  "cases": [
+    {
+      "id": "holiday_weekend_reopen",
+      "input": {
+        "target_cash_open_date": "2022-09-26",
+        "calendar_rows": [
+          {"calendar_date": "2022-09-23", "cash_open": false, "ose_holiday_trading": true, "ose_trade_date": "2022-09-26"},
+          {"calendar_date": "2022-09-24", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2022-09-25", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2022-09-26", "cash_open": true, "ose_holiday_trading": false, "ose_trade_date": "2022-09-26"}
+        ]
+      },
+      "expected_label": "TREATMENT_HOLIDAY_REOPEN",
+      "expected_trade_date": "2022-09-26",
+      "reason": "The maximal preceding cash-closed interval contains the confirmed 2022-09-23 OSE holiday session; treatment priority applies over the following weekend."
+    },
+    {
+      "id": "weekend_only_reopen",
+      "input": {
+        "target_cash_open_date": "2024-06-17",
+        "calendar_rows": [
+          {"calendar_date": "2024-06-14", "cash_open": true, "ose_holiday_trading": false, "ose_trade_date": "2024-06-14"},
+          {"calendar_date": "2024-06-15", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-06-16", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-06-17", "cash_open": true, "ose_holiday_trading": false, "ose_trade_date": "2024-06-17"}
+        ]
+      },
+      "expected_label": "OUT_OF_REGIME_OR_EXCLUDED",
+      "expected_trade_date": "2024-06-17",
+      "reason": "The preceding closure is weekend-only and contains no confirmed OSE holiday-trading row."
+    },
+    {
+      "id": "holiday_nonconducted",
+      "input": {
+        "scenarios": [
+          {
+            "target_cash_open_date": "2023-11-06",
+            "calendar_rows": [
+              {"calendar_date": "2023-11-03", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+              {"calendar_date": "2023-11-04", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+              {"calendar_date": "2023-11-05", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+              {"calendar_date": "2023-11-06", "cash_open": true, "ose_holiday_trading": false, "ose_trade_date": "2023-11-06"}
+            ]
+          },
+          {
+            "target_cash_open_date": "2024-08-13",
+            "calendar_rows": [
+              {"calendar_date": "2024-08-12", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+              {"calendar_date": "2024-08-13", "cash_open": true, "ose_holiday_trading": false, "ose_trade_date": "2024-08-13"}
+            ]
+          }
+        ]
+      },
+      "expected_label": "OUT_OF_REGIME_OR_EXCLUDED",
+      "expected_trade_date": ["2023-11-06", "2024-08-13"],
+      "reason": "Both 2023-11-03 and 2024-08-12 are explicit confirmed non-conducted OSE holiday dates; a cash reopening after either must not become treatment."
+    },
+    {
+      "id": "year_end_reopen",
+      "input": {
+        "target_cash_open_date": "2022-01-04",
+        "calendar_rows": [
+          {"calendar_date": "2021-12-31", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2022-01-01", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2022-01-02", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2022-01-03", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2022-01-04", "cash_open": true, "ose_holiday_trading": false, "ose_trade_date": "2022-01-04"}
+        ]
+      },
+      "expected_label": "OUT_OF_REGIME_OR_EXCLUDED",
+      "expected_trade_date": "2022-01-04",
+      "reason": "This year-end/New-Year reopening predates the 2022-09-23 holiday-trading regime and its closure contains no confirmed session.  It is the required excluded fixture; a year-end/New-Year name is not an exclusion override after the regime begins."
+    },
+    {
+      "id": "post_regime_new_year_treatment_priority",
+      "input": {
+        "target_cash_open_date": "2024-01-04",
+        "calendar_rows": [
+          {"calendar_date": "2023-12-30", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2023-12-31", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-01-01", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-01-02", "cash_open": false, "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-01-03", "cash_open": false, "ose_holiday_trading": true, "ose_trade_date": "2024-01-04"},
+          {"calendar_date": "2024-01-04", "cash_open": true, "ose_holiday_trading": false, "ose_trade_date": "2024-01-04"}
+        ]
+      },
+      "expected_label": "TREATMENT_HOLIDAY_REOPEN",
+      "expected_trade_date": "2024-01-04",
+      "reason": "This post-regime year-end/New-Year interval contains the confirmed 2024-01-03 OSE holiday session.  Treatment priority therefore applies; seasonality is not an exclusion override."
+    },
+    {
+      "id": "missing_or_ambiguous_calendar",
+      "input": {
+        "scenarios": [
+          {
+            "failure": "The 2024-01-08 predecessor row is absent, so the maximal closure interval cannot be reconstructed.",
+            "target_cash_open_date": "2024-01-09"
+          },
+          {
+            "failure": "Duplicate 2024-08-13 rows disagree on cash_open, so the target status is contradictory.",
+            "target_cash_open_date": "2024-08-13"
+          }
+        ]
+      },
+      "expected_label": "OUT_OF_REGIME_OR_EXCLUDED",
+      "expected_trade_date": null,
+      "reason": "A missing or contradictory frozen calendar is fail-closed: do not infer a closure, trade date, or order; exclude the candidate."
+    }
+  ]
+}
