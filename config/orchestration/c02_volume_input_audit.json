@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C02-VOLUME-INPUT-AUDIT-06",
+  "mode": "design",
+  "task_file": "docs/strategy/132_c02_volume_input_audit.md",
+  "scope_file": "docs/strategy/132_c02_volume_input_audit.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/source_contract.md",
+    "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/input_semantics.json",
+    "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/synthetic_volume_cases.json",
+    "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/verification.md",
+    "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/review.md"
+  ],
+  "read_only_inputs": [
+    "config/research_execution.json",
+    "docs/strategy/registry/20260916_review.json",
+    "docs/strategy/120_research_reconciliation_and_finite_search.md",
+    "docs/strategy/121_research_inventory_index.md",
+    "docs/strategy/124_next_research_orchestrator_handoff.md",
+    "docs/strategy/04_research_results.md"
+  ],
+  "validation_scripts": ["scripts/validate_c02_volume_input_audit.py"],
+  "completion_criteria": {
+    "fixed_scope": "C02とF11の入力意味監査だけを行い、実データ、価格・PnL、OOS、Final Holdout、grant、manifest、engine、既存結果とregistryを変更しない。",
+    "provenance": "分足出来高の単位、各バー/累積、確定時点、訂正、JST時刻、trade_date、session境界について一次資料の支持・非支持・未確認を分離して台帳化する。",
+    "input_decision": "C02の入力状態をNOT_VERIFIED、NOT_USABLE_FOR_C02、CONDITIONALLY_DOCUMENTEDのいずれかに限定し、いずれも実データアクセスやF11再開を許可しない。",
+    "boundary_cases": "累積値、各分値、未確定バー、訂正、休憩・session跨ぎ、欠損・ゼロの合成ケースを固定し、意味が曖昧ならfail-closedとする。",
+    "verification": "固定validatorと最終監査を通し、R010/R052のPnL前入力不足と経済的REJECTを区別して保存する。"
+  }
+}

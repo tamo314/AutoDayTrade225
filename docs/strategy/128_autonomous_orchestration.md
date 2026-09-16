@@ -13,7 +13,7 @@
 .venv/Scripts/python.exe orchestrator.py
 ```
 
-既定は [C01例外レビューバッチ](../../config/orchestration/c01_exception_review.json)。その範囲・完了条件は [131 C01例外レビュー](131_c01_exception_review.md) を参照する。同じコマンドで保存された工程から再開する。`--once`は利用者が途中で区切る場合だけ使う。状態確認は `--status`。
+既定は [C02出来高入力監査バッチ](../../config/orchestration/c02_volume_input_audit.json)。その範囲・完了条件は [132 C02出来高入力監査](132_c02_volume_input_audit.md) を参照する。同じコマンドで保存された工程から再開する。`--once`は利用者が途中で区切る場合だけ使う。状態確認は `--status`。
 
 元のC01タスクはDONE/HOLDの記録を保持し、新しい準備タスクへ参照として継承した。新タスクは旧成果物を修正せず、新出力先に訂正を残す。旧状態は次で参照できる。コードやconfig更新後の過去DONEは `contract_matches_current=false` と表示できるが、この表示は旧タスクの再実行を許可しない。
 

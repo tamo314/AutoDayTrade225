@@ -1,0 +1,74 @@
+{
+  "task_id": "TASK-C02-VOLUME-INPUT-AUDIT-06",
+  "scope": "C02 and F11 public-source volume-input semantics audit only",
+  "current_input_decision": "NOT_VERIFIED",
+  "decision_basis": "The provider's public pages establish that Nikkei 225 mini one-minute intervals and a central-contract series are offered, while they do not define the volume field, unit, accumulation rule, bar finality, correction policy, timestamp convention, session/trade-date mapping, or missing/zero semantics for the 2021-2025 files. JPX market rules cannot fill in provider-file semantics.",
+  "attributes": [
+    {
+      "id": "per_minute_quantity",
+      "status": "UNVERIFIED",
+      "basis": "SRC-05 and SRC-06 support a one-minute interval offering, but no retrieved provider source defines the volume column as each-minute final executed quantity, a cumulative field, or another aggregate, nor states its unit.",
+      "evidence_ids": [
+        "SRC-05",
+        "SRC-06"
+      ]
+    },
+    {
+      "id": "bar_finality_and_corrections",
+      "status": "UNVERIFIED",
+      "basis": "SRC-01 and SRC-06 contain no documented bar-close availability time, provisional state, correction policy, revision history, or as-of rule for the provider files.",
+      "evidence_ids": [
+        "SRC-01",
+        "SRC-06"
+      ]
+    },
+    {
+      "id": "timestamp_timezone",
+      "status": "UNVERIFIED",
+      "basis": "SRC-02 identifies the Nikkei 225 mini product and its exchange session schedule, but no retrieved provider source specifies the file timestamp timezone, whether a label is a bar start or end, the volume unit, or a per-file contract identifier.",
+      "evidence_ids": [
+        "SRC-02",
+        "SRC-06"
+      ]
+    },
+    {
+      "id": "trade_date_and_session_boundary",
+      "status": "UNVERIFIED",
+      "basis": "SRC-03 and SRC-04 document JPX's institutional trade-day and day/night boundaries. They do not document the mapping from 225Labo calendar-date/timestamp fields to that trade day or the session boundary behavior of its one-minute rows.",
+      "evidence_ids": [
+        "SRC-03",
+        "SRC-04",
+        "SRC-06"
+      ]
+    },
+    {
+      "id": "missing_zero_semantics",
+      "status": "UNVERIFIED",
+      "basis": "No retrieved provider or exchange source assigns a meaning to an absent one-minute row, a zero volume value, or the first row after a session break in the target provider files.",
+      "evidence_ids": []
+    }
+  ],
+  "research_ledger": {
+    "search_queries": 6,
+    "primary_source_bodies": 6,
+    "query_limit": 8,
+    "source_body_limit": 8,
+    "source_ids": [
+      "SRC-01",
+      "SRC-02",
+      "SRC-03",
+      "SRC-04",
+      "SRC-05",
+      "SRC-06"
+    ],
+    "search_log_reference": "source_contract.md#調査ログ（累積）",
+    "accessed_on": "2026-09-17 JST"
+  },
+  "real_data_accessed": false,
+  "authorises_f11_reopen": false,
+  "authorises_c02_execution": false,
+  "authorises_market_data_access": false,
+  "authorises_oos_or_final_holdout": false,
+  "f11_status_preserved": "PARKED; no remaining economic or parameter variants; automatic_reopen=false",
+  "r010_r052_classification_preserved": "INPUT_OR_QUALITY_BLOCK; PnL not obtained; economics not evaluated; not an economic REJECT"
+}

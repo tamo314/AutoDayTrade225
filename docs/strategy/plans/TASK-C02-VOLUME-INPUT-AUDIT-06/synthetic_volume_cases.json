@@ -1,0 +1,123 @@
+{
+  "task_id": "TASK-C02-VOLUME-INPUT-AUDIT-06",
+  "scope": "Synthetic input-semantics boundary cases only. No price, VWAP, return, signal, order, or PnL field is present or calculated.",
+  "cases": [
+    {
+      "id": "per_minute_quantity",
+      "synthetic_input": {
+        "bar_labels": [
+          "T0",
+          "T1",
+          "T2"
+        ],
+        "raw_volume_values": [
+          4,
+          7,
+          3
+        ],
+        "declared_semantics": "unknown"
+      },
+      "expected_handling": "REQUIRES_DOCUMENTED_SEMANTICS",
+      "reason": "A sequence that looks like per-minute quantities is not evidence that the target provider column is final per-minute executed quantity or that the unit is known. Do not aggregate or consume it until a provider definition exists.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "cumulative_quantity",
+      "synthetic_input": {
+        "bar_labels": [
+          "T0",
+          "T1",
+          "T2"
+        ],
+        "raw_volume_values": [
+          4,
+          11,
+          14
+        ],
+        "declared_semantics": "cumulative_candidate"
+      },
+      "expected_handling": "FAIL_CLOSED",
+      "reason": "Do not difference or otherwise transform a candidate cumulative field. The target provider has not documented that its volume field is cumulative, how it resets, or how corrections affect it.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "unfinalized_bar",
+      "synthetic_input": {
+        "bar_label": "T0",
+        "raw_volume_value": 5,
+        "publication_state": "provisional_or_unknown"
+      },
+      "expected_handling": "FAIL_CLOSED",
+      "reason": "A row without a documented finality/as-of state cannot be treated as available at the bar boundary. Do not use it in a causal input.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "corrected_bar",
+      "synthetic_input": {
+        "bar_label": "T0",
+        "observations": [
+          {
+            "revision": "v1",
+            "raw_volume_value": 8
+          },
+          {
+            "revision": "v2",
+            "raw_volume_value": 10
+          }
+        ],
+        "revision_timing": "unknown"
+      },
+      "expected_handling": "REQUIRES_DOCUMENTED_REVISION_POLICY",
+      "reason": "A revised value is not usable until the provider documents revision timing, retention, and the historical as-of policy. Neither revision may be selected by convenience.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "session_boundary",
+      "synthetic_input": {
+        "rows": [
+          {
+            "calendar_label": "D0 late",
+            "session_hint": "night_end",
+            "raw_volume_value": 2
+          },
+          {
+            "calendar_label": "D1 early",
+            "session_hint": "night_continuation_or_new_date",
+            "raw_volume_value": 6
+          },
+          {
+            "calendar_label": "D1 day_open",
+            "session_hint": "day_start",
+            "raw_volume_value": 1
+          }
+        ],
+        "trade_date_mapping": "unknown"
+      },
+      "expected_handling": "REQUIRES_DOCUMENTED_SESSION_MAPPING",
+      "reason": "JPX institutional trade-day rules do not define the provider-file mapping. Do not join, reset, or separate rows across a date or session boundary without the provider's documented mapping.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "missing_or_zero",
+      "synthetic_input": {
+        "rows": [
+          {
+            "bar_label": "T0",
+            "raw_volume_value": 0
+          },
+          {
+            "bar_label": "T1",
+            "row_state": "missing"
+          },
+          {
+            "bar_label": "T2",
+            "raw_volume_value": 9
+          }
+        ]
+      },
+      "expected_handling": "FAIL_CLOSED",
+      "reason": "Without a documented distinction between zero activity, omitted data, halted trading, and session restart, do not impute, carry forward, drop, or treat either condition as a known quantity.",
+      "authorises_real_access": false
+    }
+  ]
+}
