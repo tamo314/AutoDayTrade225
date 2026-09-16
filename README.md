@@ -15,7 +15,7 @@ Development: 2021-01-01～2025-06-30、OOS: 2025-07-01～2025-12-31。2026年以
 
 ### Planner／Executorの開始
 
-プロジェクトrootで実行します。現在の既定バッチはC03のドル円外部入力の出所・時刻入場監査で、実データ・外部時系列を使いません。モデル・CLI設定は既存の`config.json`を使います。
+プロジェクトrootで実行します。現在の既定バッチはC05のR103設計閉鎖監査で、実データ・価格・PnL・外部時系列を使いません。モデル・CLI設定は既存の`config.json`を使います。
 
 ```powershell
 .venv/Scripts/python.exe orchestrator.py --check

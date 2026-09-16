@@ -2,7 +2,7 @@
   "project_dir": ".",
   "executor": "codex",
   "research_execution_paused": true,
-  "bounded_task": "config/orchestration/c03_fx_input_audit.json",
+  "bounded_task": "config/orchestration/c05_r103_design_closure.json",
   "max_iterations": 20,
   "executor_timeout_seconds": 10800,
   "planner_timeout_seconds": 1800,

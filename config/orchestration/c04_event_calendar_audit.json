@@ -1,0 +1,36 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C04-EVENT-CALENDAR-AUDIT-08",
+  "mode": "design",
+  "task_file": "docs/strategy/134_c04_event_calendar_audit.md",
+  "scope_file": "docs/strategy/134_c04_event_calendar_audit.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C04-EVENT-CALENDAR-AUDIT-08/source_contract.md",
+    "docs/strategy/plans/TASK-C04-EVENT-CALENDAR-AUDIT-08/event_admission.json",
+    "docs/strategy/plans/TASK-C04-EVENT-CALENDAR-AUDIT-08/synthetic_calendar_cases.json",
+    "docs/strategy/plans/TASK-C04-EVENT-CALENDAR-AUDIT-08/verification.md",
+    "docs/strategy/plans/TASK-C04-EVENT-CALENDAR-AUDIT-08/review.md"
+  ],
+  "read_only_inputs": [
+    "config/research_execution.json",
+    "docs/strategy/20_225labo_only_scope_and_s2.md",
+    "docs/strategy/registry/20260916_review.json",
+    "docs/strategy/120_research_reconciliation_and_finite_search.md",
+    "docs/strategy/121_research_inventory_index.md",
+    "docs/strategy/124_next_research_orchestrator_handoff.md",
+    "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/input_admission.json"
+  ],
+  "validation_scripts": ["scripts/validate_c04_event_calendar_audit.py"],
+  "completion_criteria": {
+    "fixed_scope": "C04のBLS雇用統計の公式発表カレンダー・時刻監査だけを行い、実際の経済値、価格・PnL、OOS・Final Holdout、grant・manifest、engine、既存結果・registryを変更しない。",
+    "provenance": "単一のBLS Employment Situationについて、定義、対象期間の公式発表日時、予定と実績の区別、ET/JSTと夏時間、改訂・再発表、OSE session/trade_dateとの照合規則を一次資料の支持・非支持・未確認に分けて台帳化する。",
+    "input_decision": "C04のイベント入力状態をNOT_VERIFIED、NOT_USABLE_FOR_C04、CONDITIONALLY_DOCUMENTEDのいずれかに限定し、いずれも経済値取得、C04 family化、実データ実行を許可しない。",
+    "boundary_cases": "予定と実発表、夏時間境界、休日・臨時変更、改訂値、OSE session外、時刻未確認の合成ケースを固定し、意味が曖昧ならfail-closedとする。",
+    "verification": "固定validatorと最終監査を通し、F04/F13の既存結果、C03の外部入力不足、C04の未評価を混同せず保存する。"
+  }
+}

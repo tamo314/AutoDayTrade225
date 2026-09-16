@@ -1,0 +1,69 @@
+{
+  "task_id": "TASK-C04-EVENT-CALENDAR-AUDIT-08",
+  "event_type": "BLS_EMPLOYMENT_SITUATION",
+  "scope": "Synthetic calendar-state fixtures only. All labels are non-market placeholders and no fixture is an input row.",
+  "cases": [
+    {
+      "id": "scheduled_vs_actual_release",
+      "fixture": {
+        "scheduled_record": "SCHEDULED_RECORD_A",
+        "actual_release_timestamp": "UNDOCUMENTED"
+      },
+      "expected_handling": "REQUIRES_DOCUMENTED_ACTUAL_TIMESTAMP",
+      "reason": "A scheduled record alone is not an actual-publication record and cannot authorize a post-release classification.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "dst_boundary",
+      "fixture": {
+        "source_timezone_label": "ET",
+        "dst_status": "UNDOCUMENTED",
+        "jst_conversion": "UNDOCUMENTED"
+      },
+      "expected_handling": "REQUIRES_DOCUMENTED_TIMEZONE_CONVERSION",
+      "reason": "Without a documented daylight-saving determination and ET-to-JST rule, conversion is ambiguous and must not be inferred.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "holiday_or_emergency_change",
+      "fixture": {
+        "scheduled_record": "SCHEDULED_RECORD_B",
+        "change_status": "CANCELLED_OR_RESCHEDULED",
+        "replacement_timestamp": "UNDOCUMENTED"
+      },
+      "expected_handling": "NO_EVENT",
+      "reason": "A cancellation, holiday conflict, or emergency change without a documented actual replacement timestamp yields no event.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "revised_value",
+      "fixture": {
+        "archive_status": "REVISED_OR_REPUBLISHED",
+        "original_release_timestamp": "DOCUMENTED_OR_REQUIRED"
+      },
+      "expected_handling": "IGNORE_VALUE_USE_ORIGINALLY_RELEASED_TIMESTAMP_ONLY",
+      "reason": "The fixture isolates timing: a later revision cannot create a new event timestamp; absent a documented original timestamp, the broader rule remains fail-closed.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "outside_ose_session",
+      "fixture": {
+        "actual_release_timestamp": "DOCUMENTED",
+        "ose_session_membership": "OUTSIDE_OR_UNDOCUMENTED"
+      },
+      "expected_handling": "NO_SIGNAL",
+      "reason": "An event outside the applicable OSE session, or one whose session membership is not established, does not create a session-eligible event.",
+      "authorises_real_access": false
+    },
+    {
+      "id": "unknown_release_time",
+      "fixture": {
+        "actual_release_timestamp": "UNKNOWN",
+        "scheduled_record": "PRESENT_OR_ABSENT"
+      },
+      "expected_handling": "FAIL_CLOSED",
+      "reason": "Without a documented actual timestamp, neither scheduled metadata nor a later archive reference is substituted.",
+      "authorises_real_access": false
+    }
+  ]
+}

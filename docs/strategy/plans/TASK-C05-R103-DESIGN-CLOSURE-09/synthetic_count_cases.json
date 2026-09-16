@@ -1,0 +1,59 @@
+[
+  {
+      "case_id": "observed_four_vs_min_eight",
+      "id": "observed_four_vs_min_eight",
+      "observed_count": 4,
+      "frozen_minimum": 8,
+      "outcome": "FAIL_INFORMATION_GATE",
+      "expected_outcome": "FAIL_INFORMATION_GATE",
+      "expected_handling": "FAIL_INFORMATION_GATE",
+      "authorises_real_access": false,
+      "reason": "The observed count is below the frozen information minimum, so the gate stops before PnL."
+  },
+  {
+      "case_id": "lower_minimum_after_shortfall",
+      "id": "lower_minimum_after_shortfall",
+      "frozen_minimum": 8,
+      "outcome": "PROHIBITED_POST_HOC",
+      "expected_outcome": "PROHIBITED_POST_HOC",
+      "expected_handling": "PROHIBITED_POST_HOC",
+      "authorises_real_access": false,
+      "reason": "Lowering a threshold after the observed shortfall would rewrite the frozen prior contract."
+  },
+  {
+      "case_id": "new_full_period_design",
+      "id": "new_full_period_design",
+      "outcome": "SEPARATE_HUMAN_EXCEPTION_REQUIRED",
+      "expected_outcome": "SEPARATE_HUMAN_EXCEPTION_REQUIRED",
+      "expected_handling": "SEPARATE_HUMAN_EXCEPTION_REQUIRED",
+      "authorises_real_access": false,
+      "reason": "A full-period replacement changes the design and period treatment; it needs a separate human authorization and is not created here."
+  },
+  {
+      "case_id": "economic_reject_neighbour",
+      "id": "economic_reject_neighbour",
+      "outcome": "PRESERVE_ECONOMIC_REJECT",
+      "expected_outcome": "PRESERVE_ECONOMIC_REJECT",
+      "expected_handling": "PRESERVE_ECONOMIC_REJECT",
+      "authorises_real_access": false,
+      "reason": "A neighbouring F07 economic REJECT remains its own historical decision and is not conflated with R103's unevaluated information stop."
+  },
+  {
+      "case_id": "pnl_before_shortfall",
+      "id": "pnl_before_shortfall",
+      "outcome": "NOT_EVALUATED",
+      "expected_outcome": "NOT_EVALUATED",
+      "expected_handling": "NOT_EVALUATED",
+      "authorises_real_access": false,
+      "reason": "A PnL-before shortfall has no PnL evidence and therefore no economic evaluation."
+  },
+  {
+      "case_id": "same_family_variant",
+      "id": "same_family_variant",
+      "outcome": "CLOSED_NO_AUTOMATIC_REOPEN",
+      "expected_outcome": "CLOSED_NO_AUTOMATIC_REOPEN",
+      "expected_handling": "CLOSED_NO_AUTOMATIC_REOPEN",
+      "authorises_real_access": false,
+      "reason": "F07 has zero remaining economic and parameter capacity and cannot be reopened automatically by a nearby variant."
+  }
+]

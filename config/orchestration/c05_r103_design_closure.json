@@ -1,0 +1,37 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C05-R103-DESIGN-CLOSURE-09",
+  "mode": "design",
+  "task_file": "docs/strategy/135_c05_r103_design_closure.md",
+  "scope_file": "docs/strategy/135_c05_r103_design_closure.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C05-R103-DESIGN-CLOSURE-09/prior_contract.md",
+    "docs/strategy/plans/TASK-C05-R103-DESIGN-CLOSURE-09/sample_design.json",
+    "docs/strategy/plans/TASK-C05-R103-DESIGN-CLOSURE-09/synthetic_count_cases.json",
+    "docs/strategy/plans/TASK-C05-R103-DESIGN-CLOSURE-09/verification.md",
+    "docs/strategy/plans/TASK-C05-R103-DESIGN-CLOSURE-09/review.md"
+  ],
+  "read_only_inputs": [
+    "config/research_execution.json",
+    "docs/strategy/13_research_governance.md",
+    "docs/strategy/120_research_reconciliation_and_finite_search.md",
+    "docs/strategy/121_research_inventory_index.md",
+    "docs/strategy/124_next_research_orchestrator_handoff.md",
+    "docs/strategy/118_r103_q001_lunch_cash_confirmation.md",
+    "docs/strategy/119_r103_q001_lunch_cash_confirmation_result.md",
+    "docs/strategy/registry/20260916_review.json"
+  ],
+  "validation_scripts": ["scripts/validate_c05_r103_design_closure.py"],
+  "completion_criteria": {
+    "fixed_scope": "R103/Q001の既存PnL前件数停止を文書だけで照合し、実データ、価格、PnL、OOS・Final Holdout、grant・manifest、engine、既存結果・registryを変更しない。",
+    "prior_contract": "R103の事前固定した2021初期化下限8件と観測4件を、PnL未取得・経済性NOT_EVALUATED・F07閉鎖と区別して保存する。",
+    "closure_decision": "下限の事後引下げ、同一familyの近縁仕様、既存Developmentの再実行を許可せず、CLOSE_CURRENT_DESIGNを記録する。例外を考慮するなら別の人手承認経路が必要であり、本タスクは作成・申請しない。",
+    "boundary_cases": "件数不足、事後的な下限変更、全期間の新設計、近縁の経済的REJECT、PnL前不足、同family variantの合成ケースを固定し、経済的失敗と未評価を混同しない。",
+    "verification": "固定validatorと最終監査を通し、F07の残枠0・自動再開false、実データattempt 0・grant 0を保全する。"
+  }
+}

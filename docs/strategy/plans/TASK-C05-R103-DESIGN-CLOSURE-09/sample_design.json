@@ -1,0 +1,50 @@
+{
+  "task_id": "TASK-C05-R103-DESIGN-CLOSURE-09",
+  "study_id": "R103/Q001",
+  "family_id": "F07",
+  "current_design_decision": "CLOSE_CURRENT_DESIGN",
+  "frozen_2021_initialization_minimum": 8,
+  "observed_2021_initialization_count": 4,
+  "pnl_evidence": "NOT_OBTAINED",
+  "economics_status": "NOT_EVALUATED",
+  "family_closure": {
+    "status": "CLOSED_FOR_CURRENT_DEVELOPMENT_SEARCH",
+    "remaining_economic_specs": 0,
+    "remaining_parameter_variants": 0,
+    "automatic_reopen": false
+  },
+  "market_data_accessed": false,
+  "pnl_accessed": false,
+  "authorises_family_reopen": false,
+  "authorises_market_data_access": false,
+  "authorises_execution": false,
+  "authorises_exception": false,
+  "exception_path": {
+    "status": "SEPARATE_HUMAN_AUTHORIZATION_REQUIRED",
+    "exception_created": false
+  },
+  "exception_created": false,
+  "execution_control": {
+    "market_execution_enabled": false,
+    "grant_count": 0,
+    "real_data_attempts": 0
+  },
+  "evidence": [
+    {
+      "path": "../../118_r103_q001_lunch_cash_confirmation.md",
+      "assertion": "The 2021 initialization minimum was frozen at 8 before evaluation."
+    },
+    {
+      "path": "../../119_r103_q001_lunch_cash_confirmation_result.md",
+      "assertion": "The observed initialization count was 4 and the evaluation stopped before PnL."
+    },
+    {
+      "path": "../../registry/20260916_review.json",
+      "assertion": "R103/Q001 retains PRE_PNL_INFORMATION, NOT_OBTAINED, NOT_EVALUATED, and F07 closure."
+    },
+    {
+      "path": "../../../../config/research_execution.json",
+      "assertion": "Market execution is disabled and grants are empty."
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "task_id": "TASK-C04-EVENT-CALENDAR-AUDIT-08",
+  "event_type": "BLS_EMPLOYMENT_SITUATION",
+  "scope": "BLS-owned public documentation audit of scheduled-versus-actual timestamp provenance only; one event type; target calendar span 2021-01-01 through 2025-06-30.",
+  "current_input_decision": "NOT_USABLE_FOR_C04",
+  "decision_basis": "BLS annual schedules and dissemination policy document a scheduled 08:30 Eastern Time convention, but the permitted value-free sources do not establish a complete target-period actual-release ledger, a documented ET/DST-to-JST conversion, revision/republication timestamp semantics, or an OSE session and trade_date alignment rule. Scheduled timestamps are therefore not silently promoted to actual event timestamps; all ambiguous cases fail closed.",
+  "attributes": [
+    {
+      "id": "event_identity_and_scope",
+      "status": "VERIFIED",
+      "basis": "BLS-S06 identifies the Employment Situation archived-news-release series, and BLS-S07 lists The Employment Situation among BLS PFEI releases. This audit admits no second indicator or economic field.",
+      "evidence_ids": [
+        "BLS-S06",
+        "BLS-S07"
+      ]
+    },
+    {
+      "id": "historical_release_timestamp",
+      "status": "UNVERIFIED",
+      "basis": "BLS-S01 through BLS-S05 display scheduled date/time entries for the target span, but none supplies a value-free, event-by-event actual-publication timestamp record. BLS-S06 is an archive index, not an actual-timestamp ledger. No scheduled row is used as actual.",
+      "evidence_ids": [
+        "BLS-S01",
+        "BLS-S02",
+        "BLS-S03",
+        "BLS-S04",
+        "BLS-S05",
+        "BLS-S06"
+      ]
+    },
+    {
+      "id": "scheduled_actual_and_change_status",
+      "status": "UNVERIFIED",
+      "basis": "BLS-S07 says release schedules are published in advance and that rare technical delays may occur; it does not map each scheduled target-period event to its actual publication, cancellation, postponement, or emergency-change status. The annual schedules do not close that gap.",
+      "evidence_ids": [
+        "BLS-S01",
+        "BLS-S02",
+        "BLS-S03",
+        "BLS-S04",
+        "BLS-S05",
+        "BLS-S07"
+      ]
+    },
+    {
+      "id": "timezone_dst_to_jst",
+      "status": "UNVERIFIED",
+      "basis": "The allowed BLS sources label the schedule Eastern Time, but none documents target-event daylight-saving status or an ET-to-JST conversion rule. No JST timestamp is calculated or admitted.",
+      "evidence_ids": [
+        "BLS-S01",
+        "BLS-S02",
+        "BLS-S03",
+        "BLS-S04",
+        "BLS-S05",
+        "BLS-S07"
+      ]
+    },
+    {
+      "id": "revision_and_republication_semantics",
+      "status": "UNVERIFIED",
+      "basis": "BLS-S06 cautions that archived release data may later be revised, but the allowed sources do not state whether a revision or republication preserves, supersedes, or supplies the timestamp required for the original event. No value or revised value is accessed.",
+      "evidence_ids": [
+        "BLS-S06"
+      ]
+    },
+    {
+      "id": "ose_session_trade_date_alignment",
+      "status": "UNVERIFIED",
+      "basis": "The BLS-only source set contains no OSE session calendar, session-boundary definition, or trade_date mapping. A future post-release match cannot be made from this audit.",
+      "evidence_ids": []
+    }
+  ],
+  "research_ledger": {
+    "search_queries": 4,
+    "primary_source_bodies": 7,
+    "query_limit": 8,
+    "source_body_limit": 8,
+    "source_ids": [
+      "BLS-S01",
+      "BLS-S02",
+      "BLS-S03",
+      "BLS-S04",
+      "BLS-S05",
+      "BLS-S06",
+      "BLS-S07"
+    ],
+    "search_log_reference": "source_contract.md#bounded-public-research-log-cumulative",
+    "accessed_on": "2026-09-17 JST",
+    "cumulative_scope": "All public-research counts for TASK-C04-EVENT-CALENDAR-AUDIT-08 through this execution; no prior task count is reused.",
+    "public_source_constraint": "BLS-owned schedule, archive-index, and dissemination HTML only. Individual release bodies and all sources containing or aggregating economic values, prices, or time series were not opened or used."
+  },
+  "market_data_accessed": false,
+  "economic_values_accessed": false,
+  "authorises_c04_family": false,
+  "authorises_market_data_access": false,
+  "authorises_c04_execution": false,
+  "authorises_grant_or_manifest": false,
+  "authorises_oos_or_final_holdout": false,
+  "market_data_attempts": 0,
+  "economic_value_attempts": 0,
+  "protected_scope_changes": 0,
+  "preserved_context": {
+    "f04": "CLOSED with no automatic reopen; not re-evaluated.",
+    "f13_r082": "CLOSED with no automatic reopen; not re-evaluated.",
+    "c03": "NOT_VERIFIED external-input audit; not evidence for C04 and not changed.",
+    "c04": "No family, exception, budget, manifest, ReviewReceipt, or grant created or changed."
+  }
+}
