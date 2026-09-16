@@ -222,6 +222,9 @@ def path_audit(events: list[dict[str, object]], trades: tuple[Trade, ...], max_d
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r031_q001_night_cash_open_confirmation.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

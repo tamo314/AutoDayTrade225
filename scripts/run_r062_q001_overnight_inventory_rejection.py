@@ -63,6 +63,9 @@ def input_manifest(root: Path) -> dict[str, object]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r062_q001_overnight_inventory_rejection.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R062 output exists: {OUT}")
     OUT.mkdir(parents=True)

@@ -300,6 +300,9 @@ def positive_metrics(metrics: dict[str, object]) -> bool:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r062_q002_overnight_inventory_rejection_fixed_u.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R062-Q002 output exists: {OUT}")
     OUT.mkdir(parents=True)

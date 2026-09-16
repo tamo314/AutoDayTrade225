@@ -203,6 +203,9 @@ def summary(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r038_q001_tse_lunch_extreme_follow.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     if not TSE_CALENDAR.exists():

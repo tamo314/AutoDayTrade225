@@ -301,6 +301,9 @@ def decomposition(trades: tuple[Trade, ...], groups: dict[tuple[date, Session], 
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r043_q001_precash_cash_conflict_followthrough.py')
+
     if OUT.exists():
         raise FileExistsError(f"append-only experiment output already exists: {OUT}")
     OUT.mkdir(parents=True)

@@ -259,6 +259,9 @@ def stratum_table(records: list[dict[str, object]]) -> dict[str, dict[str, objec
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r041_q001_night_conflict_open_followthrough.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

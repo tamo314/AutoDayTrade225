@@ -54,6 +54,9 @@ def development_paths(gold_root: Path) -> list[Path]:
     The day-only study has no preceding-session warm-up, so December 2020 and
     every OOS/holdout partition are intentionally absent from the scan list.
     """
+    from n225m_bt.research.execution import require_market_read
+
+    require_market_read(gold_root, "development")
     paths: list[Path] = []
     for year in range(DEVELOPMENT_START.year, DEVELOPMENT_END.year + 1):
         last_month = DEVELOPMENT_END.month if year == DEVELOPMENT_END.year else 12
@@ -196,6 +199,17 @@ def diagnose_frame(
 
 def write_s2_diagnostic(output: Path, config_dir: Path) -> Path:
     """Write an exclusive aggregate artifact after the permitted Development scan."""
+    from n225m_bt.research.execution import (
+        require_entry,
+        require_frozen_config,
+        require_frozen_file,
+    )
+    permit = require_entry('s2_availability')
+    require_frozen_config(config_dir)
+    require_frozen_file(config_dir / "local_calendar.yaml")
+    if permit.manifest.stage != "S2" or output.resolve() != (permit.root / permit.manifest.output).resolve():
+        raise OhlcAvailabilityError("S2 stage/output differs from reservation")
+
     if output.exists():
         raise OhlcAvailabilityError(f"output already exists: {output}")
     _, sessions, data_config, _ = load_project_config(config_dir)

@@ -1,5 +1,7 @@
 # 14. 研究手順の修復・移行計画
 
+> 2026-09-16追記：以下は修復計画制定時の状態を保存したもの。現在のR001～R103対応表・理由分類・終了台帳は[120](120_research_reconciliation_and_finite_search.md)／[121](121_research_inventory_index.md)を参照。M06は[R3-A](19_r3a_r032_ledger_reconciliation.md)で限定照合済み。今回の台帳整理はR1～R3全体のPASSを意味しない。
+
 改訂ID: **RG-20260915-01** / 2026-09-15 JST  
 現在の運用: **PAUSED_METHOD_REPAIR**  
 実施済み範囲: 文書改訂・パッケージ整合検査のみ。実コード・価格データ・保存済み取引台帳の監査は未実施。

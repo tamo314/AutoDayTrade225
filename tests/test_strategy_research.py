@@ -137,6 +137,10 @@ def test_breakout_uses_frozen_range_and_fills_after_breakout_close() -> None:
 
 
 def test_holdout_partition_never_read_and_trade_date_boundary(workspace_tmp: Path) -> None:
+    from research_execution_fixtures import provision
+
+    from n225m_bt.research.execution import AccessDeniedError
+
     root = workspace_tmp / uuid4().hex / "gold"
     safe = root / "year=2025" / "month=06"
     safe.mkdir(parents=True)
@@ -151,17 +155,27 @@ def test_holdout_partition_never_read_and_trade_date_boundary(workspace_tmp: Pat
     forward = root / "forward" / "year=2025" / "month=06"
     forward.mkdir(parents=True)
     (forward / "bars.parquet").write_bytes(b"UNREADABLE FORWARD SENTINEL")
-    loaded = load_split(root, "development")
+    controller, manifest = provision(root.parent, input_root=root)
+
+    def load_fixture() -> ResearchData:
+        loaded = load_split(root, "development")
+        with pytest.raises(AccessDeniedError, match="locked"):
+            load_split(root, "out_of_sample")
+        (controller.root / manifest.output).mkdir(parents=True)
+        return loaded
+
+    loaded = controller.execute(manifest, load_fixture)
     assert len(loaded.bars) == 1
     assert loaded.bars[0].trade_date == date(2025, 6, 30)
-    assert load_split(root, "out_of_sample").bars[0].trade_date == date(2025, 7, 1)
     with pytest.raises(ValueError, match="locked"):
         partition_paths(root, "final_holdout")  # type: ignore[arg-type]
     validate_splits(load_research_config(Path("config")))
 
 
 def test_identical_overlap_is_reported_but_conflicting_duplicate_fails(workspace_tmp: Path) -> None:
-    root = workspace_tmp / uuid4().hex
+    from research_execution_fixtures import grant, provision, seal
+
+    root = workspace_tmp / uuid4().hex / "gold"
     partition = root / "year=2024" / "month=11"
     partition.mkdir(parents=True)
     row = asdict(opening_bars()[0]) | {
@@ -171,14 +185,26 @@ def test_identical_overlap_is_reported_but_conflicting_duplicate_fails(workspace
     }
     duplicate = row | {"source_file": "annual_b"}
     pl.DataFrame([row, duplicate]).write_parquet(partition / "bars.parquet")
-    loaded = load_split(root, "development")
+    controller, manifest = provision(root.parent, input_root=root)
+
+    def load_fixture() -> ResearchData:
+        loaded = load_split(root, "development")
+        (controller.root / manifest.output).mkdir(parents=True)
+        return loaded
+
+    loaded = controller.execute(manifest, load_fixture)
     assert len(loaded.bars) == 1
     assert loaded.quality["identical_duplicate_rows_collapsed"] == 1
     pl.DataFrame([row, duplicate | {"close": row["close"] + 5}]).write_parquet(
         partition / "bars.parquet"
     )
+    revised = manifest.model_copy(update={
+        "run_id": "conflicting-fixture", "output": "results/research/conflicting-fixture",
+        "input_files": (seal(root.parent, partition / "bars.parquet"),),
+    })
+    grant(root.parent, revised)
     with pytest.raises(ValueError, match="conflicting canonical"):
-        load_split(root, "development")
+        controller.execute(revised, lambda: load_split(root, "development"))
 
 
 def test_drawdown_and_nontrading_days_and_resampling() -> None:
@@ -222,15 +248,22 @@ def test_existing_experiment_is_never_overwritten(workspace_tmp: Path) -> None:
         reserve_directory(tmp_path, "../escape")
 
 
-def test_complete_campaign_rejects_without_opening_oos_and_reports(
-    workspace_tmp: Path, monkeypatch: pytest.MonkeyPatch
+@pytest.mark.parametrize("force_development_gates_pass", [False, True])
+def test_complete_campaign_never_opens_oos_and_reports(
+    workspace_tmp: Path, monkeypatch: pytest.MonkeyPatch, force_development_gates_pass: bool
 ) -> None:
+    from research_execution_fixtures import grant, provision, seal
+
     from n225m_bt.research import runner
+    from n225m_bt.research.execution import AccessDeniedError
     from n225m_bt.research.report import render_campaign
 
-    root = workspace_tmp / uuid4().hex
+    # Parameterized pytest names contain brackets, interpreted as Parquet globs.
+    root = workspace_tmp.parent / "campaign-period-boundary" / uuid4().hex
     config_dir = root / "config"
     config_dir.mkdir(parents=True)
+    hypothesis = root / "hypothesis.md"
+    hypothesis.write_text("Synthetic campaign only", encoding="utf-8")
     for name in ("instrument", "sessions", "data", "backtest", "research"):
         shutil.copyfile(Path("config") / f"{name}.yaml", config_dir / f"{name}.yaml")
     settings = yaml.safe_load(Path("config/strategy_research.yaml").read_text())
@@ -241,7 +274,14 @@ def test_complete_campaign_rejects_without_opening_oos_and_reports(
         representative_holding=2,
         minimum_positive_neighbors=1,
         resamples=100,
+        hypothesis_document=str(hypothesis.resolve()),
     )
+    if force_development_gates_pass:
+        settings["minimum_development_trades"] = 1
+        # Force the selection branch, not market profitability. The real engine,
+        # accounting and saved report still run on the same synthetic prices.
+        monkeypatch.setattr(runner, "value", lambda *_: 1.0)
+        monkeypatch.setattr(runner, "walk_forward", lambda *_: {"passes": True})
     (config_dir / "strategy_research.yaml").write_text(yaml.safe_dump(settings))
     calendar = root / "calendar.yaml"
     calendar.write_text(
@@ -264,22 +304,39 @@ def test_complete_campaign_rejects_without_opening_oos_and_reports(
 
     def synthetic_split(path: Path, split: str) -> ResearchData:
         loaded.append(split)
-        assert split == "development", "OOS was opened despite insufficient Development evidence"
+        assert split == "development", "Development gates cannot authorize an OOS read"
         return ResearchData(opening_bars(), "synthetic", {"rows": 12})
 
     monkeypatch.setattr(runner, "load_split", synthetic_split)
     monkeypatch.setattr(
         runner, "snapshot_source", lambda *args: {"git_commit": "test", "source_hash": "test"}
     )
-    output = runner.run_campaign(
-        config_dir, root / "results", calendar, "synthetic", lambda _: None
+    conditions = tuple(
+        f"{family}-L3-H2-{label}"
+        for family in settings["families"]
+        for label in ("base", "0tick", "2tick", "3tick", "double_fee", "entry_delay_1m", "exit_delay_1m")
     )
+    controller, manifest = provision(root, entry="campaign", conditions=conditions, seed=settings["seed"])
+    manifest = manifest.model_copy(update={"evidence": (*manifest.evidence, seal(root, hypothesis))})
+    grant(root, manifest)
+    output = controller.execute(manifest, lambda: runner.run_campaign(
+        config_dir, root / "results/research", calendar, "test-001", lambda _: None
+    ))
     assert loaded == ["development"]
     completion = json.loads((output / "COMPLETED.json").read_text())
     assert completion["experiments"] == 14
-    assert set(completion["decisions"].values()) == {"REJECT"}
+    expected = "INVESTIGATE" if force_development_gates_pass else "REJECT"
+    assert set(completion["decisions"].values()) == {expected}
+    assert completion["oos_read"] is False
+    assert (output / "oos_review_required.json").exists() == force_development_gates_pass
+    if force_development_gates_pass:
+        decisions = json.loads((output / "family_decisions.json").read_text())
+        assert all(all(d["development_checks"].values()) for d in decisions.values())
+        assert all(d["oos_status"] == "review_required" for d in decisions.values())
     report = render_campaign(output)
     assert (report / "research_report.md").is_file()
     assert len(list(report.glob("*-daily_equity.parquet"))) == 14
-    with pytest.raises(FileExistsError):
-        runner.run_campaign(config_dir, root / "results", calendar, "synthetic", lambda _: None)
+    with pytest.raises(AccessDeniedError, match="already exists"):
+        controller.execute(manifest, lambda: runner.run_campaign(
+            config_dir, root / "results/research", calendar, "test-001", lambda _: None
+        ))

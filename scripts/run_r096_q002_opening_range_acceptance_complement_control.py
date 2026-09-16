@@ -249,6 +249,9 @@ def _q001_reproduction_and_shortfall_audit(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r096_q002_opening_range_acceptance_complement_control.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

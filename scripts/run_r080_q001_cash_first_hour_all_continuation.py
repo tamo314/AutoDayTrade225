@@ -358,6 +358,9 @@ def feasibility(events: list[dict[str, object]]) -> dict[str, object]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r080_q001_cash_first_hour_all_continuation.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

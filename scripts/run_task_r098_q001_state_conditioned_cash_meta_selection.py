@@ -319,6 +319,9 @@ def rows_to_ledger(axis: list[str], rows: list[StateSelectionRow]) -> list[dict[
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r098_q001_state_conditioned_cash_meta_selection.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable run output already exists: {OUT}")
     OUT.mkdir(parents=True)

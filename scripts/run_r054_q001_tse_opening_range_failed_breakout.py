@@ -458,6 +458,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r054_q001_tse_opening_range_failed_breakout.py')
+
     if OUT.exists():
         raise ValueError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

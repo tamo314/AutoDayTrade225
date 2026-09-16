@@ -496,6 +496,9 @@ def write_condition(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r005_q001_session_end_momentum.py')
+
     if OUT.exists():
         raise ValueError(f"R005 output already exists and must never be overwritten: {OUT}")
     if not (R004_OUT / "preflight.json").exists():

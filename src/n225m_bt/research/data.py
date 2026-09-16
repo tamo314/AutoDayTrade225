@@ -34,6 +34,9 @@ def validate_splits(config: ResearchConfig) -> None:
 def partition_paths(root: Path, split: Split) -> list[Path]:
     if split not in SPLITS:
         raise ValueError("Final Holdout is locked; only development/out_of_sample are allowed")
+    from n225m_bt.research.execution import require_market_read
+
+    require_market_read(root, split)
     period = SPLITS[split]
     # Partitioning uses calendar year/month. Prior December can contain January's night.
     paths: list[Path] = []

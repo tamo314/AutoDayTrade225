@@ -95,6 +95,9 @@ def select_samples(violations: pl.DataFrame) -> pl.DataFrame:
 def main() -> None:
     # The directory is created by the preregistration patch.  Refuse a rerun if
     # any result artifact already exists, preserving the one-ID/one-result rule.
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r003_development_price_audit.py')
+
     if not OUT.exists():
         raise ValueError("missing preregistered audit directory")
     if any((OUT / name).exists() for name in [

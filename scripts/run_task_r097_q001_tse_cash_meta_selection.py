@@ -199,6 +199,9 @@ def pf(values: list[int]) -> float | None:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r097_q001_tse_cash_meta_selection.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable run output already exists: {OUT}")
     OUT.mkdir(parents=True)

@@ -231,6 +231,9 @@ def causality_audit(events: list[dict[str, object]], blocks: list[dict[str, obje
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r086_q001_intraday_same_clock_shock_fade.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

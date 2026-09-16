@@ -101,6 +101,9 @@ def evaluate(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r003_q001_development_campaign.py')
+
     if not (OUT / "campaign_plan.json").exists():
         raise ValueError("missing frozen campaign plan")
     if (OUT / "COMPLETED.json").exists():

@@ -161,6 +161,9 @@ def yearly_direction_diagnostics(axis: list[date], trades: tuple[Trade, ...]) ->
 
 
 def main(*, variant: str = "q001") -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r073_q001_official_night_direction_day_reversal.py')
+
     global RUN_ID, OUT
     variants = {
         "q001": {

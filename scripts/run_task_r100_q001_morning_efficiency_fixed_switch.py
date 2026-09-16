@@ -229,6 +229,9 @@ def run_profile(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r100_q001_morning_efficiency_fixed_switch.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

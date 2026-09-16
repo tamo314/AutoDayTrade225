@@ -132,6 +132,9 @@ def percentile(values: list[float], q: float) -> float:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r059_q001_session_reopen_gap_reversal.py')
+
     if OUT.exists(): raise FileExistsError(f"immutable R059 output exists: {OUT}")
     OUT.mkdir(parents=True); instrument, sessions, data_config, baseline = load_project_config(ROOT / "config")
     if (baseline.execution.slippage_ticks, baseline.fees.jpy_per_side_per_contract)!=(1,30): raise ValueError("R059 requires one tick and JPY30 per side")

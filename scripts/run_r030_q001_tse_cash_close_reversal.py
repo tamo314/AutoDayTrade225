@@ -403,6 +403,9 @@ def segment_metrics(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r030_q001_tse_cash_close_reversal.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

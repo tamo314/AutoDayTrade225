@@ -354,6 +354,9 @@ def positive(result: dict[str, object]) -> bool:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r066_q001_tse_lower_tail_night_reversal.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output exists: {OUT}")
     OUT.mkdir(parents=True)

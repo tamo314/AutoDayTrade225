@@ -568,6 +568,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r044_q001_tse_close_conflict_reversal.py')
+
     if OUT.exists():
         raise FileExistsError(f"append-only output exists: {OUT}")
     OUT.mkdir(parents=True)

@@ -195,6 +195,9 @@ def bootstrap(values: dict[str, dict[str, int]], a_events: list[dict[str, object
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r036_q001_prior_day_failed_breakout.py')
+
     if OUT.exists(): raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True)
     instrument, sessions, data_config, baseline = load_project_config(ROOT / "config")

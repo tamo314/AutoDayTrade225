@@ -577,6 +577,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r056_q001_tse_opening_drive_efficiency.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output exists: {OUT}")
     OUT.mkdir(parents=True)

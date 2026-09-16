@@ -505,6 +505,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r046_q001_opening_path_efficiency_placebo.py')
+
     if OUT.exists():
         raise FileExistsError(f"append-only output exists: {OUT}")
     OUT.mkdir(parents=True)

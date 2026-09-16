@@ -140,6 +140,9 @@ def profile(axis: list[date], bars: dict[tuple[date, Session], list[Any]], instr
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r102_q001_opening_range_false_break_reentry.py')
+
     if OUT.exists(): raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)
     sources = [Path("scripts/run_task_r102_q001_opening_range_false_break_reentry.py"), Path("src/n225m_bt/research/r102_opening_range_false_break.py"), Path("src/n225m_bt/strategies/r088_fixed_signal.py"), Path("tests/test_r102_opening_range_false_break.py")]

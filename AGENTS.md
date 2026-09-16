@@ -2,7 +2,7 @@
 
 ## 目的と完了条件
 
-構築済みの1分足バックテスト基盤で、未知の期間にも期待値が残る説明可能な日中・ナイト戦略を研究する。最終目標は、過去情報で適用局面を判定する複数戦略とメタ戦略。利益が出ることを完了条件にせず、仮説の事前登録、再現可能な実験、頑健性の評価、REJECT / INVESTIGATE / CANDIDATE の根拠と次の実験まで残す。
+構築済みの1分足バックテスト基盤で、未知の期間にも期待値が残る説明可能な日中・ナイト戦略を研究する。最終目標は、過去情報で適用局面を判定する複数戦略とメタ戦略。利益が出ることを完了条件にせず、登録したバッチの判定・予算・停止条件で終了し、結果と未解決事項を残す。情報不足や候補なしでも完了できる。
 
 ## 研究の境界
 
@@ -17,9 +17,12 @@
 
 ## 必要な文書への入口
 
+- 最初に読む現在の方針・作業範囲: docs/strategy/00_current_research_policy.md。新規実データPnLと自動研究ループは停止中。設計・記録整理・合成検証は進める。
+- 登録実行・残枠・中断確認: docs/strategy/123_registered_execution_control.md。実データ研究は完全仕様・証拠・有限枠を登録し、research executeを使う。旧script直起動、台帳reset、失敗の枠返却、ID変更による再試行をしない。
 - 研究開始・選定: docs/strategy/13_research_governance.md、docs/strategy/14_research_repair_plan.md。
+- 既存結果照合・近縁仮説の再開判定: docs/strategy/120_research_reconciliation_and_finite_search.md、docs/strategy/121_research_inventory_index.md、docs/strategy/registry/20260916_review.json。新規提案前に閉鎖群・親仕様・既知結果を確認し、ID変更で探索枠を補充しない。
 - API・研究機能: docs/strategy/02_research_design.md。
-- 最新の判断・次の実験: docs/strategy/04_research_results.md。
+- 過去の結果集: docs/strategy/04_research_results.md。旧「次の実験」は現在の実行指示ではない。
 - 基盤に触れるとき: DECISIONS.md と変更対象に対応する docs/infrastructure/ の仕様。時刻は05、約定・PnLは06、品質は07、基盤受入条件は11。
 
 ## 実装と検証

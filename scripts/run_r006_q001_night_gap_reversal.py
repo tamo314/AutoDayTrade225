@@ -477,6 +477,9 @@ def write_condition(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r006_q001_night_gap_reversal.py')
+
     if OUT.exists():
         raise ValueError(f"R006 output already exists and must never be overwritten: {OUT}")
     if not (R004_OUT / "preflight.json").exists():

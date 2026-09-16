@@ -168,6 +168,9 @@ def delta(events: list[dict[str, object]], multiplier: int, axis: list[date]) ->
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r067_q001_night_to_day_information_continuation.py')
+
     if OUT.exists(): raise FileExistsError(f"immutable output exists: {OUT}")
     OUT.mkdir(parents=True)
     instrument, sessions, data_cfg, base = load_project_config(ROOT / "config")

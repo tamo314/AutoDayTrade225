@@ -1,6 +1,7 @@
 {
   "project_dir": ".",
   "executor": "codex",
+  "research_execution_paused": true,
   "max_iterations": 20,
   "executor_timeout_seconds": 10800,
   "planner_timeout_seconds": 1800,

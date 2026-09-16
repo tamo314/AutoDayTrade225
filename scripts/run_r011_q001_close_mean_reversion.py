@@ -173,6 +173,9 @@ def path_audit(events: list[dict[str, object]], trades: tuple[Trade, ...], max_d
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r011_q001_close_mean_reversion.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     if not (R004_OUT / "preflight.json").exists():

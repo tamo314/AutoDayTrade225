@@ -297,6 +297,9 @@ def bootstrap(daily_by: dict[str, dict[str, int]], events: list[dict[str, object
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r061_q001_tse_local_compression_breakout.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R061 output exists: {OUT}")
     OUT.mkdir(parents=True)

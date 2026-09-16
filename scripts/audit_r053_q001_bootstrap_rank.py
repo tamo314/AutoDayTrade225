@@ -148,6 +148,9 @@ def diagnostics(design: np.ndarray, names: list[str]) -> dict[str, object]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry("script:scripts/audit_r053_q001_bootstrap_rank.py")
+
     if OUT.exists():
         raise FileExistsError(f"immutable R053 rank-audit output exists: {OUT}")
     blocked = json.loads((LEGACY / "BLOCKED.json").read_text(encoding="utf-8"))

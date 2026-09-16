@@ -110,6 +110,9 @@ def sample(rows: list[dict[str, object]], limit: int = 3) -> list[dict[str, obje
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r072_d001_attrition_audit.py')
+
     if OUT.exists():
         raise FileExistsError(f"refusing to overwrite immutable audit output {OUT}")
     OUT.mkdir(parents=True)

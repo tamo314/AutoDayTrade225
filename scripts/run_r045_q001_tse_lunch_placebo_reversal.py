@@ -268,6 +268,9 @@ def bootstrap(daily: dict[str, dict[str, int]], events: dict[str, list[dict[str,
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r045_q001_tse_lunch_placebo_reversal.py')
+
     if OUT.exists():
         raise FileExistsError(f"append-only output exists: {OUT}")
     OUT.mkdir(parents=True)

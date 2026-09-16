@@ -514,6 +514,9 @@ def build_regression(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r053_q001_tse_afternoon_open_gap_fade.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R053 output exists: {OUT}")
     OUT.mkdir(parents=True)

@@ -450,6 +450,9 @@ def path_audit(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r007_q001_local_shock_reversal.py')
+
     if OUT.exists():
         raise ValueError(f"R007 output already exists and must never be overwritten: {OUT}")
     if not (R004_OUT / "preflight.json").exists():

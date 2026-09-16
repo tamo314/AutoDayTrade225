@@ -243,6 +243,9 @@ def lower_positive(boot: dict[str, Any], key: str) -> bool:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r009_q001_directional_consistency.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     if not (R004_OUT / "preflight.json").exists():

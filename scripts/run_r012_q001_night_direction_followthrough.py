@@ -489,6 +489,9 @@ def direction_diagnostic(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r012_q001_night_direction_followthrough.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     if not (R004_OUT / "preflight.json").exists():

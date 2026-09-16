@@ -182,7 +182,18 @@ def run_campaign(
     study_config: Path | None = None,
     stage: str | None = None,
 ) -> Path:
+    from n225m_bt.research.execution import (
+        require_entry,
+        require_frozen_config,
+        require_frozen_file,
+    )
+    permit = require_entry('campaign')
+
     selected_study_config = study_config or config_dir / "strategy_research.yaml"
+    require_frozen_config(config_dir)
+    require_frozen_file(config_dir / "research.yaml")
+    require_frozen_file(calendar_path)
+    require_frozen_file(selected_study_config)
     study_payload = yaml.safe_load(selected_study_config.read_text(encoding="utf-8"))
     if isinstance(study_payload, dict) and study_payload.get("schema_version") == 2:
         from n225m_bt.research.r003 import run_r003_campaign
@@ -202,6 +213,19 @@ def run_campaign(
     settings = load_yaml_model(
         study_config or config_dir / "strategy_research.yaml", CampaignConfig
     )
+    require_frozen_file(settings.hypothesis_document)
+    expected_conditions = {
+        f"{family}-L{lookback}-H{holding}-base"
+        for family in settings.families for lookback in settings.lookback_minutes
+        for holding in settings.holding_minutes
+    } | {
+        f"{family}-L{settings.representative_lookback}-H{settings.representative_holding}-{label}"
+        for family in settings.families
+        for label in ("0tick", "2tick", "3tick", "double_fee", "entry_delay_1m", "exit_delay_1m")
+    }
+    if (permit.manifest.stage != "S3" or settings.seed != permit.manifest.seed
+            or set(permit.manifest.conditions) != expected_conditions):
+        raise ValueError("campaign stage, seed or complete condition matrix differs from reservation")
     split_config = load_research_config(config_dir)
     validate_splits(split_config)
     if baseline.fees.jpy_per_side_per_contract <= 0:
@@ -219,6 +243,8 @@ def run_campaign(
     identifier = (
         campaign_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S") + "-" + uuid4().hex[:8]
     )
+    if (results_root / identifier).resolve() != (permit.root / permit.manifest.output).resolve():
+        raise ValueError("campaign output differs from reservation")
     output = reserve_directory(results_root, identifier)
     source = snapshot_source(output, config_dir, calendar_path)
     hypothesis = settings.hypothesis_document.read_text(encoding="utf-8-sig")
@@ -422,13 +448,13 @@ def run_campaign(
             "walk_forward": wfa,
             "adverse_exit_overlay": overlay,
             "resampling": resample(base.trades, settings.seed, settings.resamples),
-            "oos_status": "frozen_pending" if all(checks.values()) else "not_opened",
+            "oos_status": "review_required" if all(checks.values()) else "not_opened",
             "holdout_status": "not_opened",
         }
         decisions[family] = decision
         if all(checks.values()):
             eligible.append(family)
-    # Concrete candidate selection is persisted BEFORE the OOS loader can run.
+    # Persist Development evidence; this legacy runner never opens OOS.
     write_json(
         output / "development_freeze.json",
         {
@@ -440,52 +466,15 @@ def run_campaign(
         },
     )
     if eligible:
-        oos = load_split(data_config.gold_root, "out_of_sample")
-        write_json(output / "oos_quality.json", oos.quality)
-        for family in eligible:
-            runs = {
-                str(tick): trial(
-                    oos, "out_of_sample", family, *representative, f"oos-{tick}tick", ticks=tick
-                )
-                for tick in (0, 1, 2, 3)
-            }
-            base = runs["1"]
-            for label, kwargs in (
-                ("double_fee", {"fee_multiplier": 2}),
-                ("entry_delay_1m", {"entry_delay": 1}),
-                ("exit_delay_1m", {"exit_delay": 1}),
-            ):
-                runs[label] = trial(
-                    oos, "out_of_sample", family, *representative, f"oos-{label}", **kwargs
-                )
-            concentrated = cast(Metrics, base.metrics["concentration"])
-            oos_checks = {
-                "minimum_trades": len(base.trades) >= settings.minimum_oos_trades,
-                "positive_1_and_2tick": all(
-                    value(overall(runs[key]), "expectancy_jpy") > 0 for key in ("1", "2")
-                ),
-                "without_top5": value(concentrated, "net_excluding_top5_jpy") > 0,
-                "no_truncated_positions": all(
-                    run.audit["end_of_data_exits"] == 0 for run in runs.values()
-                ),
-                "fee_and_delay_stress": all(
-                    value(overall(runs[key]), "expectancy_jpy") > 0
-                    for key in ("double_fee", "entry_delay_1m", "exit_delay_1m")
-                ),
-            }
-            decisions[family].update(
-                {
-                    "oos_status": "evaluated_once",
-                    "oos_checks": oos_checks,
-                    "oos_runs": {
-                        key: {"experiment_id": run.experiment_id, "metrics": overall(run)}
-                        for key, run in runs.items()
-                    },
-                    "oos_resampling": resample(base.trades, settings.seed, settings.resamples),
-                    "oos_adverse_exit_overlay": adverse_exit_overlay(base.trades, oos.bars),
-                    "decision": "CANDIDATE" if all(oos_checks.values()) else "REJECT",
-                }
-            )
+        write_json(
+            output / "oos_review_required.json",
+            {
+                "eligible_families": eligible,
+                "status": "REVIEW_REQUIRED_NOT_AUTHORIZED",
+                "oos_read": False,
+                "reason": "Development gates do not authorize OOS; separate S5/S6 evidence is required.",
+            },
+        )
     write_json(output / "family_decisions.json", decisions)
     write_json(
         output / "COMPLETED.json",
@@ -493,6 +482,7 @@ def run_campaign(
             "campaign_id": identifier,
             "experiments": counter,
             "decisions": {key: d["decision"] for key, d in decisions.items()},
+            "oos_read": False,
             "holdout_read": False,
         },
     )

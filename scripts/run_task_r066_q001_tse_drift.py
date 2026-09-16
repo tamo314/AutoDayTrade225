@@ -134,6 +134,9 @@ def profile_summary(axis: list[date], trades: tuple[Trade, ...], daily: dict[str
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r066_q001_tse_drift.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

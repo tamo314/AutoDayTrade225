@@ -270,6 +270,9 @@ def paired_block_bootstrap(values_a: list[int], values_b: list[int]) -> dict[str
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r004_q001_failed_breakout.py')
+
     if not (OUT / "preregistration.json").exists() or not (OUT / "campaign_plan.json").exists():
         raise ValueError("missing R004 frozen preregistration or campaign plan")
     if (OUT / "COMPLETED.json").exists():

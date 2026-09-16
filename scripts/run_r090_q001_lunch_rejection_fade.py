@@ -143,6 +143,9 @@ def main(
     test_files: tuple[Path, ...] = (Path("tests/test_r090_q001.py"),),
     mypy_files: tuple[Path, ...] = (Path("src/n225m_bt/research/r090_lunch_rejection.py"),),
 ) -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r090_q001_lunch_rejection_fade.py')
+
     out = ROOT / "results" / "research" / run_id
     if out.exists():
         raise FileExistsError(f"immutable output already exists: {out}")

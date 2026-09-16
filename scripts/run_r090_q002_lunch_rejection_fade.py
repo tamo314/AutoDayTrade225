@@ -9,6 +9,9 @@ from run_r090_q001_lunch_rejection_fade import main
 from n225m_bt.research.r090_q002 import feasibility_q002
 
 if __name__ == "__main__":
+    from n225m_bt.research.execution import require_entry
+    require_entry("script:scripts/run_r090_q002_lunch_rejection_fade.py")
+
     main(
         run_id="r090-q002-20260915-lunch-rejection-fade-gate-revision-01",
         document=Path("docs/strategy/79_r090_q002_lunch_rejection_fade_gate_revision.md"),

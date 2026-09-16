@@ -160,6 +160,9 @@ def q002_feasibility(events: list[dict[str, object]], evaluation_start: date) ->
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r087_q002_multiday_day_trend_acceptance.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

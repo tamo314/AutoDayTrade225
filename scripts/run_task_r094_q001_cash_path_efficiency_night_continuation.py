@@ -399,6 +399,9 @@ def standardized_a_minus_m(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r094_q001_cash_path_efficiency_night_continuation.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

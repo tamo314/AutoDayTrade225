@@ -136,6 +136,9 @@ def preregistration(source: dict[str, object], inputs: dict[str, object], files:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r042_q003_night_terminal_continuous_range.py')
+
     shared = load_shared()
     original_bootstrap = shared.bootstrap
     shared.IDENTIFIER = IDENTIFIER

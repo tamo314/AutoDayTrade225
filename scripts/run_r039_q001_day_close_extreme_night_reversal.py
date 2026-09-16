@@ -302,6 +302,9 @@ def same_fields(left: dict[str, object], right: dict[str, object], fields: tuple
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r039_q001_day_close_extreme_night_reversal.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

@@ -352,6 +352,9 @@ def positive_pf(result: dict[str, object]) -> bool:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r064_q001_tse_trend_pullback_continuation.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output exists: {OUT}")
     OUT.mkdir(parents=True)

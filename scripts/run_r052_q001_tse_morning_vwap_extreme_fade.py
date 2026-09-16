@@ -143,6 +143,9 @@ def preregistration(source: dict[str, object]) -> dict[str, Any]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r052_q001_tse_morning_vwap_extreme_fade.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R052 output exists: {OUT}")
     OUT.mkdir(parents=True)

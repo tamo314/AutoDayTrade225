@@ -182,6 +182,9 @@ def snapshot(destination: Path, files: list[Path]) -> None:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r081_q001_tse_lunch_continuation.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

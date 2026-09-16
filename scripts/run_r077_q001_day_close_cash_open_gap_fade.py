@@ -201,6 +201,9 @@ def _copy_snapshot(destination: Path, files: list[Path]) -> None:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r077_q001_day_close_cash_open_gap_fade.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

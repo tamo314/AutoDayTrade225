@@ -1,25 +1,29 @@
 # 日経225mini 戦略研究
 
-構築済みの1分足バックテスト基盤を使い、局面ごとに期待値のある戦略と、過去情報だけで切り替えるメタ戦略を研究します。中心限月連続系列による研究結果と実運用可能性を区別します。
+構築済みの1分足バックテスト基盤で、説明可能な戦略と過去情報による切替を研究します。再現できる不採用・情報不足・探索終了も研究成果です。中心限月連続系列の研究結果と実運用可能性を区別します。
 
-- [研究規約・期間分割](docs/strategy/01_research_protocol.md)
-- [既存APIと研究機能の設計](docs/strategy/02_research_design.md)
-- [事前登録した仮説と実験計画](docs/strategy/03_experiment_plan.md)
-- [価格帯突破の追加仮説](docs/strategy/06_breakout_plan.md)
-- [検証結果と次の実験](docs/strategy/04_research_results.md)
+- **最初に読む：[現在の研究方針・再開条件](docs/strategy/00_current_research_policy.md)**
+- [文書案内](docs/README.md) / [研究統治](docs/strategy/13_research_governance.md)
+- [結果の整理と有限探索](docs/strategy/120_research_reconciliation_and_finite_search.md) / [全研究索引](docs/strategy/121_research_inventory_index.md)
+- [方針レビューと実装修正](docs/strategy/122_project_policy_review.md) / [登録実行管理・操作手順](docs/strategy/123_registered_execution_control.md)
 
-Development: 2021-01-01～2025-06-30、OOS: 2025-07-01～2025-12-31。2026年以降は最終候補の凍結まで未開封とします。期間判定はOSEの trade_date を使います。
+Development: 2021-01-01～2025-06-30、OOS: 2025-07-01～2025-12-31。2026年以降のFinal Holdoutは閉鎖中です。凍結だけで自動開封しません。期間判定はOSEのtrade_dateを使います。
 
-## 研究実行
+## 現在の作業範囲
+
+設計・記録整理・合成検証を進め、新しい実データPnL探索と自動研究ループは停止しています。`config/research_execution.json`は停止・grant 0件です。次の計画は仕様・証拠・有限枠を登録して`research execute`から実行します。旧ループの設定解除や`--reset`では枠を作れません。
+
+環境と設定だけの確認:
 
 ```powershell
 uv sync --group dev
 .venv/Scripts/python.exe -m n225m_bt.cli validate
-.venv/Scripts/python.exe -m n225m_bt.cli research run --calendar-override config/local_calendar.yaml
-.venv/Scripts/python.exe -m n225m_bt.cli research run --calendar-override config/local_calendar.yaml --study-config config/strategy_breakout.yaml
+.venv/Scripts/python.exe -m n225m_bt.cli research execution-status
 ```
 
-研究条件は config/strategy_research.yaml、約定・手数料は config/backtest.yaml に記録します。ユーザー指定の手数料は片道1枚30円です。研究実行は専用の期間制限つきローダーを使用し、centerとforwardを混在させません。実験ごとの仮説、設定、指標、取引明細、コードとデータの識別情報を results/research/ に保存します。結果は上書きしません。初回は追随・反転・価格帯突破の3仮説、計45実験を完了し、いずれもDevelopmentで棄却しました。OOSと2026年のFinal Holdoutは未使用です。詳細と次の仮説は上記の検証結果文書を参照してください。
+`research run`や旧scriptの直接起動は無予約なら停止します。登録実行は初回・再呼出しで同じ台帳を確認し、失敗・中断・別IDでも消費済み枠を保持します。対応adapterと再開手順は[123](docs/strategy/123_registered_execution_control.md)を参照してください。OOS/Final Holdoutはこの入口では実行できません。
+
+手数料は片道1枚30円、基準スリッページは片道1 tickを維持します。実験の仕様・設定・結果・hashは`results/research/`へ一意IDで保存し、上書きしません。
 
 ## 開発用検証
 
@@ -30,4 +34,4 @@ uv sync --group dev
 .venv/Scripts/python.exe -m mypy
 ```
 
-基盤の仕様・データ取り込みは [infrastructure](docs/infrastructure/09_cli_and_outputs.md) を参照してください。実データは data/raw/ 以下に保持し、変更・コミット・再配布しません。バックテストはGold Parquetを読みます。夜間には config/local_calendar.yaml のOSEカレンダーを指定します。旧 backtest run は基盤確認用のalways-flatデモです。戦略研究には期間制限のある research run を使用してください。
+基盤の仕様・データ取り込みは[CLIと出力](docs/infrastructure/09_cli_and_outputs.md)を参照してください。実データは`data/raw/`以下に保持し、変更・コミット・再配布しません。バックテスト入力は正規化Parquetのみです。基盤CLIの存在は研究実行の許可を意味しません。

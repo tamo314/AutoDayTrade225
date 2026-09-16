@@ -783,6 +783,9 @@ def aggregation_axis_audit(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r049_q001_same_clock_extreme_5m_fade.py')
+
     if OUT.exists():
         raise FileExistsError(f"append-only output exists: {OUT}")
     OUT.mkdir(parents=True)

@@ -20,7 +20,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_CONFIG = APP_DIR / "config.json"
 PLANNER_SCHEMA = APP_DIR / "planner_schema.json"
@@ -102,6 +101,20 @@ def resolve_project_dir(config: dict[str, Any], config_path: Path) -> Path:
     if not project_dir.is_dir():
         raise OrchestratorError(f"project_dir does not exist or is not a directory: {project_dir}")
     return project_dir
+
+
+def require_automation_enabled(config: dict[str, Any]) -> None:
+    """Pause automation before state reset or any planner/executor dispatch."""
+    if config.get("research_execution_paused", True) is not False:
+        raise OrchestratorError(
+            "Research automation is paused. See docs/strategy/00_current_research_policy.md; "
+            "a new loop or --reset does not reopen a closed research batch."
+        )
+    # Free-form planner tasks cannot carry a reservation across child processes.
+    # Finite registered runs use the deterministic research execute command instead.
+    raise OrchestratorError(
+        "Unbounded planner/executor dispatch is retired; use research execute with a reviewed manifest."
+    )
 
 
 def normalize_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -520,7 +533,8 @@ def run_checks(config: dict[str, Any], project_dir: Path) -> bool:
     print(f"Planner model     : {planner_model} [{planner_model_source}]")
     print(f"Executor model    : {executor_model} [{executor_model_source}]")
     print(f"Max iterations    : {config['max_iterations']}")
-    print(f"Min before done   : {config['min_iterations_before_done']}")
+    print(f"Legacy min (ignored): {config['min_iterations_before_done']}")
+    print(f"Research paused   : {config.get('research_execution_paused', True)}")
     print(f"Done confirmation : {config['done_confirmation_required']}")
     print(f"Planner workdir    : {project_dir}")
     if os.name == "nt":
@@ -788,6 +802,7 @@ def run_executor(
     task: str,
     iteration: int,
 ) -> tuple[CommandResult, str, Path]:
+    require_automation_enabled(config)
     executor = config["executor"]
     tool_config = config[executor]
     context = read_text(CONTEXT_FILE)
@@ -985,26 +1000,16 @@ def make_planner_prompt(
     ]
 
     continuation_policy = f"""
-=== ORCHESTRATOR RESEARCH-CONTINUATION POLICY ===
-The completion of the latest implementation task is NOT the completion of the research.
-Your default should be status="continue" while any scientifically meaningful uncertainty remains.
-
-Before returning status="done", explicitly test whether all applicable points below have adequate evidence:
-1. The main hypothesis has been tested against an appropriate baseline.
-2. Important alternative explanations have been ruled out.
-3. Relevant controlled ablations have been performed.
-4. The important result has enough reproducibility evidence (for example seeds/repeats where applicable).
-5. Important failure cases or regressions have been investigated.
-6. Relevant sensitivity/robustness checks have been performed.
-7. Remaining uncertainty is unlikely to change the research conclusion.
-
-If any unresolved question could materially change the conclusion, return status="continue" and propose exactly ONE next task with high expected information gain. Prefer controlled, discriminating experiments over broad feature work.
-Do NOT invent busywork merely to extend the loop. A next task must reduce a material uncertainty, validate an important conclusion, or test a plausible competing explanation.
-Return status="done" only when the OVERALL research objective is sufficiently resolved with evidence, or when a persistent external blocker makes further meaningful work impossible.
-If you return status="done", your analysis must state which research-level completion conditions are satisfied and what evidence supports them.
-
-Current iteration: {iteration}
-Policy minimum iteration before done can be accepted: {config['min_iterations_before_done']}
+=== FINITE RESEARCH COMPLETION POLICY ===
+Read docs/strategy/00_current_research_policy.md and the closure registry before proposing work.
+Stop when the registered batch reaches its verdict, budget, or a blocking gate.
+Uncertainty, a missing profitable strategy, and an unopened OOS are not reasons to extend a batch.
+Use status="done" for the bounded batch, with unresolved questions and unavailable evidence recorded.
+Use status="continue" only for ONE task within an explicitly registered remaining scope and budget.
+Do not replenish budgets with a new ID, a new family label, or another loop invocation.
+S2 information is already known information; a revised count gate is a new specification.
+Never request OOS or Final Holdout merely to satisfy a completion checklist.
+Current iteration: {iteration}; iteration counts are ceilings, never minimum research quotas.
 """.strip()
 
     extra = ""
@@ -1176,11 +1181,10 @@ def apply_done_policy(
     initial_decision: dict[str, Any],
     initial_log: Path,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    """Apply early-stop guardrails and return the effective planner decision.
+    """Retain the initial decision and optionally review bounded batch completion.
 
-    The first planner decision is always retained in the audit trail. If it is
-    `done`, an early-done guard or an adversarial completion review may replace
-    it with a scientifically useful `continue` decision.
+    Minimum iterations never override a valid stop. Any proposed continuation
+    must remain inside the registered scope and budget.
     """
     attempts: list[dict[str, Any]] = [
         {
@@ -1193,78 +1197,20 @@ def apply_done_policy(
     if decision["status"] != "done":
         return decision, attempts
 
-    min_iterations = int(config["min_iterations_before_done"])
-    if iteration < min_iterations:
-        print(
-            f"[{iteration}] Planner proposed done before min_iterations_before_done="
-            f"{min_iterations}; requesting a meaningful next experiment instead."
-        )
-        instruction = f"""
-The previous planner decision proposed status="done":
-{json.dumps(decision, ensure_ascii=False, indent=2)}
-
-That decision cannot be accepted yet because this is iteration {iteration} and
-the orchestration policy requires at least iteration {min_iterations} before a
-research-level completion decision may be considered.
-
-Re-evaluate the evidence and identify the single most important unresolved
-uncertainty that could change the research conclusion. You MUST return
-status="continue" with exactly one concrete, scientifically useful next_task.
-Do not create filler work merely to satisfy the iteration count.
-""".strip()
-        decision, guard_log = run_planner(
-            config,
-            project_dir,
-            iteration,
-            executor,
-            task,
-            executor_result,
-            executor_report,
-            run_kind="done_guard",
-            extra_instruction=instruction,
-        )
-        attempts.append(
-            {
-                "kind": "done_guard",
-                "log_path": str(guard_log.relative_to(APP_DIR)),
-                "decision": decision,
-            }
-        )
-        if decision["status"] == "done":
-            raise OrchestratorError(
-                "Premature-done guard still returned status=done. "
-                "Research was NOT marked complete. Inspect the done-guard log and "
-                "adjust research/CONTEXT.md completion criteria if necessary."
-            )
-        return decision, attempts
-
+    # A bounded research stop is valid at any iteration. Legacy minimum-iteration
+    # settings remain parseable but cannot force another experiment.
     if bool(config["done_confirmation_required"]):
         print(f"[{iteration}] Planner proposed done; running adversarial completion review.")
         instruction = f"""
 The primary planner proposed terminating the research with this decision:
 {json.dumps(decision, ensure_ascii=False, indent=2)}
 
-Act now as an adversarial completion reviewer. Try to falsify the claim that the
-overall research is complete. Distinguish completion of the latest task from
-completion of the research program.
-
-Explicitly check, where applicable:
-- baseline comparison,
-- competing explanations,
-- controlled ablations,
-- reproducibility/repeats/seeds,
-- failure cases and regressions,
-- sensitivity/robustness,
-- compute/parameter/runtime tradeoffs,
-- unresolved evidence that could change the architecture decision.
-
-If ANY remaining experiment could materially increase confidence or change the
-conclusion, return status="continue" and exactly one highest-information-gain
-next_task. Do not propose busywork.
-
-Return status="done" only if the research-level completion criteria are
-actually satisfied, and explain the evidence that makes further meaningful work
-unlikely to change the conclusion.
+Review completion of the REGISTERED BATCH, not whether all scientific uncertainty is gone.
+Check evidence, stopping rules and remaining budget in docs/strategy/00_current_research_policy.md.
+A closed family, exhausted budget or failed gate must remain stopped.
+Return status="continue" only if a concrete required task remains inside the frozen scope and budget.
+An unopened OOS, lack of a profitable strategy or a possible new hypothesis cannot force continuation.
+Otherwise return status="done", preserve unresolved evidence, and explain the batch outcome.
 """.strip()
         decision, confirm_log = run_planner(
             config,
@@ -1343,6 +1289,7 @@ def load_saved_executor_report(path_text: str) -> tuple[CommandResult, str]:
 
 
 def orchestrate(config: dict[str, Any], project_dir: Path, reset: bool, once: bool) -> None:
+    require_automation_enabled(config)
     state = load_state(config, reset=reset)
     max_iterations = int(config["max_iterations"])
 
@@ -1483,7 +1430,7 @@ def main() -> int:
         orchestrate(config, project_dir, reset=args.reset, once=args.once)
         return 0
     except KeyboardInterrupt:
-        print("\nInterrupted. State was preserved; rerun the same command to resume.", file=sys.stderr)
+        print("\nInterrupted. State was preserved; inspect research execution-status before further work.", file=sys.stderr)
         return 130
     except OrchestratorError as exc:
         print(f"\nERROR: {exc}", file=sys.stderr)

@@ -161,6 +161,9 @@ def profile(axis: list[date], bars: dict[tuple[date, Session], list[Any]], instr
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r101_q001_precash_cash_confirmation.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

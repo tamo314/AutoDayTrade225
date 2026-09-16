@@ -173,6 +173,9 @@ def order_fill_ledger(trades: tuple[Trade, ...]) -> dict[str, list[dict[str, obj
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r087_q001_multiday_day_trend_acceptance.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

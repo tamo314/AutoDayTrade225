@@ -144,6 +144,9 @@ def bootstrap(daily:dict[str,dict[str,int]],records:dict[str,list[dict[str,objec
  for n in ("B","C","A_fade","A_buy","A_sell"):point[f"A_minus_{n}_conditional_mean_jpy"]=fmean(filled["A"].values())-fmean(filled[n].values())
  return {"method":"20 trade_date noncircular moving-block bootstrap; common index, tail truncation, linear percentile; fixed FWL nuisance projection","repetitions":10000,"seed":SEED,"block_length_trade_dates":20,**{k:{"estimate":point[k],"ci95_percentile_linear":[pct(v,.025),pct(v,.975)]} for k,v in vals.items()}}
 def main()->None:
+ from n225m_bt.research.execution import require_entry
+ require_entry('script:scripts/run_r055_q001_ose_night_extreme_tse_open_follow.py')
+
  if OUT.exists():raise FileExistsError(f"immutable output exists: {OUT}")
  OUT.mkdir(parents=True);inst,sessions,data_cfg,baseline=load_project_config(ROOT/"config")
  runtime=baseline.model_copy(update={"execution":baseline.execution.model_copy(update={"allow_cross_session_pending_order":True,"max_fill_delay_minutes":20160}),"risk":baseline.risk.model_copy(update={"new_entry_cutoff_minutes_before_session_close":0})})

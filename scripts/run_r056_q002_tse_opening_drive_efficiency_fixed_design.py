@@ -110,6 +110,9 @@ def q002_preregistration(module: Any, original: Any, source: dict[str, object], 
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r056_q002_tse_opening_drive_efficiency_fixed_design.py')
+
     module = _load_q001_implementation()
     module.IDENTIFIER, module.OUT, module.SEED = IDENTIFIER, OUT, DAILY_MBB_SEED
     module.__file__ = str(Path(__file__).resolve())

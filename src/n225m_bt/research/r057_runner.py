@@ -431,6 +431,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('r057')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R057 output exists: {OUT}")
     OUT.mkdir(parents=True)

@@ -250,6 +250,9 @@ def stratification(records: list[dict[str, object]]) -> tuple[dict[str, object],
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r035_q001_same_clock_shock_fade.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     if not TSE_CALENDAR.exists():

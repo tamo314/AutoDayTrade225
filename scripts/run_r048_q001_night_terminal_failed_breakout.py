@@ -496,6 +496,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r048_q001_night_terminal_failed_breakout.py')
+
     if OUT.exists():
         raise FileExistsError(f"append-only output exists: {OUT}")
     OUT.mkdir(parents=True)

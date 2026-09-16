@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "policy_id": "EXECUTION-20260916-01",
+  "market_execution_enabled": false,
+  "registry": {
+    "path": "docs/strategy/registry/20260916_review.json",
+    "sha256": "460c48e21343ffe34c5cd72c7fafafb2fbba38d84e9be130d07b4321b82d92b3"
+  },
+  "families": {},
+  "batches": {},
+  "grants": []
+}

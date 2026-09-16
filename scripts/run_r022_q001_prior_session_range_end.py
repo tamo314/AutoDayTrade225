@@ -189,6 +189,9 @@ def event_groups(events: list[dict[str, object]]) -> dict[str, object]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r022_q001_prior_session_range_end.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

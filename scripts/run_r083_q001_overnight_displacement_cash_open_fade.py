@@ -328,6 +328,9 @@ def net_positive(value: dict[str, object]) -> bool:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r083_q001_overnight_displacement_cash_open_fade.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

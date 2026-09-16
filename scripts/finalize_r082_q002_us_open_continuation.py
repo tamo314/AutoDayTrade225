@@ -80,6 +80,9 @@ def read_trades(profile: str) -> tuple[Trade, ...]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/finalize_r082_q002_us_open_continuation.py')
+
     if (OUT / "COMPLETED.json").exists():
         raise FileExistsError("R082-Q002 is already finalized")
     if digest(FIXED_EVENTS) != EXPECTED_EVENT_SHA256:

@@ -2,7 +2,7 @@
 
 > **文書改訂: RG-20260915-01 / 2026-09-15 JST**
 > 本改訂は仕様の更新です。追加機能・テスト・実データ監査が実装／完了したことは意味しません。
-> 新しい研究の共通正本は [研究統治・因果性・段階別ゲート](13_research_governance.md)、移行順序は [修復・移行計画](14_research_repair_plan.md) を参照してください。
+> 新しい研究の共通正本は [研究統治・因果性・段階別ゲート](../strategy/13_research_governance.md)、移行順序は [修復・移行計画](../strategy/14_research_repair_plan.md) を参照してください。
 
 ## 1. Quality philosophy
 

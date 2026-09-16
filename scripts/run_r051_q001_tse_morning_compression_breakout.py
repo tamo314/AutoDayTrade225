@@ -365,6 +365,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r051_q001_tse_morning_compression_breakout.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R051 output exists: {OUT}")
     OUT.mkdir(parents=True)

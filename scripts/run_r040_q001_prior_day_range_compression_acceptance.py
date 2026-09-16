@@ -462,6 +462,9 @@ def strata(records: list[dict[str, object]]) -> dict[str, dict[str, object]]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r040_q001_prior_day_range_compression_acceptance.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

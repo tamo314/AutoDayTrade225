@@ -224,6 +224,9 @@ def order_fill_impact(condition: str, old_folder: Path, new_folder: Path, file_n
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r004_q001_corrected_exit.py')
+
     if OUT.exists():
         raise ValueError(f"output exists and must never be overwritten: {OUT}")
     required = [OLD / "preregistration.json", OLD / "preflight.json", EXIT_DIAGNOSTIC / "post_fix_results.json", R005_IMPACT]

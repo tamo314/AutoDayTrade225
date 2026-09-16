@@ -326,6 +326,9 @@ def state_diagnostics(a_events: list[dict[str, object]], d_events: list[dict[str
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r019_q001_prior_range_regime.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

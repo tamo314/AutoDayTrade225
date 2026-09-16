@@ -543,6 +543,9 @@ def bootstrap(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r058_q001_closing_pressure_reversal.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable R058 output exists: {OUT}")
     OUT.mkdir(parents=True)

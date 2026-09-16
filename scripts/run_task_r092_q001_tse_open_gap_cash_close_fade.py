@@ -365,6 +365,9 @@ def serialize(trade: Trade) -> dict[str, object]:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r092_q001_tse_open_gap_cash_close_fade.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     files = [

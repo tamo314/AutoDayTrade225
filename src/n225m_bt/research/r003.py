@@ -144,14 +144,29 @@ def run_preflight(
 
 def run_r003_campaign(config_dir: Path, results_root: Path, calendar_path: Path, campaign_id: str | None, progress: Any, study_config: Path, stage: str | None) -> Path:
     """Freeze R003, audit Development, and stop before PnL when quality is blocked."""
+    from n225m_bt.research.execution import (
+        require_entry,
+        require_frozen_config,
+        require_frozen_file,
+    )
+    permit = require_entry('r003_preflight')
+    if permit.manifest.stage != "S2" or permit.manifest.conditions != ("r003_preflight",):
+        raise ValueError("R003 preflight requires the explicit non-PnL S2 reservation")
+    require_frozen_config(config_dir)
+    require_frozen_file(calendar_path)
+    require_frozen_file(study_config)
+
     if stage != "development":
         raise ValueError("R003 requires explicit --stage development; OOS is separately gated")
     study = load_r003_study(study_config)
+    require_frozen_file(study.hypothesis_document)
     instrument, _, data_config, backtest = load_project_config(config_dir)
     if study.gold_root != data_config.gold_root or study.fee_per_side != backtest.fees.jpy_per_side_per_contract or backtest.execution.slippage_ticks != 1:
         raise ValueError("R003 study assertions disagree with project input/cost configuration")
     from n225m_bt.research.runner import reserve_directory, snapshot_source
     identifier = campaign_id or f"r003-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    if (results_root / identifier).resolve() != (permit.root / permit.manifest.output).resolve():
+        raise ValueError("R003 output differs from reservation")
     output = reserve_directory(results_root, identifier)
     source = snapshot_source(output, config_dir, calendar_path)
     hypothesis = study.hypothesis_document.read_text(encoding="utf-8")

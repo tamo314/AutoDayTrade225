@@ -59,10 +59,10 @@ def test_r003_breakout_uses_close_then_next_open_and_actual_fill_time() -> None:
 
 
 
-def test_r003_config_rejects_unknown_nested_key(tmp_path: Path) -> None:
+def test_r003_config_rejects_unknown_nested_key(workspace_tmp: Path) -> None:
     payload = yaml.safe_load(Path("config/strategy_compression.yaml").read_text(encoding="utf-8"))
     payload["control"]["unregistered_parameter"] = True
-    path = tmp_path / "invalid-r003.yaml"
+    path = workspace_tmp / "invalid-r003.yaml"
     path.write_text(yaml.safe_dump(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="control keys mismatch"):
         load_r003_study(path)

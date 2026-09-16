@@ -92,6 +92,6 @@ The adapter and calendar components must expose uncertainty rather than silently
 
 ### 本改訂の追加規約の出所
 
-[13_research_governance.md](13_research_governance.md)の四集合、有限バッチ、多軸判定、段階移行は、ユーザーが依頼した研究手順の修正として追加した設計判断である。元資料に書かれていた実績や市場の実証事実として扱わない。
+[13_research_governance.md](../strategy/13_research_governance.md)の四集合、有限バッチ、多軸判定、段階移行は、ユーザーが依頼した研究手順の修正として追加した設計判断である。元資料に書かれていた実績や市場の実証事実として扱わない。
 
-[14_research_repair_plan.md](14_research_repair_plan.md)はR031の矛盾、R046等の集合依存、R032の数値不一致を原文行へ紐付ける。実コード・実データ・取引台帳が未提供のため、影響金額や正しい再集計値は確認していない。
+[14_research_repair_plan.md](../strategy/14_research_repair_plan.md)はR031の矛盾、R046等の集合依存、R032の数値不一致を原文行へ紐付ける。実コード・実データ・取引台帳が未提供のため、影響金額や正しい再集計値は確認していない。

@@ -16,5 +16,5 @@ walk_forward:
   test_months: 3
   step_months: 3
 
-information_gates:
-  default_minimum_executable_events: 800
+# Information gates belong to each frozen study specification.
+# ResearchConfig has no global information_gates field; do not inherit a generic 800-event rule.

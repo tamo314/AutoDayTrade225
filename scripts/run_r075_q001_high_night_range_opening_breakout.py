@@ -65,6 +65,9 @@ def _copy_snapshot(destination: Path, files: list[Path]) -> None:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r075_q001_high_night_range_opening_breakout.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

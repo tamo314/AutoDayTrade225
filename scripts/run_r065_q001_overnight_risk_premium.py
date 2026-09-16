@@ -237,6 +237,9 @@ def net_pf_positive(results: dict[str, dict[str, object]], name: str) -> bool:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r065_q001_overnight_risk_premium.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

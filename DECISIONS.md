@@ -1,5 +1,23 @@
 # Architecture Decisions
 
+## ADR-014: 登録済み有限バッチだけを共通入口で実行する（2026-09-16）
+
+- `research execute`が完全一致するmanifest・review・閉鎖台帳・hash・累積枠を検査し、価格I/O前にSQLiteへ予約する。
+- 同時起動、未修復の同一試行、ID/batch変更による予算復活、未予約の直接起動を拒否する。失敗・中断も消費を維持する。
+- 自由文Planner/Executorのループは研究実行の権限とせず、登録された決定的なdispatchに置き換える。
+- OOS/Final Holdoutのadapter、chunk途中再開は本変更に含めない。経済算式・旧結果は不変。
+- 対応範囲・検証・運用は[123 登録実行管理](docs/strategy/123_registered_execution_control.md)。
+
+
+## ADR-013: Research completion and validation access are separate gates (2026-09-16)
+
+Registered batch verdicts, budget limits and blocking gates can end research without a profitable
+candidate or OOS access. The legacy schema-v1 campaign now stops after Development and saves an OOS
+review request instead of automatically loading OOS. Automation is paused before state mutation or
+process dispatch. These controls do not change engine fills, fees or historical PnL and do not imply
+that all individual runners implement the common budget/access contract. Current scope and evidence:
+[policy review](docs/strategy/122_project_policy_review.md).
+
 ## ADR-001: Continuous series is research data, not an exact tradable contract history
 
 225Labo center-series data is treated as a continuous research series. It is not assigned a fabricated contract code. `contract_month` is nullable and `series_type=center_continuous`.

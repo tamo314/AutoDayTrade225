@@ -195,6 +195,9 @@ def direction_diagnostic(a_events: list[dict[str, object]], d_events: list[dict[
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r013_q001_previous_same_session_direction.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

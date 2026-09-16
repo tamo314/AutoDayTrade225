@@ -139,10 +139,10 @@ barラベル・OHLC種別・volume・実限月・roll・調整を用途別に証
 
 ### R4 — 限定再開
 
-[共通規約](13_research_governance.md)の最大3仕様版のバッチだけを扱う。R065はcross-sessionと時刻注文の専用監査を前提にし、セッション独立runを流用しない。S3通過後にS4時間安定性、品質と候補を凍結後にOOS審査へ進む。新規実行は文書改訂と別の依頼として行う。
+[共通規約](../strategy/13_research_governance.md)の最大3仕様版のバッチだけを扱う。R065はcross-sessionと時刻注文の専用監査を前提にし、セッション独立runを流用しない。S3通過後にS4時間安定性、品質と候補を凍結後にOOS審査へ進む。新規実行は文書改訂と別の依頼として行う。
 
 ### Implementation acceptance
 
 [11_acceptance_criteria.md](11_acceptance_criteria.md)の新規項目を実測する。コード・config・schema・CLIが未提供のため、今回のパッケージ作成ではプロジェクトpytest/Ruff/mypyを実行していない。テスト件数・PASS・実装済みAPIを先に記入しない。
 
-詳細な依存・完了証拠は [修復・移行計画](14_research_repair_plan.md) を正本とする。元Phase番号を削除して過去の実装進捗を捏造しない。
+詳細な依存・完了証拠は [修復・移行計画](../strategy/14_research_repair_plan.md) を正本とする。元Phase番号を削除して過去の実装進捗を捏造しない。

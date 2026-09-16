@@ -237,6 +237,9 @@ def run_profile(axis: list[date], events: list[dict[str, object]], bars: dict[tu
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r100_q002_morning_range_efficiency_switch.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

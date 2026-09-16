@@ -668,6 +668,9 @@ def finalize_from_artifacts() -> None:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r008_q001_session_compression_breakout.py')
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--condition", choices=[*ALL_CONDITIONS, "A_compression_breakout_2tick"])
     parser.add_argument("--finalize", action="store_true")

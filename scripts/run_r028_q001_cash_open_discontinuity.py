@@ -505,6 +505,9 @@ def preregistration(
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r028_q001_cash_open_discontinuity.py')
+
     reserve_directory(OUT.parent, IDENTIFIER)
     source = snapshot_source(OUT, ROOT / "config", ROOT / "config" / "local_calendar.yaml")
     implementation = {

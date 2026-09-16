@@ -182,6 +182,9 @@ def event_reuse_audit(events: list[dict[str, object]], axis: list[date]) -> dict
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r079_q001_cash_first_hour_extreme_continuation.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

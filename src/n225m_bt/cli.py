@@ -23,6 +23,75 @@ research_app = typer.Typer(help="Run preregistered strategy research with locked
 app.add_typer(research_app, name="research")
 
 
+@research_app.command("execution-schema")
+def research_execution_schema(kind: str = typer.Argument("manifest")) -> None:
+    """Print the current manifest, policy or review JSON schema without opening data."""
+    from n225m_bt.research.execution import ExecutionPolicy, FrozenModel, ReviewReceipt, RunManifest
+
+    models: dict[str, type[FrozenModel]] = {"manifest": RunManifest, "policy": ExecutionPolicy, "review": ReviewReceipt}
+    if kind not in models:
+        raise typer.BadParameter("kind must be manifest, policy or review")
+    typer.echo(json.dumps(models[kind].model_json_schema(), indent=2))
+
+
+@research_app.command("check-execution")
+def check_research_execution(manifest: Path = typer.Argument(..., exists=True, dir_okay=False)) -> None:
+    """Check authority and frozen sources without reading price files or spending budget."""
+    from n225m_bt.research.execution import ResearchController, RunManifest, manifest_digest
+
+    try:
+        plan = RunManifest.model_validate_json(manifest.read_bytes())
+        ResearchController(Path.cwd()).validate(plan, inputs=False)
+    except (OSError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"Metadata checks passed: {manifest_digest(plan)}; inputs/budget checked at reservation.")
+
+
+@research_app.command("execute")
+def execute_registered_research(manifest: Path = typer.Argument(..., exists=True, dir_okay=False)) -> None:
+    """Execute one reviewed, sealed Development run; partial runs are never replayed."""
+    from n225m_bt.research.execution import RunManifest, dispatch
+
+    try:
+        plan = RunManifest.model_validate_json(manifest.read_bytes())
+        output = dispatch(Path.cwd(), plan)
+    except (OSError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(f"Registered run output: {output}")
+
+
+@research_app.command("execution-status")
+def research_execution_status() -> None:
+    """Show durable execution outcomes without accessing market data."""
+    from n225m_bt.research.execution import ResearchController
+
+    typer.echo(json.dumps(ResearchController(Path.cwd()).overview(), ensure_ascii=False, indent=2))
+
+
+@research_app.command("verify-execution")
+def verify_research_execution(run_id: str) -> None:
+    """Check a saved output boundary without replaying it or opening prices."""
+    from n225m_bt.research.execution import ResearchController
+
+    try:
+        result = ResearchController(Path.cwd()).verify_output(run_id)
+    except (OSError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo(json.dumps(result, indent=2))
+
+
+@research_app.command("close-interrupted")
+def close_interrupted_research(run_id: str, reason: str = typer.Option(...)) -> None:
+    """Close a dead process reservation, preserving consumed budget and partial results."""
+    from n225m_bt.research.execution import ResearchController
+
+    try:
+        ResearchController(Path.cwd()).close_interrupted(run_id, reason)
+    except (OSError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    typer.echo("Recorded INTERRUPTED; budget was not refunded. Register a reviewed repair to retry.")
+
+
 @research_app.command("audit-spec")
 def audit_research_specification(
     specification: Path = typer.Argument(..., exists=True, dir_okay=False),
@@ -241,7 +310,7 @@ def run_strategy_research(
     study_config: Path | None = typer.Option(None, exists=True, dir_okay=False),
     stage: str | None = typer.Option(None, help="Required as 'development' for R003."),
 ) -> None:
-    """Evaluate a bounded Development grid; open OOS only after its selection gates pass."""
+    """Legacy Development reproduction; never opens OOS automatically."""
     from n225m_bt.research.runner import run_campaign
 
     output = run_campaign(
@@ -365,13 +434,24 @@ def run_backtest(
         "center", help="Dataset namespace used during ingestion (for example: forward)."
     ),
 ) -> None:
-    """Run the baseline always-flat strategy from Gold Parquet, never source CSV."""
+    """Legacy always-flat baseline; requires a registered Development reservation."""
+    from n225m_bt.research.execution import (
+        require_entry,
+        require_frozen_config,
+        require_frozen_file,
+    )
+
+    permit = require_entry("baseline_backtest")
+    if permit.manifest.stage != "S3" or permit.manifest.conditions != ("always_flat",) or permit.manifest.seed != 0:
+        raise typer.BadParameter("baseline requires its fixed always_flat S3 contract and seed 0")
+    require_frozen_config(config_dir)
+    if calendar_override:
+        require_frozen_file(calendar_override)
     from n225m_bt.backtest.engine import BacktestEngine
     from n225m_bt.calendar.classifier import CalendarClassifier
     from n225m_bt.calendar.model import ExchangeCalendar
-    from n225m_bt.domain import Bar, Session
-    from n225m_bt.io.parquet import scan_bars
     from n225m_bt.reports.writer import write_results
+    from n225m_bt.research.data import load_split
     from n225m_bt.strategies.examples import AlwaysFlatStrategy
 
     instrument, sessions, data, backtest = load_project_config(config_dir)
@@ -384,28 +464,7 @@ def run_backtest(
                 "gold_root": data.gold_root / dataset,
             }
         )
-    rows = scan_bars(data.gold_root).sort("ts_jst").collect().to_dicts()
-    bars = [
-        Bar(
-            ts_jst=row["ts_jst"],
-            trade_date=row["trade_date"],
-            calendar_date=row["calendar_date"],
-            session=Session(row["session"]),
-            schedule_version=row["schedule_version"],
-            open=row["open"],
-            high=row["high"],
-            low=row["low"],
-            close=row["close"],
-            volume=row["volume"],
-            is_session_open=row["is_session_open"],
-            is_session_close=row["is_session_close"],
-            is_missing_prev_expected=row["is_missing_prev_expected"],
-            roll_risk=row["roll_risk"],
-            is_eligible=row["is_eligible"],
-            quality_flags=tuple(row["quality_flags"]),
-        )
-        for row in rows
-    ]
+    bars = load_split(data.gold_root, "development").bars
     strategy = AlwaysFlatStrategy()
     calendar = ExchangeCalendar.from_path(calendar_override) if calendar_override else None
     result = BacktestEngine(
@@ -413,7 +472,10 @@ def run_backtest(
     ).run(bars, strategy)
     resolved_run_id = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     output = results_root / resolved_run_id
+    if output.resolve() != (permit.root / permit.manifest.output).resolve():
+        raise typer.BadParameter("baseline output differs from reservation")
     dataset_manifest_path = data.silver_root / "dataset_manifest.json"
+    require_frozen_file(dataset_manifest_path)
     dataset_manifest = json.loads(dataset_manifest_path.read_text(encoding="utf-8"))
     manifest = {
         "run_id": resolved_run_id,
@@ -425,7 +487,7 @@ def run_backtest(
         "code_version": __import__("n225m_bt").__version__,
         "config": backtest.model_dump(mode="json"),
     }
-    output.mkdir(parents=True, exist_ok=True)
+    output.mkdir(parents=True, exist_ok=False)
     snapshot = output / "config_snapshot"
     snapshot.mkdir(exist_ok=True)
     for name, config in {

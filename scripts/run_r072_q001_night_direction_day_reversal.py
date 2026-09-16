@@ -156,6 +156,9 @@ def mean_is_positive(report: dict[str, object]) -> bool:
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r072_q001_night_direction_day_reversal.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)

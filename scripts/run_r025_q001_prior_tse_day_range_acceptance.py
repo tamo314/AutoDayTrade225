@@ -208,6 +208,9 @@ def preregistration(source: dict[str, object], inputs: dict[str, object], eviden
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_r025_q001_prior_tse_day_range_acceptance.py')
+
     if OUT.exists():
         raise ValueError(f"existing output is immutable: {OUT}")
     OUT.mkdir(parents=True, exist_ok=False)

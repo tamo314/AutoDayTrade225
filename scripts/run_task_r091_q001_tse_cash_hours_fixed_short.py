@@ -191,6 +191,9 @@ def summary(axis: list[date], trades: tuple[Trade, ...], daily: dict[str, int]) 
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r091_q001_tse_cash_hours_fixed_short.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     source_files = [

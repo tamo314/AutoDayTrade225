@@ -242,6 +242,9 @@ def report(axis: list[date], trades: tuple[Trade, ...], daily: dict[str, int | N
 
 
 def main() -> None:
+    from n225m_bt.research.execution import require_entry
+    require_entry('script:scripts/run_task_r093_q001_tse_cash_night_reversal.py')
+
     if OUT.exists():
         raise FileExistsError(f"immutable output already exists: {OUT}")
     OUT.mkdir(parents=True)
