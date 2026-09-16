@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C01-EXCEPTION-REVIEW-05",
+  "mode": "design",
+  "task_file": "docs/strategy/131_c01_exception_review.md",
+  "scope_file": "docs/strategy/131_c01_exception_review.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C01-EXCEPTION-REVIEW-05/exception_review.md",
+    "docs/strategy/plans/TASK-C01-EXCEPTION-REVIEW-05/comparability_matrix.json",
+    "docs/strategy/plans/TASK-C01-EXCEPTION-REVIEW-05/synthetic_exception_cases.json",
+    "docs/strategy/plans/TASK-C01-EXCEPTION-REVIEW-05/verification.md",
+    "docs/strategy/plans/TASK-C01-EXCEPTION-REVIEW-05/review.md"
+  ],
+  "read_only_inputs": [
+    "config/research_execution.json",
+    "docs/strategy/registry/20260916_review.json",
+    "docs/strategy/70_r087_q002_multiday_day_trend_acceptance_result.md",
+    "docs/strategy/115_r101_q001_precash_cash_open_confirmation_result.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/evidence.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/design.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/calendar_contract.json",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/review.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/labeling_spec.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/label_audit.json",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/synthetic_cases.json",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/fixture_results.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/review.md",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/s2_admission_spec.md",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/admission_matrix.json",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/synthetic_admission_cases.json",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/verification.md",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/review.md"
+  ],
+  "validation_scripts": ["scripts/validate_c01_exception_review.py"],
+  "completion_criteria": {
+    "fixed_scope": "既存のC01、F05/F06、閉鎖台帳、S1/S2成果物を不変にし、価格・PnL・OOS・Final Holdout・grant・manifest・engineへアクセスしない。",
+    "prior_correspondence": "R087/R101の既知結果とC01の情報、局面、方向、時刻、経済結果・情報不足を対応付け、制度カレンダー根拠を経済的根拠と混同しない。",
+    "exception_decision": "現時点の例外判断をNO_EXCEPTION_RECOMMENDEDとして、再考に必要な新しい直接経済根拠と全S2入場gateを明示する。",
+    "no_automatic_reopen": "例外・有限枠・ReviewReceipt・grantを作成せず、合成例で時刻変更、カレンダーだけの新規性、未完成の将来根拠を拒否または別登録審査へ送る。",
+    "verification": "固定validatorと最終監査を通し、F05/F06がclosed、grant 0、実データ/PnL attempt 0、C01がNOT_EVALUATEDのまま記録する。"
+  }
+}

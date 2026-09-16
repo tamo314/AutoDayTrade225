@@ -1,0 +1,43 @@
+{
+  "task_id": "TASK-C01-EXCEPTION-REVIEW-05",
+  "scope": "Fixed synthetic exception-decision examples only. They contain no market data, prices, PnL, actual manifest, ReviewReceipt, grant, budget reservation, or family-reopening authority.",
+  "authorises_real_access": false,
+  "cases": [
+    {
+      "id": "calendar_novelty_only",
+      "input": {
+        "proposed_basis": "The frozen C01 calendar has a post-2022 institutional holiday-reopen label not present in an older record.",
+        "new_direct_economic_evidence": false,
+        "bounded_human_exception": false,
+        "all_s2_admission_gates_complete": false
+      },
+      "expected_decision": "DENY",
+      "authorises_real_access": false,
+      "reason": "A calendar classification establishes neither a direct economic mechanism nor a closed-family exception. It cannot repair R101's preserved economic REJECT or R087 lineage information insufficiency, and it leaves every missing authority in place."
+    },
+    {
+      "id": "small_route_variation",
+      "input": {
+        "proposed_basis": "Change only the observation window, entry/exit time, delay, or threshold of the sealed C01 route while retaining the same closure story.",
+        "new_direct_economic_evidence": false,
+        "bounded_human_exception": false,
+        "all_s2_admission_gates_complete": false
+      },
+      "expected_decision": "DENY",
+      "authorises_real_access": false,
+      "reason": "A small timing, window, threshold, direction, or exit change is not qualifying evidence and would be an unauthorised new or rescue specification. This frozen review preserves the one C01 route and does not replenish F05/F06 capacity by renaming a variation."
+    },
+    {
+      "id": "future_unverified_economic_claim",
+      "input": {
+        "proposed_basis": "A future claim asserts that holiday-session information should create continuation, but supplies no newly reviewed direct evidence and no registered S2 authority.",
+        "new_direct_economic_evidence": "unverified",
+        "bounded_human_exception": "absent",
+        "all_s2_admission_gates_complete": false
+      },
+      "expected_decision": "REQUIRE_SEPARATE_REGISTERED_REVIEW",
+      "authorises_real_access": false,
+      "reason": "A future claim can be considered only in a separate bounded registered review that supplies direct evidence and every S2 gate. This outcome is a routing decision, not an exception, grant, finite attempt, manifest, ReviewReceipt, budget reservation, or permission to access real inputs."
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "task_id": "TASK-C01-EXCEPTION-REVIEW-05",
+  "registry_sha256": "460c48e21343ffe34c5cd72c7fafafb2fbba38d84e9be130d07b4321b82d92b3",
+  "s2_admission_matrix_sha256": "46a9ccc83be917fee9947720458767561953d7d288f8db332d06e3164a628da3",
+  "current_decision": "NO_EXCEPTION_RECOMMENDED",
+  "fixed_scope": {
+    "candidate": "C01 single frozen representative route",
+    "development_trade_date_range": {
+      "start": "2021-01-01",
+      "end": "2025-06-30"
+    },
+    "inherited_s1_labels": [
+      "TREATMENT_HOLIDAY_REOPEN",
+      "ORDINARY_CASH_OPEN_CONTROL",
+      "OUT_OF_REGIME_OR_EXCLUDED"
+    ],
+    "permitted_read_only_configuration_check": {
+      "path": "config/research_execution.json",
+      "purpose": "Allowed read-only confirmation of the stopped execution setting. The check observed market_execution_enabled=false and an empty configured grants array; it made no configuration change and did not access a grant artifact.",
+      "market_execution_enabled": false,
+      "configured_grant_count": 0
+    },
+    "prohibited_activity": [
+      "market_data_or_market_derived_metadata",
+      "price_pnl_oos_or_final_holdout",
+      "engine_access",
+      "execution_configuration_change",
+      "grant_manifest_or_review_receipt_artifact_access",
+      "exception_attempt_budget_manifest_review_receipt_or_grant_creation"
+    ]
+  },
+  "c01_record": {
+    "information_available_to_design": "A source-versioned institutional calendar label identifies a cash reopening whose immediately preceding closure interval contains a confirmed OSE index-futures holiday-trading day. The frozen decision information, if a later authorised stage existed, is only the 09:00 through 09:14 OSE DAY direction on that labelled cash-open date.",
+    "regime_and_cohort": "Post-2022-09-23 institutional holiday-trading regime; treatment is a single reopening per qualifying closure interval and the frozen cohort comparator is an ordinary adjacent cash opening. The labels are structural calendar metadata, not observed market counts or outcomes.",
+    "direction_and_route": "Positive 09:00-09:14 direction maps to buy, negative direction maps to sell, and zero/invalid maps to no order. The sealed route decides at 09:14, uses the next eligible 09:15 entry, and has the fixed 10:30 exit; one unit and at most one position per date.",
+    "known_result": "NOT_EVALUATED for economics, causality, market feasibility, and execution. S1 established reproducible labels only; S2 is a metadata-only design with current real-input state NOT_GRANTED.",
+    "non_equivalence_note": "A calendar-labelled cohort is a potentially distinct institutional context, but it does not by itself make C01 economically independent of the F05/F06 shared-information classification or prove a new mechanism."
+  },
+  "prior_records": [
+    {
+      "id": "R087/Q002",
+      "family_id": "F06",
+      "outcome_class": "PRESERVED_ECONOMIC_REJECT; R087/Q001's pre-PnL information insufficiency also remains preserved in the lineage",
+      "information_regime": "R087/Q002 uses accumulated multi-DAY directional state with a first-15-minute acceptance confirmation and causal rolling reference readiness; it is not a calendar-only cohort label.",
+      "entry_exit_and_direction": "The continuation route decides after the opening acceptance, enters on the next eligible bar, and exits at 14:55. Direction is the accepted multi-DAY state, not simply the C01 09:00-09:14 sign.",
+      "comparator": "Its preserved economic comparison set includes paired fade and other fixed controls; its fixed principal economic gates failed. R087/Q001's earlier information insufficiency was not a profitability result.",
+      "comparison": "C01 shares the opening-direction/continuation family context but changes the institutional cohort and shortens the fixed exit to 10:30. The calendar label cannot establish the R087/Q001 information prerequisites, cannot repair R087/Q002's sealed economic rejection, and cannot be interpreted as a new result."
+    },
+    {
+      "id": "R101/Q001",
+      "family_id": "F06",
+      "outcome_class": "PRESERVED_ECONOMIC_REJECT",
+      "information_regime": "R101/Q001 combines the 08:45-08:59 futures interval with the 09:00-09:14 cash-open interval under its frozen strict-prior/current-excluded construction; C01 instead has an institutional closure label and the one 09:00-09:14 direction observation.",
+      "entry_exit_and_direction": "Both records use the 09:14 decision and next 09:15 entry, but R101's two-stage confirmation and frozen direction/control construction are not C01's one-direction rule. Both retain their sealed exits; C01's is 10:30.",
+      "comparator": "R101/Q001 preserved its K/D and fixed comparison structure and was REJECT because all of its principal economic AND conditions failed. It is not re-scored here.",
+      "comparison": "The C01 calendar difference isolates neither a direct return mechanism nor an economic effect. It therefore neither reverses R101's economic REJECT nor proves that C01 is rejected; C01 remains NOT_EVALUATED until every separately registered S2 gate and later-stage requirements exist."
+    }
+  ],
+  "family_closure": {
+    "F05": {
+      "status": "CLOSED_FOR_CURRENT_DEVELOPMENT_SEARCH",
+      "remaining_economic_specs": 0,
+      "remaining_parameter_variants": 0,
+      "automatic_reopen": false
+    },
+    "F06": {
+      "status": "CLOSED_FOR_CURRENT_DEVELOPMENT_SEARCH",
+      "remaining_economic_specs": 0,
+      "remaining_parameter_variants": 0,
+      "automatic_reopen": false
+    }
+  },
+  "blocking_conditions": [
+    "f05_f06_closed",
+    "no_new_direct_economic_evidence",
+    "no_finite_s2_attempt_or_budget",
+    "no_review_receipt",
+    "no_matching_grant"
+  ],
+  "blocking_condition_detail": {
+    "f05_f06_closed": "Both adjacent families are closed in the unchanged registry with zero remaining economic specifications and zero parameter variants.",
+    "no_new_direct_economic_evidence": "The inherited calendar provenance and S1 label audit are institutional/structural evidence only. This task performed no new public research and has no direct C01 economic evidence.",
+    "no_finite_s2_attempt_or_budget": "No finite C01 S2 attempt or remaining budget exists or is reserved by this review.",
+    "no_review_receipt": "No complete non-PnL RunManifest or ReviewReceipt exists for a new C01 S2 task.",
+    "no_matching_grant": "The permitted read-only execution-configuration check reports market_execution_enabled=false and an empty configured grants array. No separate grant artifact was accessed."
+  },
+  "reconsideration_requirements": [
+    "new_direct_economic_evidence",
+    "bounded_f05_f06_human_exception",
+    "finite_s2_attempt_and_budget",
+    "non_pnl_manifest_and_review_receipt",
+    "matching_grant",
+    "s1_hash_and_development_range_match"
+  ],
+  "reconsideration_requirement_detail": {
+    "new_direct_economic_evidence": "New direct economic evidence specific to the unchanged C01 route and its holiday-reopen mechanism; calendar novelty alone is excluded.",
+    "bounded_f05_f06_human_exception": "An explicit human decision that narrowly addresses the closed F05/F06-adjacent C01 route; it must not automatically reopen either family.",
+    "finite_s2_attempt_and_budget": "One registered finite metadata-only S2 attempt with an identified remaining budget; this review creates or reserves neither.",
+    "non_pnl_manifest_and_review_receipt": "A complete non-PnL manifest and ReviewReceipt binding the route, output boundary, hashes, Development range, and finite attempt before any real input read.",
+    "matching_grant": "A grant exactly matching that registered non-PnL task, its bounds, manifest, receipt, hashes, and attempt.",
+    "s1_hash_and_development_range_match": "Re-match S1 label-audit and calendar identities and retain the immutable 2021-01-01 through 2025-06-30 trade_date boundary."
+  },
+  "all_s2_admission_gates_to_recheck": [
+    "calendar_hash_match",
+    "development_range_fixed",
+    "family_exception_review",
+    "finite_s2_attempt",
+    "review_receipt",
+    "matching_grant"
+  ],
+  "non_qualifying_reconsideration_basis": [
+    "change_of_time_window",
+    "change_of_entry_exit_or_threshold",
+    "calendar_novelty_without_direct_economic_evidence",
+    "reinterpretation_of_preserved_R087_or_R101_results"
+  ],
+  "current_authorisation": {
+    "configuration_basis": "Read-only config/research_execution.json check only; no configuration change, grant operation, or grant-artifact access.",
+    "market_execution_enabled": false,
+    "configured_grant_count": 0,
+    "real_data_pnl_attempts": 0,
+    "exception_issued": false,
+    "manifest_created": false,
+    "review_receipt_created": false,
+    "grant_artifact_accessed": false,
+    "manifest_or_review_receipt_artifact_accessed": false,
+    "authorises_real_access": false
+  },
+  "cumulative_record": {
+    "c01_hypotheses": 1,
+    "real_data_pnl_attempts": 0,
+    "this_task_public_source_queries": 0,
+    "this_task_public_source_bodies": 0,
+    "inherited_public_source_ledger": "21 query strings and 32 source-body review events; this is a history record, not an available execution or search budget."
+  }
+}

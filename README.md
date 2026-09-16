@@ -15,7 +15,7 @@ Development: 2021-01-01～2025-06-30、OOS: 2025-07-01～2025-12-31。2026年以
 
 ### Planner／Executorの開始
 
-プロジェクトrootで実行します。現在の既定バッチはC01 S2の入場判定・非PnL観測可能性契約で、実データを使いません。モデル・CLI設定は既存の`config.json`を使います。
+プロジェクトrootで実行します。現在の既定バッチはC01のF05/F06例外レビューで、実データを使いません。モデル・CLI設定は既存の`config.json`を使います。
 
 ```powershell
 .venv/Scripts/python.exe orchestrator.py --check
