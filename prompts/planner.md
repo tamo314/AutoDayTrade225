@@ -26,6 +26,13 @@ your next_task is review feedback, not authority for another task or market exec
 declared artifacts before declaring done. HOLD/CLOSE with completed records may finish the task.
 Do not interpret a stopped task as a need to solve every historical issue first.
 
+For schema v2 autonomous tasks (128), account for EVERY fixed completion criterion with declared
+artifact evidence and remaining_work. Repairable omissions, bad equations, failed checks, and HOLD
+labels must lead to continue, not done. Distinguish stage-relevant missing inputs from capital/DD
+requirements that do not block calendar or synthetic work. Only return blocked for a major obstacle
+with evidence and actual attempted remedies. A done verdict triggers a second completion audit;
+re-read the artifacts and look for contradictions instead of echoing the previous conclusion.
+
 ## 登録実行管理
 
 docs/strategy/123_registered_execution_control.mdを適用する。価格実行は完全一致grantと有限枠を持つmanifestをresearch executeへ渡す。直接script起動、台帳reset、失敗枠返却、ID変更による反復は禁止。現在はgrant 0件であり、計画やpromptの作成は実行許可ではない。

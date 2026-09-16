@@ -1,0 +1,32 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C01-PREPARATION-02",
+  "mode": "design",
+  "task_file": "docs/strategy/127_c01_autonomous_preparation.md",
+  "scope_file": "docs/strategy/127_c01_autonomous_preparation.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/evidence.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/design.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/calendar_contract.json",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/review.md"
+  ],
+  "read_only_inputs": [
+    "docs/strategy/plans/TASK-NEXT-C01-DESIGN-01/evidence.md",
+    "docs/strategy/plans/TASK-NEXT-C01-DESIGN-01/design.md",
+    "docs/strategy/plans/TASK-NEXT-C01-DESIGN-01/review.md"
+  ],
+  "validation_scripts": ["scripts/validate_c01_preparation.py"],
+  "completion_criteria": {
+    "accounting": "損益式と合成例が13の定義と一致し、スリッページを二重控除しない。旧記録の訂正を新成果物に明示。",
+    "stage_gates": "カレンダー・合成検証、実データ診断、PnL、OOS・運用の要件を分離し、準備作業に資本DDやfamily再開を一律要求しない。",
+    "mechanism": "方向継続の機構と反証・代替説明を直接調査し、既知制度の再確認と新証拠を区別。支持証拠なしの場合も具体的な調査と限界を残す。",
+    "calendar": "2021-01-01～2025-06-30の公式根拠付き日付対応を版管理し、現物休場・OSE祝日・trade_date・制度境界と重複しない群定義を監査。",
+    "design": "C01一仮説の完全な準備設計、必要精度・件数の設計方法、将来の登録実行契約と実際に必要な未決値を整理。未取得PnLや未知値を捏造しない。",
+    "verification": "固定validator、出典・リンク・整合性検査が通り、元成果物・実データ設定・閉鎖台帳を維持。未完了の範囲内作業が残らない。"
+  }
+}

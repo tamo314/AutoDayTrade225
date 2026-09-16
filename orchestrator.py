@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from orchestrator_batch import Batch, BatchError
+from orchestrator_batch import Batch, BatchError, DispatchUncertainError
 
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_CONFIG = APP_DIR / "config.json"
@@ -1060,6 +1060,7 @@ def run_planner(
     *,
     run_kind: str = "planner",
     extra_instruction: str | None = None,
+    schema_path: Path | None = None,
 ) -> tuple[dict[str, Any], Path]:
     CODEX_SCRATCH_DIR.mkdir(parents=True, exist_ok=True)
     safe_kind = re.sub(r"[^a-zA-Z0-9_-]+", "_", run_kind).strip("_") or "planner"
@@ -1086,7 +1087,7 @@ def run_planner(
         "read-only",
         "--skip-git-repo-check",
         "--output-schema",
-        str(PLANNER_SCHEMA),
+        str(schema_path or PLANNER_SCHEMA),
         "--output-last-message",
         str(final_path),
         *codex_cfg["extra_args"],
@@ -1150,7 +1151,7 @@ def run_planner(
             f"Codex final message was not valid JSON despite --output-schema: {exc}\n{final_text}"
         ) from exc
 
-    if decision.get("status") not in {"continue", "done"}:
+    if decision.get("status") not in ({"continue", "done", "blocked"} if schema_path else {"continue", "done"}):
         raise OrchestratorError(f"Invalid planner status: {decision.get('status')!r}")
     if not isinstance(decision.get("analysis"), str):
         raise OrchestratorError("Planner response missing string field: analysis")
@@ -1421,12 +1422,31 @@ def run_bounded_task(
     HISTORY_FILE = batch.directory / "history.jsonl"
 
     class BoundedTransport:
+        def validate(self, attempt: int) -> dict[str, Any]:
+            details = []
+            passed = True
+            for number, name in enumerate(batch.spec.validation_scripts):
+                batch.verify()
+                result = run_command(
+                    [sys.executable, str(project_dir / name), "--artifacts",
+                     str(project_dir / "docs/strategy/plans" / batch.spec.task_id)],
+                    project_dir, min(120, int(config["executor_timeout_seconds"])),
+                )
+                write_json(RUNS_DIR / f"{attempt:04d}_validation_{number}.json", asdict(result))
+                passed = passed and result.return_code == 0 and not result.timed_out
+                details.append({"script": name, "exit": result.return_code,
+                                "stdout": result.stdout, "stderr": result.stderr})
+                batch.verify()
+            return {"passed": passed, "details": details}
+
         def execute(self, task: str, attempt: int, check: Callable[[], None]) -> str:
             check()
             if batch.spec.mode == "design":
                 result, report, _ = run_executor(
                     config, project_dir, task, attempt, dispatch_check=check,
                 )
+                if result.timed_out:
+                    raise DispatchUncertainError(f"Executor timeout; inspect {RUNS_DIR} and child processes")
                 if result.return_code != 0 or result.timed_out:
                     raise BatchError(f"Executor exit={result.return_code}; see {RUNS_DIR}")
                 return report
@@ -1452,6 +1472,18 @@ def run_bounded_task(
 
         def plan(self, task: str, report: str, attempt: int) -> dict[str, Any]:
             result = CommandResult([], 0, "", "", 0)
+            auto_instruction = ""
+            if batch.spec.schema_version == 2:
+                auto_instruction = (
+                    " AUTONOMOUS v2: HOLD is NOT a reason to stop while scoped work remains. "
+                    "Return every completion criterion with artifact evidence, and remaining_work. "
+                    "Repairable defects, incomplete calendar documents, missing stage-irrelevant "
+                    "capital/DD values, and failed validation must continue automatically. "
+                    "Only use blocked for an evidenced major obstacle with attempted remedies. "
+                    "Only use done when every criterion is complete and validation passed. "
+                    "The controller performs a second completion audit. "
+                    "No fixed call cap applies when the limit is null; research scope stays fixed."
+                )
             decision, _ = run_planner(
                 config, project_dir, attempt, config["executor"], task, result, report,
                 run_kind=f"bounded_review_{attempt:04d}",
@@ -1463,7 +1495,9 @@ def run_bounded_task(
                     f"Mode={batch.spec.mode}; limits executor={batch.spec.max_executor_calls}, "
                     f"planner={batch.spec.max_planner_calls}. In registered mode review only "
                     "the frozen run outputs; do not open unrelated results or market data."
+                    + auto_instruction
                 ),
+                schema_path=project_dir / "planner_auto_schema.json" if batch.spec.schema_version == 2 else None,
             )
             append_jsonl(HISTORY_FILE, {
                 "iteration": attempt, "executor": config["executor"], "task": task,
@@ -1533,20 +1567,22 @@ def main() -> int:
             if not batch_path.is_absolute():
                 batch_path = project_dir / batch_path
             batch = Batch(project_dir, batch_path, config)
+            limit_text = (f"executor={batch.spec.max_executor_calls or 'scope completion'}; "
+                          f"planner={batch.spec.max_planner_calls or 'scope completion'}")
             if args.status:
-                print(json.dumps({k: v for k, v in batch.status().items() if k not in {"report", "feedback"}}, ensure_ascii=False, indent=2))
+                print(json.dumps({k: v for k, v in batch.status(historical=True).items() if k not in {"report", "feedback"}}, ensure_ascii=False, indent=2))
                 return 0
             if args.check:
                 batch.verify()
                 state = batch.status()
-                print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; phase={state['phase']}; executor<={batch.spec.max_executor_calls}; planner<={batch.spec.max_planner_calls}")
+                print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; phase={state['phase']}; {limit_text}")
                 return 0 if run_checks(config, project_dir, project_dir / batch.spec.task_file) else 2
             if args.close_interrupted is None and not run_checks(config, project_dir, project_dir / batch.spec.task_file):
                 return 2
-            print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; executor<={batch.spec.max_executor_calls}; planner<={batch.spec.max_planner_calls}")
+            print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; {limit_text}")
             state = run_bounded_task(config, project_dir, batch, once=args.once, close_reason=args.close_interrupted)
             print(json.dumps({k: v for k, v in state.items() if k not in {"report", "feedback"}}, ensure_ascii=False, indent=2))
-            return 0 if state["phase"] in {"DONE", "EXECUTOR_PENDING"} else 1
+            return 0 if state["phase"] in {"DONE", "EXECUTOR_PENDING", "PLANNER_PENDING"} else 1
 
         if args.status or args.close_interrupted is not None:
             raise BatchError("--status/--close-interrupted requires a bounded task")

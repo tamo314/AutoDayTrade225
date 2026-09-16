@@ -19,6 +19,7 @@
 
 - 最初に読む現在の方針・作業範囲: docs/strategy/00_current_research_policy.md。新規実データPnLと旧自由文ループは停止中。設計・記録整理・合成検証は進める。
 - Planner／Executor自動連携: docs/strategy/126_bounded_orchestration.md。固定タスク・成果物・回数上限を持つdesignバッチを実行できる。登録済み実データバッチはresearch executeへ渡す。Plannerの次タスク文で範囲・入力・予算を拡張しない。
+- 自律継続の現行仕様: docs/strategy/128_autonomous_orchestration.md。schema v2は明示範囲の全完了条件・検証・最終監査まで再設計と修正を継続する。HOLD、資料不足、修正可能な不備だけで終了しない。重大障害は証拠・対処履歴・残作業を残して未完了停止する。売買仮説数・実データ予算は別に有限管理する。
 - 登録実行・残枠・中断確認: docs/strategy/123_registered_execution_control.md。実データ研究は完全仕様・証拠・有限枠を登録し、research executeを使う。旧script直起動、台帳reset、失敗の枠返却、ID変更による再試行をしない。
 - 研究開始・選定: docs/strategy/13_research_governance.md、docs/strategy/14_research_repair_plan.md。
 - 既存結果照合・近縁仮説の再開判定: docs/strategy/120_research_reconciliation_and_finite_search.md、docs/strategy/121_research_inventory_index.md、docs/strategy/registry/20260916_review.json。新規提案前に閉鎖群・親仕様・既知結果を確認し、ID変更で探索枠を補充しない。

@@ -22,7 +22,7 @@ Development: 2021-01-01～2025-06-30、OOS: 2025-07-01～2025-12-31。2026年以
 .venv/Scripts/python.exe orchestrator.py
 ```
 
-状態だけを見る場合は `--status`、1回のExecutor＋Plannerで区切る場合は `--once`。同じ開始コマンドで保存状態から続行します。`--reset`は使えません。Executorは最大3回、Plannerは最大5回で、HOLD/CLOSEでも成果物が揃えば完了できます。詳細な障害時の扱いは[操作手順](docs/strategy/126_bounded_orchestration.md)を参照してください。
+状態だけを見る場合は `--status`、途中で区切る場合は `--once`。同じ開始コマンドで保存状態から続行します。`--reset`は使えません。現在は[自律継続モード](docs/strategy/128_autonomous_orchestration.md)で、C01の研究準備を再設計・修正・検証し、全完了条件と最終監査が通るまで継続します。旧3/5回上限は適用せず、重大障害や連続失敗・停滞は未完了として停止します。
 
 環境と設定だけの確認:
 

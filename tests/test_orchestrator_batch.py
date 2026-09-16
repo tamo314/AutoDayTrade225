@@ -14,6 +14,7 @@ from orchestrator_batch import (
     PROTECTED,
     Batch,
     BatchError,
+    DispatchUncertainError,
     TaskSpec,
     read_json,
     save_json,
@@ -389,3 +390,286 @@ def test_main_check_handles_windows_console_encoding(monkeypatch: pytest.MonkeyP
     assert app.main() == 0
     stream.flush()
     assert b"\\u2014" in buffer.getvalue()
+
+
+@pytest.fixture()
+def auto_batch(task_workspace: tuple[Path, Path]) -> Batch:
+    root, path = task_workspace
+    spec = read_json(path)
+    spec.update(
+        schema_version=2,
+        max_executor_calls=None,
+        max_planner_calls=None,
+        completion_criteria={"accuracy": "Correct accounting with evidence"},
+        retry_backoff_seconds=0,
+    )
+    save_json(path, spec)
+    (root / "planner_auto_schema.json").write_text("{}", encoding="utf-8")
+    return Batch(root, path, {})
+
+
+def auto_decision(batch: Batch, status: str = "done", *, complete: bool = True) -> dict[str, Any]:
+    return {
+        "status": status,
+        "analysis": "Reviewed full scope",
+        "next_task": "Repair the same design" if status == "continue" else "",
+        "criteria": [
+            {
+                "id": key,
+                "status": "complete" if complete else "pending",
+                "evidence": [batch.spec.required_artifacts[0]] if complete else [],
+            }
+            for key in batch.spec.completion_criteria or {}
+        ],
+        "remaining_work": [] if complete else ["Accounting correction"],
+        "blocker": None,
+    }
+
+
+class AutoTransport(FakeTransport):
+    def __init__(self, batch: Batch, decisions: list[dict[str, Any]]) -> None:
+        super().__init__(batch, decisions)
+        self.progress = True
+        self.validation_results: list[bool] = []
+        self.executor_failures = 0
+        self.planner_failures = 0
+
+    def execute(self, task: str, attempt: int, check: Callable[[], None]) -> str:
+        self.fail_executor = self.executor_failures > 0
+        self.executor_failures -= int(self.fail_executor)
+        report = super().execute(task, attempt, check)
+        if self.progress:
+            for name in self.batch.spec.required_artifacts:
+                (self.batch.root / name).write_text(
+                    f"Repair evidence attempt {attempt}", encoding="utf-8"
+                )
+        return report
+
+    def plan(self, task: str, report: str, attempt: int) -> dict[str, Any]:
+        self.fail_planner = self.planner_failures > 0
+        self.planner_failures -= int(self.fail_planner)
+        return super().plan(task, report, attempt)
+
+    def validate(self, attempt: int) -> dict[str, Any]:
+        return {
+            "passed": self.validation_results.pop(0) if self.validation_results else True,
+            "details": "Synthetic validation",
+        }
+
+
+def test_auto_requires_two_complete_reviews(auto_batch: Batch) -> None:
+    transport = AutoTransport(auto_batch, [auto_decision(auto_batch), auto_decision(auto_batch)])
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert (state["executor_calls"], state["planner_calls"]) == (1, 2)
+
+
+def test_auto_done_with_pending_work_is_repaired(auto_batch: Batch) -> None:
+    transport = AutoTransport(
+        auto_batch,
+        [
+            auto_decision(auto_batch, complete=False),
+            auto_decision(auto_batch),
+            auto_decision(auto_batch),
+        ],
+    )
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert state["executor_calls"] == 2
+
+
+def test_auto_failed_validation_cannot_be_done(auto_batch: Batch) -> None:
+    transport = AutoTransport(auto_batch, [auto_decision(auto_batch) for _ in range(3)])
+    transport.validation_results = [False, True]
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert state["executor_calls"] == 2
+
+
+def test_auto_continues_beyond_old_call_limit(auto_batch: Batch) -> None:
+    decisions = [auto_decision(auto_batch, "continue", complete=False) for _ in range(5)]
+    transport = AutoTransport(
+        auto_batch, [*decisions, auto_decision(auto_batch), auto_decision(auto_batch)]
+    )
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert state["executor_calls"] == 6 and state["planner_calls"] == 7
+
+
+def test_auto_retries_temporary_planner_failure_without_replaying_executor(
+    auto_batch: Batch,
+) -> None:
+    transport = AutoTransport(auto_batch, [auto_decision(auto_batch), auto_decision(auto_batch)])
+    transport.planner_failures = 2
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert (state["executor_calls"], state["planner_calls"]) == (1, 4)
+
+
+def test_auto_executor_failure_gets_a_repair_plan(auto_batch: Batch) -> None:
+    transport = AutoTransport(
+        auto_batch,
+        [
+            auto_decision(auto_batch, "continue", complete=False),
+            auto_decision(auto_batch),
+            auto_decision(auto_batch),
+        ],
+    )
+    transport.executor_failures = 1
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert state["executor_calls"] == 2
+
+
+def test_auto_repeated_external_failure_blocks(auto_batch: Batch) -> None:
+    transport = AutoTransport(auto_batch, [])
+    transport.planner_failures = 10
+    state = auto_batch.run(transport)
+    assert state["phase"] == "BLOCKED"
+    assert state["planner_calls"] == 3
+    assert state["executor_calls"] == 1
+
+
+def test_auto_no_progress_is_an_explicit_blocker(auto_batch: Batch) -> None:
+    transport = AutoTransport(
+        auto_batch, [auto_decision(auto_batch, "continue", complete=False) for _ in range(4)]
+    )
+    transport.progress = False
+    state = auto_batch.run(transport)
+    assert state["phase"] == "BLOCKED"
+    assert "no artifact progress" in state["reason"]
+    assert state["remaining_work"]
+
+
+def test_auto_major_blocker_requires_evidence_and_remedies(auto_batch: Batch) -> None:
+    decision = auto_decision(auto_batch, "blocked", complete=False)
+    decision["blocker"] = {
+        "kind": "external_dependency",
+        "explanation": "Required archive inaccessible",
+        "evidence": [auto_batch.spec.required_artifacts[0]],
+        "attempted_remedies": ["Checked original source and official archive"],
+    }
+    state = auto_batch.run(AutoTransport(auto_batch, [decision]))
+    assert state["phase"] == "BLOCKED"
+    assert state["blocker"]["kind"] == "external_dependency"
+
+
+def test_auto_vague_hold_cannot_stop(auto_batch: Batch) -> None:
+    decision = auto_decision(auto_batch, "blocked", complete=False)
+    transport = AutoTransport(
+        auto_batch, [decision, auto_decision(auto_batch), auto_decision(auto_batch)]
+    )
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert state["executor_calls"] == 1
+    assert state["planner_calls"] == 3
+
+
+def test_auto_completion_audit_can_return_to_repair(auto_batch: Batch) -> None:
+    transport = AutoTransport(
+        auto_batch,
+        [
+            auto_decision(auto_batch),
+            auto_decision(auto_batch, "continue", complete=False),
+            auto_decision(auto_batch),
+            auto_decision(auto_batch),
+        ],
+    )
+    assert auto_batch.run(transport, once=True)["phase"] == "PLANNER_PENDING"
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert (state["executor_calls"], state["planner_calls"]) == (2, 4)
+
+
+def test_historical_terminal_status_survives_code_upgrade(
+    task_workspace: tuple[Path, Path],
+) -> None:
+    batch = Batch(*task_workspace, {})
+    batch.run(FakeTransport(batch, [DONE]))
+    (batch.root / "orchestrator.py").write_text("new controller", encoding="utf-8")
+    upgraded = Batch(*task_workspace, {})
+    assert upgraded.status(historical=True)["contract_matches_current"] is False
+    with pytest.raises(BatchError, match="Frozen contract"):
+        upgraded.status()
+
+
+def test_auto_adapter_runs_validator_and_uses_structured_review(
+    auto_batch: Batch, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = auto_batch.root
+    validator = root / "scripts/check.py"
+    validator.parent.mkdir(parents=True)
+    validator.write_text("# frozen test validator", encoding="utf-8")
+    spec = read_json(auto_batch.path)
+    spec["validation_scripts"] = ["scripts/check.py"]
+    save_json(auto_batch.path, spec)
+    config = {"executor": "codex", "executor_timeout_seconds": 20}
+    batch = Batch(root, auto_batch.path, config)
+    calls: list[str] = []
+
+    def execute(*args: object, **kwargs: Any) -> tuple[app.CommandResult, str, Path]:
+        kwargs["dispatch_check"]()
+        calls.append("execute")
+        output = root / batch.spec.required_artifacts[0]
+        output.parent.mkdir(parents=True)
+        output.write_text("Reviewed output", encoding="utf-8")
+        return app.CommandResult([], 0, "", "", 0), "completed", root / "unused"
+
+    def command(args: list[str], cwd: Path, timeout: int) -> app.CommandResult:
+        assert args[1] == str(validator)
+        assert args[2] == "--artifacts"
+        calls.append("validate")
+        return app.CommandResult(args, 0, "PASS", "", 0)
+
+    def plan(*args: object, **kwargs: Any) -> tuple[dict[str, Any], Path]:
+        assert kwargs["schema_path"] == root / "planner_auto_schema.json"
+        calls.append("plan")
+        return auto_decision(batch), root / "unused"
+
+    monkeypatch.setattr(app, "run_executor", execute)
+    monkeypatch.setattr(app, "run_command", command)
+    monkeypatch.setattr(app, "run_planner", plan)
+    assert app.run_bounded_task(config, root, batch)["phase"] == "DONE"
+    assert calls == ["execute", "validate", "plan", "plan"]
+
+
+def test_auto_validator_cannot_change_protected_input(auto_batch: Batch) -> None:
+    class MutatingValidator(AutoTransport):
+        def validate(self, attempt: int) -> dict[str, Any]:
+            (auto_batch.root / "config/research_execution.json").write_text(
+                "changed", encoding="utf-8"
+            )
+            return {"passed": True}
+
+    transport = MutatingValidator(auto_batch, [])
+    assert auto_batch.run(transport)["phase"] == "BLOCKED"
+    assert transport.planner_calls == 0
+
+
+def test_auto_changed_artifacts_require_revalidation(auto_batch: Batch) -> None:
+    class MutatingReviewer(AutoTransport):
+        def plan(self, task: str, report: str, attempt: int) -> dict[str, Any]:
+            if attempt == 2:
+                (auto_batch.root / auto_batch.spec.required_artifacts[0]).write_text(
+                    "unvalidated change", encoding="utf-8"
+                )
+            return super().plan(task, report, attempt)
+
+    transport = MutatingReviewer(auto_batch, [auto_decision(auto_batch) for _ in range(4)])
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert (state["executor_calls"], state["planner_calls"]) == (2, 4)
+
+
+def test_auto_uncertain_timeout_is_not_replayed(auto_batch: Batch) -> None:
+    class TimedOut(AutoTransport):
+        def execute(self, task: str, attempt: int, check: Callable[[], None]) -> str:
+            check()
+            self.executor_calls += 1
+            raise DispatchUncertainError("timeout")
+
+    transport = TimedOut(auto_batch, [])
+    state = auto_batch.run(transport)
+    assert state["phase"] == "BLOCKED"
+    assert state["executor_calls"] == 1
+    assert transport.planner_calls == 0

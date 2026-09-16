@@ -1,0 +1,38 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "analysis", "next_task", "criteria", "remaining_work", "blocker"],
+  "properties": {
+    "status": {"type": "string", "enum": ["continue", "done", "blocked"]},
+    "analysis": {"type": "string"},
+    "next_task": {"type": "string"},
+    "remaining_work": {"type": "array", "items": {"type": "string"}},
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "status", "evidence"],
+        "properties": {
+          "id": {"type": "string"},
+          "status": {"type": "string", "enum": ["complete", "pending"]},
+          "evidence": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "blocker": {
+      "anyOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "explanation", "evidence", "attempted_remedies"],
+          "properties": {
+            "kind": {"type": "string", "enum": ["external_dependency", "scope_boundary", "permission", "resource", "contradictory_requirements"]},
+            "explanation": {"type": "string"},
+            "evidence": {"type": "array", "items": {"type": "string"}},
+            "attempted_remedies": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      ]
+    }
+  }
+}

@@ -13,6 +13,13 @@ that same task. Do not read market data, launch experiments or another orchestra
 config/specification files, or enable grants. Keep cumulative search limits in the evidence record.
 The outer bounded controller manages continuation; report completed work and remaining issues.
 
+For schema v2 autonomous tasks (128), complete the stated scope through research, redesign, repair,
+and permitted validation. Do not stop at a provisional HOLD while repairable work remains. Preserve
+old sealed outputs and write corrections to the new declared artifacts. Record actual progress and
+failed remedies every turn; do not make cosmetic edits to evade stagnation detection. Validators and
+the completion contract are sealed: fix the artifacts, not the checks. Market access still requires
+the separate registered execution contract and cannot be authorized by planner prose.
+
 You are NOT responsible for inventing a better trading strategy.
 
 Do not modify the hypothesis merely because you believe another strategy would perform better.
