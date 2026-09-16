@@ -1,5 +1,5 @@
 {
-  "calendar_version": "C01-JST-JPX-CABINET-FINAL-20260916-93daa202f-cec37a743",
+  "calendar_version": "C01-JST-JPX-CABINET-FINAL-NOTICE-XCHECK-20260916-93daa202f-cec37a743",
   "as_of": "2026-09-16 JST",
   "coverage": {
     "start": "2021-01-01",
@@ -76,7 +76,40 @@
       "url": "https://www.jpx.co.jp/news/2040/20221216-02.html",
       "publication_date": "2022-12-16",
       "result": "holiday trading not conducted; replaces earlier 2023 plan for that date."
-    }
+    },
+    "final_notice_crosschecks": [
+      {
+        "period": "2023-H1",
+        "notice_url": "https://www.jpx.co.jp/news/2040/20220630-01.html",
+        "publication_date": "2022-06-30",
+        "status_source": "Notice table, cross-checked to ose_final_holiday_list snapshot and days rows.",
+        "targets": [
+          {"calendar_date": "2023-01-02", "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2023-01-03", "ose_holiday_trading": true, "ose_trade_date": "2023-01-04"},
+          {"calendar_date": "2023-01-09", "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2023-02-23", "ose_holiday_trading": true, "ose_trade_date": "2023-02-24"},
+          {"calendar_date": "2023-03-21", "ose_holiday_trading": true, "ose_trade_date": "2023-03-22"},
+          {"calendar_date": "2023-05-03", "ose_holiday_trading": true, "ose_trade_date": "2023-05-08"},
+          {"calendar_date": "2023-05-04", "ose_holiday_trading": true, "ose_trade_date": "2023-05-08"},
+          {"calendar_date": "2023-05-05", "ose_holiday_trading": true, "ose_trade_date": "2023-05-08"}
+        ]
+      },
+      {
+        "period": "2024-H2",
+        "notice_url": "https://www.jpx.co.jp/news/2040/20231204-01.html",
+        "publication_date": "2023-12-04",
+        "status_source": "Notice announces the final schedule and links to the holiday-trading resource; target statuses are cross-checked to ose_final_holiday_list snapshot and days rows.",
+        "targets": [
+          {"calendar_date": "2024-07-15", "ose_holiday_trading": true, "ose_trade_date": "2024-07-16"},
+          {"calendar_date": "2024-08-12", "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-09-16", "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-09-23", "ose_holiday_trading": true, "ose_trade_date": "2024-09-24"},
+          {"calendar_date": "2024-10-14", "ose_holiday_trading": true, "ose_trade_date": "2024-10-15"},
+          {"calendar_date": "2024-11-04", "ose_holiday_trading": false, "ose_trade_date": null},
+          {"calendar_date": "2024-12-31", "ose_holiday_trading": false, "ose_trade_date": null}
+        ]
+      }
+    ]
   },
   "days": [
     {

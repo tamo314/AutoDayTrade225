@@ -73,8 +73,8 @@ bank calendars, or a current session template projected backwards.
 | CAL-3 | [OSE final holiday-trading list](https://www.jpx.co.jp/derivatives/rules/holidaytrading/nlsgeu000006hweb-att/List_of_Finalized_Holiday_Trading_Days_J.xlsx), accessed 2026-09-16 JST, 11,567 bytes, SHA-256 `93daa202fe71cff97a7b3691d793a40d101ba4058c8dffe03550b6ee2ca29721` | Exact historical OSE holiday candidate days and final open/not-open status from the 2022-09-23 introduction through 2025H1. | Cash-market price behaviour or a separate holiday OHLC series. |
 | CAL-4 | [OSE holiday-trading rules](https://www.jpx.co.jp/derivatives/rules/holidaytrading/), page accessed 2026-09-16 JST | Index futures are eligible; holiday trading began 2022-09-23; its day is assigned the following weekday's trading day, together with the preceding weekday night session and subsequent weekday day session. | A return forecast, or proof that a vendor labels midnight dates the same way. |
 | CAL-5 | [2022 implementation notice](https://www.jpx.co.jp/news/2040/20211224-01.html), published 2021-12-24 | The four 2022 implementation dates and the initial 2023 New-Year treatment, with 2022-09-23 as first implementation. | A rule before its effective date. |
-| CAL-6 | [2023 H2 final notice](https://www.jpx.co.jp/news/2040/20221216-02.html), published 2022-12-16 | The final revision that made 2023-11-03 non-trading, despite the earlier annual plan. | Any inference from a preliminary schedule. |
-| CAL-7 | [2024 H1 rule amendment](https://www.jpx.co.jp/rules-participants/rules/revise/aocfb40000001ir7-att/gaiyo.pdf), published 2023-06-30, and [2025 H1 rule amendment](https://www.jpx.co.jp/rules-participants/rules/revise/mklp77000000agok-att/gaiyo.pdf), published 2024-06-28 | Dated examples of the enacted half-year holiday lists, including exclusions and 2025H1 dates. | That the preliminary 2024 schedule was final. |
+| CAL-6 | [2023 H1 final notice](https://www.jpx.co.jp/news/2040/20220630-01.html), published 2022-06-30, and [2023 H2 final notice](https://www.jpx.co.jp/news/2040/20221216-02.html), published 2022-12-16 | The final 2023 half-year statuses, including the H1 2023-01-02/09 non-trading exceptions and the H2 revision that made 2023-11-03 non-trading despite the earlier annual plan. | Any inference from a preliminary schedule. |
+| CAL-7 | [2024 H1 rule amendment](https://www.jpx.co.jp/rules-participants/rules/revise/aocfb40000001ir7-att/gaiyo.pdf), published 2023-06-30; [2024 H2 final notice](https://www.jpx.co.jp/news/2040/20231204-01.html), published 2023-12-04; and [2025 H1 rule amendment](https://www.jpx.co.jp/rules-participants/rules/revise/mklp77000000agok-att/gaiyo.pdf), published 2024-06-28 | Dated release history for the enacted half-year lists. The 2024-H2 notice announces the final schedule and points to the official holiday-trading resource; its target-date statuses are cross-checked below against CAL-3's retained final-list snapshot. | That a preliminary 2024 schedule was final, or that a notice alone is a price source. |
 | CAL-8 | [J-GATE3.0 go-live](https://www.jpx.co.jp/corporate/news/news-releases/0060/20210921-01.html), published 2021-09-21, and [2024-11-05 trading-hours change](https://www.jpx.co.jp/corporate/news/news-releases/0060/20241009-01.html), published 2024-10-09 | The 2021-09-21 and 2024-11-05 schedule boundaries recorded as `schedule_version` in the contract. | Any alteration to C01's 09:00–10:30 morning route or a price-based calendar label. |
 
 The aggregate final-list file does not display an independent publication date
@@ -95,6 +95,28 @@ and a holiday plus the following weekend remains one pre-open interval.  The
 contract stores no night-calendar-start field because C01 neither reads nor
 uses night prices; a later runner must retain that field separately for a
 timestamp audit.
+
+### Final-notice-to-contract cross-check repaired in this iteration
+
+The following two notices were additionally inspected for this repair. Their
+publication date is the date displayed by JPX, not an inferred effective date.
+Each listed row below equals the existing `ose_holiday_trading` value in
+`calendar_contract.json`; the trade-date follows CAL-4 only when the status is
+`true`. This is an official-calendar provenance check, not a price/count
+diagnostic.
+
+| Final notice | Published | Target-date status cross-checked to CAL-3 snapshot and contract |
+|---|---|---|
+| [2023 H1 final notice](https://www.jpx.co.jp/news/2040/20220630-01.html) | 2022-06-30 | `2023-01-02=false`, `01-03=true→2023-01-04`, `01-09=false`, `02-23=true→02-24`, `03-21=true→03-22`, `05-03=true→05-08`, `05-04=true→05-08`, `05-05=true→05-08`. |
+| [2024 H2 final notice](https://www.jpx.co.jp/news/2040/20231204-01.html) | 2023-12-04 | `2024-07-15=true→07-16`, `08-12=false`, `09-16=false`, `09-23=true→09-24`, `10-14=true→10-15`, `11-04=false`, `12-31=false`.  All seven targets, including 2024-12-31, are within the contract's 2021-01-01 through 2025-06-30 coverage and match their `days` rows. |
+
+The 2024-H2 notice page says that its final schedule is available through the
+holiday-trading resource rather than reproducing its table in the page body.
+Accordingly, this repair does not pretend that page alone supplies the listed
+statuses: it binds the published notice to the retained CAL-3 final-list
+snapshot (URL/bytes/SHA-256 above) and records that limited provenance
+relationship in the JSON contract. No day row, source hash, or `trade_date`
+was changed.
 
 ## Mechanism investigation: evidence, counterarguments, and limits
 
@@ -157,8 +179,8 @@ attempted.
 | Calendar asset and accounting synthetic invariant | Yes | Completed in the declared contract and fixed validator; neither requires capital/DD nor a family reopening. |
 | S1 calendar/causality fixtures | Future, separately authorised | Not run.  The fixed validator proves the required accounting and label-priority invariants only; it is not an S1 market audit. |
 | S2 non-PnL availability | Future, registered execution only | Not run; needs a full frozen S0, an authorised manifest/review receipt/matching grant and actual remaining budget. |
-| Development PnL | Future, separate registered execution | Not authorised.  The closed-family exception review, finite slot, full specification, owner economic/precision values, and matching grant remain required. |
-| OOS / operation | Later distinct stages | Not authorised; no OOS or Final Holdout access occurred.  Capital, allowable DD, and operating minimum remain `null` until owner-provided. |
+| Development PnL (S3) | Future, separate registered execution | Not authorised. The closed-family exception review, finite slot, full specification, owner economic-minimum/precision/cohort values, and matching grant remain required. Under [13](../../13_research_governance.md), capital and allowable DD are **not** S3 prerequisites. |
+| OOS candidate freeze (S5) / operation | Later distinct stages | Not authorised; no OOS or Final Holdout access occurred. Capital assumptions, allowable DD, and stop conditions must be owner-fixed for S5; `operating_minimum` belongs to operations and remains `null` until owner-provided. |
 
 The preparation task can therefore be complete without a research `PASS`.
 Research judgement remains **NOT_EVALUATED**: no directional, economic, count,
@@ -177,3 +199,6 @@ validation.
 | 5 — 2026-09-16 JST | Re-read the official JPX holiday-rules page, TSE cash-days page, 2023-H2 final list notice, and the cited primary research bodies to repair the reviewer-facing evidence declaration. | The rules explicitly confirm the 2022-09-23 start, index-futures eligibility, the same-trade-date treatment of the preceding weekday night/holiday/following weekday day sessions, and the 2023-11-03 non-implementation.  No calendar value, hypothesis, price input, or execution authority changed. |
 | 6 — 2026-09-16 JST | The web text reader could not render the official XLSX/CSV directly (safe-URL/content-type errors). Re-fetched both official public files in process memory and calculated their byte counts and SHA-256 hashes; no file was persisted. | CAL-2 remained 21,538 bytes / `cec37a743c96995cdb9cb52b685c9003634682a9b0e1a640a6b9b96881fe964a`; CAL-3 remained 11,567 bytes / `93daa202fe71cff97a7b3691d793a40d101ba4058c8dffe03550b6ee2ca29721`. Both exactly match the sealed contract snapshot, so no calendar repair was warranted. |
 | 7 — 2026-09-16 JST | The first ad-hoc read-only Markdown-link checker emitted a Python regular-expression warning, so its exit-0 result was not accepted as evidence. Replaced the pattern with a simple link-target parser and reran it with a trailing-whitespace scan. | Clean pass: every local Markdown file target in the three Markdown artifacts exists and no trailing whitespace was found. This verification-only repair did not change the calendar, hypothesis, or protected state. |
+| 8 — 2026-09-16 JST | Reviewed the official 2023-H1 and 2024-H2 final-notice pages after feedback. Cross-checked their displayed publication dates and declared target-date coverage against the existing official final-list snapshot and contract rows, then ran the fixed validator and a read-only JSON/link/whitespace/diff audit. | Added dated provenance only: 2023-H1 row statuses and 2024-H2 statuses agree with the unchanged 1,642-row contract. Separated S3 Development-PnL economic/precision requirements from S5 capital/DD/operating requirements. Validator exit 0; crosschecks, local links, whitespace, and `git diff --check` passed. |
+| 9 — 2026-09-16 JST | Repaired reviewer-identified coverage metadata. Re-read the 2024-H2 JPX final-notice page (published 2023-12-04), confirmed that it directs readers to the final-list resource, and compared all seven retained targets—including 2024-12-31—to the contract's stated 2021-01-01 through 2025-06-30 coverage and `days` row. | Removed the false `outside_contract_coverage` flag from the structured cross-check. The existing 2024-12-31 day remains `cash_open=false`, `ose_holiday_trading=false`, and `ose_trade_date=null`; no source URL, calendar-day value, price input, hypothesis, or execution authority changed. Fixed validation and a new cross-artifact audit follow this edit. |
+| 10 — 2026-09-16 JST | Ran the post-repair read-only contract/document audit. Its first stale-prose predicate falsely matched the repair log's literal deleted-field name rather than a claim that 2024-12-31 is outside coverage; narrowed the predicate to the actual erroneous assertions and reran the identical JSON/link/source checks. | The first audit therefore failed by checker false positive, not artifact inconsistency. The corrected audit passed: all seven 2024-H2 targets agree with exactly one in-range `days` row; the contract has 1,642 unique dates from 2021-01-01 through 2025-06-30; 2024-12-31 is false/null; all row sources are HTTPS; local links and whitespace passed. The immutable validator is rerun after this log edit. |

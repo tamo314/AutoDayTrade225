@@ -112,8 +112,12 @@ The following owner-controlled values remain unknown and must remain `null`:
 `minimum_economically_meaningful_effect`, `required_precision`,
 `n_treatment_min`, `n_control_min`, `capital`, `allowable_drawdown`, and
 `operating_minimum`.  Calendar preparation and synthetic validation do not need
-them.  They are required only before a later PnL/economic decision; no historic
-threshold, common 800-event rule, or observed calendar count may substitute.
+them.  The economic minimum, precision, and cohort minima must be frozen before
+the later calibration/PnL decision.  In contrast, `capital`,
+`allowable_drawdown`, and `operating_minimum` are S5 OOS-candidate/operations
+values under [13](../../13_research_governance.md), not S3 Development-PnL
+inputs.  No historic threshold, common 800-event rule, or observed calendar
+count may substitute for any of them.
 
 Once an owner specifies a minimum effect `delta_min` in yen per scheduled date
 and a required precision, the frozen design method is:
@@ -138,13 +142,13 @@ This task performs none of those count, calibration, or PnL calculations.
 
 ## Stage gates: separated by authority and purpose
 
-| Stage | Minimum input / output | Does it require capital/DD or family reopening? | Current result |
-|---|---|---|---|
-| Preparation calendar + fixed synthetic validation | Official calendar sources, corrected accounting, contract structure; no prices | **No / No.** | Complete here. |
-| Future S1 mapping/causality fixtures | Frozen contract plus separate authorisation; must prove label priority, pre-boundary exclusion, OSE trade-date mapping, causality and null-exit handling without real results | No / No for the fixture itself. | Not run. |
-| Future S2 availability | Registered, matching non-PnL manifest/review receipt/grant/budget; allowed Development inputs only; emits observability/count diagnostics only | Not for the diagnostic itself; closure review and full specification still gate its authorisation. | Not authorised. |
-| Future Development PnL | Complete frozen S0, owner economic/precision values, S1/S2 success, closure-family exception, finite slot, matching registered grant and budget | **Yes / Yes**, plus all listed requirements. | Not authorised; zero grants/budget. |
-| OOS then operations | Separate frozen candidate and opening procedure after Development decision; operational risk/capital/DD values and operating controls | **Yes / N/A**; never inferred from preparation. | Not authorised. |
+| Stage | Minimum input / output | Capital/DD requirement | Closed-family requirement | Current result |
+|---|---|---|---|---|
+| Preparation calendar + fixed synthetic validation | Official calendar sources, corrected accounting, contract structure; no prices | **No.** | **No.** | Complete here. |
+| Future S1 mapping/causality fixtures | Frozen contract plus separate authorisation; must prove label priority, pre-boundary exclusion, OSE trade-date mapping, causality and null-exit handling without real results | **No.** | **No** for the fixture itself. | Not run. |
+| Future S2 availability | Registered, matching non-PnL manifest/review receipt/grant/budget; allowed Development inputs only; emits observability/count diagnostics only | **No** for the diagnostic. | A specific F05/F06 exception review is required before any real C01 input access; this is not retroactively a prerequisite for preparation. | Not authorised. |
+| Future Development PnL (S3) | Complete frozen S0; owner economic minimum/precision/cohort minima; S1/S2 success; finite slot; matching registered grant and budget | **No.** [13](../../13_research_governance.md) does not make capital or allowable DD an S3 gate. | **Yes:** explicit closure-family exception and finite slot remain necessary. | Not authorised; zero grants/budget. |
+| OOS candidate freeze (S5), then operations | Separate frozen candidate/opening procedure after Development decision; OOS plan, data-quality and operating controls | **Yes:** capital assumptions, allowable DD, and stop conditions must be fixed for S5; `operating_minimum` belongs to operations. | No new reopening path; any C01 exception must already have been approved before S3. | Not authorised. |
 
 For a later economic analysis, the required lower bounds for `theta_T` and
 `Delta_calendar` remain unset until the owner values and calibration are
@@ -155,8 +159,11 @@ calendar, direction, or route revision under this preparation design.
 
 Before any real-data stage, a new bounded/registered task must supply a complete
 immutable specification snapshot and hash, exact `calendar_contract.json` hash,
-stage (`S1`, `S2`, or PnL), permitted Development inputs/columns, output path,
-seed, fixed conditions, finite attempt identity and remaining budget,
-ReviewReceipt, and a grant that exactly matches all of those fields.  It must
-use `research execute`; this task creates no manifest, receipt, grant, or
-budget.  OOS 2025H2 and Final Holdout 2026+ remain outside the contract.
+stage (`S2` or S3), permitted Development inputs/columns, output path, seed,
+fixed conditions, finite attempt identity and remaining budget, ReviewReceipt,
+and a grant that exactly matches all of those fields.  It must use `research
+execute`; this task creates no manifest, receipt, grant, or budget.  Before S3,
+the effect/precision/cohort-minimum values and the F05/F06 exception must also
+be frozen; capital/DD are not substituted into that S3 check.  A separate S5
+OOS-opening contract would then need the capital/DD/stop values.  OOS 2025H2
+and Final Holdout 2026+ remain outside the contract.
