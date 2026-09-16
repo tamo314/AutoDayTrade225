@@ -506,6 +506,66 @@ def test_auto_retries_temporary_planner_failure_without_replaying_executor(
     assert (state["executor_calls"], state["planner_calls"]) == (1, 4)
 
 
+def test_auto_prose_evidence_is_corrected_by_planner_without_replaying_executor(
+    auto_batch: Batch,
+) -> None:
+    malformed = auto_decision(auto_batch)
+    malformed["criteria"][0]["evidence"] = ["design.md explains the accounting correction"]
+    transport = AutoTransport(
+        auto_batch, [malformed, auto_decision(auto_batch), auto_decision(auto_batch)]
+    )
+    state = auto_batch.run(transport)
+    assert state["phase"] == "DONE"
+    assert (state["executor_calls"], state["planner_calls"]) == (1, 3)
+
+
+def test_interrupted_auto_task_recovers_with_validation_then_planner_only(auto_batch: Batch) -> None:
+    state = auto_batch._initialize()
+    for name in auto_batch.spec.required_artifacts:
+        path = auto_batch.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("Existing checked artifact", encoding="utf-8")
+    state.update(phase="INTERRUPTED", executor_calls=1, reason="User interrupted Executor")
+    save_json(auto_batch.state_path, state)
+
+    recovered = auto_batch.recover_interrupted()
+    assert recovered["phase"] == "VALIDATION_PENDING"
+    assert recovered["executor_calls"] == 1
+
+    transport = AutoTransport(auto_batch, [auto_decision(auto_batch), auto_decision(auto_batch)])
+    result = auto_batch.run(transport)
+    assert result["phase"] == "DONE"
+    assert (result["executor_calls"], result["planner_calls"]) == (1, 2)
+    assert transport.executor_calls == 0
+
+
+def test_planner_infrastructure_block_recovers_without_reopening_research(auto_batch: Batch) -> None:
+    state = auto_batch._initialize()
+    for name in auto_batch.spec.required_artifacts:
+        path = auto_batch.root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("Existing checked artifact", encoding="utf-8")
+    state.update(
+        phase="BLOCKED",
+        executor_calls=1,
+        planner_calls=3,
+        executor_errors=0,
+        planner_errors=3,
+        reason="Repeated Planner failure: state database temporarily unavailable",
+    )
+    save_json(auto_batch.state_path, state)
+
+    recovered = auto_batch.recover_planner_block()
+    assert recovered["phase"] == "VALIDATION_PENDING"
+    assert (recovered["executor_calls"], recovered["planner_calls"]) == (1, 3)
+
+    transport = AutoTransport(auto_batch, [auto_decision(auto_batch), auto_decision(auto_batch)])
+    result = auto_batch.run(transport)
+    assert result["phase"] == "DONE"
+    assert (result["executor_calls"], result["planner_calls"]) == (1, 5)
+    assert transport.executor_calls == 0
+
+
 def test_auto_executor_failure_gets_a_repair_plan(auto_batch: Batch) -> None:
     transport = AutoTransport(
         auto_batch,

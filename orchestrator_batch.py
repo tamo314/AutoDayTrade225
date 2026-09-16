@@ -25,6 +25,10 @@ class DispatchUncertainError(BatchError):
     """Child process termination needs inspection before another dispatch."""
 
 
+class ReviewProtocolError(BatchError):
+    """The Planner response needs a review-only correction, not new execution."""
+
+
 PROTECTED = (
     "AGENTS.md",
     "config.json",
@@ -278,6 +282,7 @@ class Batch:
         if state.get("phase") not in TERMINAL | {
             "EXECUTOR_PENDING",
             "EXECUTOR_RUNNING",
+            "VALIDATION_PENDING",
             "PLANNER_PENDING",
             "PLANNER_RUNNING",
         }:
@@ -300,6 +305,113 @@ class Batch:
         if historical:
             state["contract_matches_current"] = state.get("contract") == self.contract
         return state
+
+    def recover_interrupted(self) -> dict[str, Any]:
+        """Explicitly reconcile a stopped v2 Executor without refunding its reservation.
+
+        This is deliberately separate from ``run``.  The operator must first
+        inspect that no child remains, then request recovery.  Recovery never
+        dispatches an Executor: it re-runs the fixed validator and resumes at
+        Planner review with the existing artifacts and cumulative counters.
+        """
+        with task_lock(self.runtime / "active.lock"):
+            self.verify()
+            if not self.state_path.is_file():
+                raise BatchError("No interrupted task state to recover")
+            state = read_json(self.state_path)
+            if self.spec.schema_version != 2 or state.get("phase") != "INTERRUPTED":
+                raise BatchError("Recovery requires an explicitly interrupted autonomous task")
+            previous_contract = state.get("contract")
+            if not isinstance(previous_contract, str) or not previous_contract:
+                raise BatchError("Interrupted task has no recoverable contract")
+            prior_record = read_json(self.directory / "contract.json")
+            prior_spec = prior_record.get("spec")
+            if not isinstance(prior_spec, dict) or prior_spec.get("task_id") != self.spec.task_id:
+                raise BatchError("Interrupted state belongs to a different task")
+            if type(state.get("executor_calls")) is not int or state["executor_calls"] < 1:
+                raise BatchError("Interrupted task has no Executor reservation to preserve")
+            recovery_number = int(state.get("recovery_count", 0)) + 1
+            save_json(
+                self.directory / f"recovery_{recovery_number:04d}.json",
+                {
+                    "previous_contract": previous_contract,
+                    "current_contract": self.contract,
+                    "previous_phase": state["phase"],
+                    "previous_reason": state.get("reason", ""),
+                    "executor_calls_preserved": state["executor_calls"],
+                    "planner_calls_preserved": state.get("planner_calls", 0),
+                    "action": "validator_then_planner_review_only",
+                },
+            )
+            state.update(
+                contract=self.contract,
+                phase="VALIDATION_PENDING",
+                reason=(
+                    "Explicit interrupted-task recovery: Executor reservation retained; "
+                    "re-run validation and Planner review without Executor replay"
+                ),
+                recovery_count=recovery_number,
+                completion_review=False,
+                review_error="",
+            )
+            self._save(state)
+            return state
+
+    def recover_planner_block(self) -> dict[str, Any]:
+        """Retry only a v2 review that stopped because its Planner was unavailable.
+
+        A BLOCKED research conclusion is never reopened here.  This narrow
+        recovery accepts only the controller's own repeated-Planner-failure
+        state, retains all counters and artifacts, and starts with validation.
+        """
+        with task_lock(self.runtime / "active.lock"):
+            self.verify()
+            if not self.state_path.is_file():
+                raise BatchError("No blocked task state to recover")
+            state = read_json(self.state_path)
+            if (
+                self.spec.schema_version != 2
+                or state.get("phase") != "BLOCKED"
+                or state.get("executor_errors", 0) != 0
+                or not isinstance(state.get("planner_errors"), int)
+                or state["planner_errors"] < self.spec.max_consecutive_errors
+                or not str(state.get("reason", "")).startswith("Repeated Planner failure:")
+            ):
+                raise BatchError("Recovery is limited to a repeated Planner infrastructure failure")
+            prior_record = read_json(self.directory / "contract.json")
+            prior_spec = prior_record.get("spec")
+            if not isinstance(prior_spec, dict) or prior_spec.get("task_id") != self.spec.task_id:
+                raise BatchError("Blocked state belongs to a different task")
+            previous_contract = state.get("contract")
+            if not isinstance(previous_contract, str) or not previous_contract:
+                raise BatchError("Blocked task has no recoverable contract")
+            recovery_number = int(state.get("recovery_count", 0)) + 1
+            save_json(
+                self.directory / f"recovery_{recovery_number:04d}.json",
+                {
+                    "previous_contract": previous_contract,
+                    "current_contract": self.contract,
+                    "previous_phase": state["phase"],
+                    "previous_reason": state.get("reason", ""),
+                    "executor_calls_preserved": state.get("executor_calls", 0),
+                    "planner_calls_preserved": state.get("planner_calls", 0),
+                    "action": "planner_infrastructure_retry_after_validation",
+                },
+            )
+            state.update(
+                contract=self.contract,
+                phase="VALIDATION_PENDING",
+                reason=(
+                    "Explicit recovery of repeated Planner infrastructure failure: "
+                    "validate and retry Planner without Executor replay"
+                ),
+                recovery_count=recovery_number,
+                planner_errors=0,
+                completion_review=False,
+                review_error="",
+            )
+            self._save(state)
+            return state
 
     def _save(self, state: dict[str, Any]) -> None:
         save_json(self.state_path, state)
@@ -531,17 +643,24 @@ class Batch:
                 raise BatchError("Invalid completion criterion")
             if row["status"] != "complete":
                 issues.append(f"Pending criterion: {row['id']}")
-            if row["status"] == "complete" and (
-                not row["evidence"]
-                or not all(
-                    isinstance(name, str)
-                    and name in self.spec.required_artifacts
-                    and within(self.root, name).is_file()
-                    and within(self.root, name).stat().st_size > 0
-                    for name in row["evidence"]
-                )
-            ):
-                issues.append(f"Missing declared evidence for {row['id']}")
+            if row["status"] == "complete":
+                evidence = row["evidence"]
+                if not evidence or not all(isinstance(name, str) for name in evidence):
+                    raise ReviewProtocolError(
+                        f"Criterion {row['id']} needs one or more declared artifact paths in evidence"
+                    )
+                invalid = [
+                    name
+                    for name in evidence
+                    if name not in self.spec.required_artifacts
+                    or not within(self.root, name).is_file()
+                    or not within(self.root, name).stat().st_size > 0
+                ]
+                if invalid:
+                    raise ReviewProtocolError(
+                        f"Criterion {row['id']} evidence must contain only declared artifact paths; "
+                        f"invalid values: {invalid}"
+                    )
         issues.extend(
             f"Missing artifact: {name}"
             for name in self.spec.required_artifacts
@@ -598,6 +717,14 @@ class Batch:
                 self.verify()
             except BatchError as exc:
                 return self._block(state, f"Frozen boundary changed: {exc}")
+            if state["phase"] == "VALIDATION_PENDING":
+                try:
+                    state["validation"] = transport.validate(state["executor_calls"])
+                except Exception as exc:
+                    state["validation"] = {"passed": False, "details": f"Validation failed: {exc}"}
+                state["validated_hashes"] = self._artifact_hashes()
+                state["phase"] = "PLANNER_PENDING"
+                self._save(state)
             task = self._task(state["feedback"])
             if state["phase"] == "EXECUTOR_PENDING":
                 if (

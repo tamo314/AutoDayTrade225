@@ -1477,6 +1477,9 @@ def run_bounded_task(
                 auto_instruction = (
                     " AUTONOMOUS v2: HOLD is NOT a reason to stop while scoped work remains. "
                     "Return every completion criterion with artifact evidence, and remaining_work. "
+                    "For every complete criterion, criteria[].evidence MUST be a nonempty list of "
+                    "exact declared artifact paths (for example, docs/strategy/plans/TASK/.../design.md); "
+                    "put explanatory prose in analysis, never in evidence. "
                     "Repairable defects, incomplete calendar documents, missing stage-irrelevant "
                     "capital/DD values, and failed validation must continue automatically. "
                     "Only use blocked for an evidenced major obstacle with attempted remedies. "
@@ -1539,6 +1542,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch", type=Path, help="Frozen bounded task JSON (defaults to config.bounded_task)")
     parser.add_argument("--status", action="store_true", help="Read bounded task state without dispatch")
     parser.add_argument("--close-interrupted", metavar="REASON", help="Close an orphaned bounded dispatch without refunding its budget")
+    parser.add_argument(
+        "--recover-interrupted",
+        action="store_true",
+        help="After inspecting child processes, revalidate an interrupted v2 task and resume Planner review without replaying its Executor",
+    )
+    parser.add_argument(
+        "--recover-planner-block",
+        action="store_true",
+        help="After resolving an external Planner failure, revalidate and retry Planner only; research BLOCKED decisions cannot be reopened",
+    )
     return parser.parse_args()
 
 
@@ -1559,8 +1572,8 @@ def main() -> int:
         if batch_name:
             if args.reset:
                 raise BatchError("--reset is disabled for bounded tasks; budgets and logs must be retained")
-            if sum((bool(args.check), bool(args.status), args.close_interrupted is not None)) > 1:
-                raise BatchError("Use only one of --check, --status, --close-interrupted")
+            if sum((bool(args.check), bool(args.status), args.close_interrupted is not None, bool(getattr(args, "recover_interrupted", False)), bool(getattr(args, "recover_planner_block", False)))) > 1:
+                raise BatchError("Use only one recovery/status/check action at a time")
             # One Executor process per reservation; no hidden Claude auto-resumes.
             config["claude"]["auto_resume_on_max_turns"] = False
             batch_path = Path(batch_name)
@@ -1574,9 +1587,23 @@ def main() -> int:
                 return 0
             if args.check:
                 batch.verify()
-                state = batch.status()
+                # A diagnostic check must remain available after a controller
+                # upgrade so an interrupted task can be explicitly recovered.
+                state = batch.status(historical=True)
                 print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; phase={state['phase']}; {limit_text}")
                 return 0 if run_checks(config, project_dir, project_dir / batch.spec.task_file) else 2
+            if getattr(args, "recover_interrupted", False):
+                recovered = batch.recover_interrupted()
+                print(
+                    "Recovered interrupted task without replaying Executor: "
+                    f"executor={recovered['executor_calls']}; planner={recovered['planner_calls']}"
+                )
+            if getattr(args, "recover_planner_block", False):
+                recovered = batch.recover_planner_block()
+                print(
+                    "Recovered Planner infrastructure block without replaying Executor: "
+                    f"executor={recovered['executor_calls']}; planner={recovered['planner_calls']}"
+                )
             if args.close_interrupted is None and not run_checks(config, project_dir, project_dir / batch.spec.task_file):
                 return 2
             print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; {limit_text}")
