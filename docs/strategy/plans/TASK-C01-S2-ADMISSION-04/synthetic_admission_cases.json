@@ -1,0 +1,109 @@
+{
+  "task_id": "TASK-C01-S2-ADMISSION-04",
+  "scope": "Synthetic admission metadata only. No case contains market data, an actual manifest, a ReviewReceipt, a grant, or execution authority.",
+  "cases": [
+    {
+      "id": "no_grant",
+      "input": {
+        "calendar_hash_match": true,
+        "development_range_fixed": true,
+        "family_exception_review": true,
+        "finite_s2_attempt": true,
+        "review_receipt": true,
+        "matching_grant": false,
+        "requested_output_fields": ["calendar_date", "trade_date", "s1_label", "missingness_code"]
+      },
+      "expected_decision": "REJECT",
+      "authorises_real_access": false,
+      "reason": "The exact matching grant gate is absent. A complete-looking request must fail closed before any real input is accessed."
+    },
+    {
+      "id": "no_family_exception",
+      "input": {
+        "calendar_hash_match": true,
+        "development_range_fixed": true,
+        "family_exception_review": false,
+        "finite_s2_attempt": true,
+        "review_receipt": true,
+        "matching_grant": true,
+        "requested_output_fields": ["calendar_date", "trade_date", "s1_label", "missingness_code"]
+      },
+      "expected_decision": "REJECT",
+      "authorises_real_access": false,
+      "reason": "F05/F06 remain closed. A grant-shaped value cannot substitute for the required bounded human exception review."
+    },
+    {
+      "id": "calendar_hash_mismatch",
+      "input": {
+        "calendar_hash_match": false,
+        "development_range_fixed": true,
+        "family_exception_review": true,
+        "finite_s2_attempt": true,
+        "review_receipt": true,
+        "matching_grant": true,
+        "requested_output_fields": ["calendar_date", "trade_date", "s1_label", "missingness_code"]
+      },
+      "expected_decision": "REJECT",
+      "authorises_real_access": false,
+      "reason": "A changed C01 calendar or S1 label audit is not the frozen contract and must be rejected before an S2 input read."
+    },
+    {
+      "id": "out_of_development_range",
+      "input": {
+        "calendar_hash_match": true,
+        "development_range_fixed": false,
+        "requested_trade_date_range": "outside 2021-01-01 through 2025-06-30",
+        "family_exception_review": true,
+        "finite_s2_attempt": true,
+        "review_receipt": true,
+        "matching_grant": true,
+        "requested_output_fields": ["calendar_date", "trade_date", "s1_label", "missingness_code"]
+      },
+      "expected_decision": "REJECT",
+      "authorises_real_access": false,
+      "reason": "Only the frozen Development trade_date range could be considered by a future registered task; OOS and Final Holdout remain outside this contract."
+    },
+    {
+      "id": "prohibited_output_field",
+      "input": {
+        "calendar_hash_match": true,
+        "development_range_fixed": true,
+        "family_exception_review": true,
+        "finite_s2_attempt": true,
+        "review_receipt": true,
+        "matching_grant": true,
+        "requested_output_fields": ["calendar_date", "trade_date", "s1_label", "price"]
+      },
+      "expected_decision": "REJECT",
+      "authorises_real_access": false,
+      "reason": "price is prohibited. Any request for a bar value, return, direction, order, fill, or PnL field fails the S2 non-PnL boundary."
+    },
+    {
+      "id": "hypothetical_complete_metadata_only",
+      "input": {
+        "calendar_hash_match": true,
+        "development_range_fixed": true,
+        "family_exception_review": true,
+        "finite_s2_attempt": true,
+        "review_receipt": true,
+        "matching_grant": true,
+        "requested_output_fields": [
+          "calendar_date",
+          "trade_date",
+          "s1_label",
+          "open_0900_present",
+          "close_0914_present",
+          "entry_0915_present",
+          "exit_1030_present",
+          "entry_available",
+          "exit_available",
+          "missingness_code",
+          "scheduled_date_count"
+        ]
+      },
+      "expected_decision": "ACCEPT_SYNTHETIC_ONLY",
+      "authorises_real_access": false,
+      "reason": "This fixture shows the complete metadata-only contract shape. It is not an actual manifest, ReviewReceipt, grant, family exception, budget reservation, or permission to read real inputs."
+    }
+  ]
+}

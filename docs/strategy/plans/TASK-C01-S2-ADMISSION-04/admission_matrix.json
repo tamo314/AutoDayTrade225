@@ -1,0 +1,100 @@
+{
+  "task_id": "TASK-C01-S2-ADMISSION-04",
+  "calendar_contract_sha256": "6822242ec5f2f7b17bdf7248a13b7099fccb6fa15ded5bd834b90b241d642800",
+  "s1_label_audit_sha256": "34ca215a726b382714da940b4cc33fbac682d293f411d6803feffd22c7cd94df",
+  "inherited_scope": {
+    "candidate": "C01 single frozen representative route",
+    "development_trade_date_range": {
+      "start": "2021-01-01",
+      "end": "2025-06-30"
+    },
+    "s1_labels": [
+      "TREATMENT_HOLIDAY_REOPEN",
+      "ORDINARY_CASH_OPEN_CONTROL",
+      "OUT_OF_REGIME_OR_EXCLUDED"
+    ],
+    "f05_f06_registry_status": "CLOSED_FOR_CURRENT_DEVELOPMENT_SEARCH; no automatic reopening"
+  },
+  "current_authorisation": {
+    "real_market_input_access": "NOT_GRANTED",
+    "grant_count": 0,
+    "family_exception": "NOT_GRANTED",
+    "real_data_pnl_attempts": 0
+  },
+  "observed_execution_control_state": {
+    "market_execution_enabled": false,
+    "configured_grants": 0,
+    "meaning": "No real input read, S2 dispatch, manifest, ReviewReceipt, or grant is created or authorised by this design artifact."
+  },
+  "required_admission_gates": [
+    "calendar_hash_match",
+    "development_range_fixed",
+    "family_exception_review",
+    "finite_s2_attempt",
+    "review_receipt",
+    "matching_grant"
+  ],
+  "admission_order": [
+    {
+      "gate": "calendar_hash_match",
+      "requirement": "The frozen C01 preparation calendar SHA-256 and S1 label-audit SHA-256 exactly equal this matrix; any difference rejects before input access."
+    },
+    {
+      "gate": "development_range_fixed",
+      "requirement": "The proposed real-input scope is only trade_date 2021-01-01 through 2025-06-30; OOS, Final Holdout, raw data, derived bars, price caches, and trade records are excluded."
+    },
+    {
+      "gate": "family_exception_review",
+      "requirement": "A human review explicitly grants a bounded exception for the closed F05/F06-adjacent C01 route. The current status is NOT_GRANTED."
+    },
+    {
+      "gate": "finite_s2_attempt",
+      "requirement": "A newly registered S2 task states one finite non-PnL attempt and its remaining budget. This task invents neither an attempt nor a remaining slot."
+    },
+    {
+      "gate": "review_receipt",
+      "requirement": "A complete non-PnL RunManifest and its ReviewReceipt exist for the new task and restrict input handling and outputs to this matrix. Neither artifact is created here."
+    },
+    {
+      "gate": "matching_grant",
+      "requirement": "A grant exactly matches the registered S2 task, frozen hashes, Development range, finite attempt, non-PnL output contract, manifest, and ReviewReceipt. The current grant count is zero."
+    }
+  ],
+  "decision_rule": "Evaluate the gates in admission_order. Reject on the first missing, false, expired, mismatched, or out-of-scope condition. An ACCEPT_SYNTHETIC_ONLY result is a test fixture, never authority for real input access.",
+  "allowed_output_fields": [
+    "calendar_date",
+    "trade_date",
+    "s1_label",
+    "open_0900_present",
+    "close_0914_present",
+    "entry_0915_present",
+    "exit_1030_present",
+    "entry_available",
+    "exit_available",
+    "missingness_code",
+    "scheduled_date_count"
+  ],
+  "prohibited_output_fields": [
+    "open",
+    "high",
+    "low",
+    "close",
+    "price",
+    "return",
+    "direction",
+    "order",
+    "fill_price",
+    "pnl",
+    "gross",
+    "net",
+    "volume",
+    "bar_value",
+    "signal",
+    "trade",
+    "fill",
+    "execution",
+    "market_derived_count",
+    "performance"
+  ],
+  "output_boundary": "scheduled_date_count may count only the pre-scheduled calendar axis by S1 label. It must not report observed-bar, signal, order, fill, trade, return, or PnL counts."
+}

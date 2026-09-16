@@ -12,7 +12,7 @@
 - 実行・残枠・中断確認：[123 登録実行管理](strategy/123_registered_execution_control.md)
 - 次の候補・初期指示：[124 引継ぎ](strategy/124_next_research_orchestrator_handoff.md)、[125 初期タスク](strategy/125_next_research_initial_task.md)
 - Planner／Executorの起動：[126 有限オーケストレーション](strategy/126_bounded_orchestration.md)
-- 自律継続の現行手順：[128 自律継続](strategy/128_autonomous_orchestration.md)、[129 C01 S1カレンダー検証](strategy/129_c01_s1_calendar_causality.md)
+- 自律継続の現行手順：[128 自律継続](strategy/128_autonomous_orchestration.md)、[129 C01 S1カレンダー検証](strategy/129_c01_s1_calendar_causality.md)、[130 C01 S2入場判定](strategy/130_c01_s2_admission.md)
 
 01～119の計画・結果・監査は履歴。120/121とregistryは2026-09-16の棚卸しsnapshotで、将来の実行許可ではない。新しい運用変更は00に反映し、旧runの仕様・結果と区別する。
 

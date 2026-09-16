@@ -18,7 +18,7 @@
 |新しい計画のS0設計、S1/S2の合成校正|進める|既知履歴を明示し、まだ研究枠を消費していない計画と区別。計画作成を実データ実行の許可にしない|
 |Development非PnL件数・可用性診断|計画を固定した対象だけ|既存許可の範囲と終了条件を継承。既知の同一可用性不足を再発見するだけの反復をしない|
 |Developmentの新規PnL、近縁救済、メタ戦略追加|停止|対象familyの再開理由、有限枠、完全仕様、対象に必要な監査・校正が揃ってから別のバッチとして記録|
-|Planner/Executorバッチ|固定範囲の完了まで自律継続|[128](128_autonomous_orchestration.md)を適用。C01準備は完了し、次は[129](129_c01_s1_calendar_causality.md)の価格なしS1カレンダー検証を再設計・修正・検証する。旧自由文ループは停止。実データは登録済みmanifestを`research execute`で実行し、現在grantなし|
+|Planner/Executorバッチ|固定範囲の完了まで自律継続|[128](128_autonomous_orchestration.md)を適用。C01準備と[129](129_c01_s1_calendar_causality.md)の価格なしS1カレンダー検証は完了し、次は[130](130_c01_s2_admission.md)のS2入場判定・非PnL観測可能性契約を再設計・修正・検証する。旧自由文ループは停止。実データは登録済みmanifestを`research execute`で実行し、現在grantなし|
 |OOS／Final Holdout／実売買|現在は進めない|13のS5以降の別工程。Development通過や候補の凍結だけで開封しない|
 
 R050の実体確認、R065のcross-session受入、volume意味など、対象案が依存しない未解決事項を全研究共通の停止理由にしない。既存の225Labo利用に関する所有者判断とPASS_LIMITEDは維持し、同じ判断を再度求めない。PASS_LIMITEDをOOSや実運用の保証へ拡張しない。
@@ -52,7 +52,7 @@ R050の実体確認、R065のcross-session受入、volume意味など、対象�
 
 ユーザーの自動連携実装依頼により、[124 候補引継ぎ](124_next_research_orchestrator_handoff.md)と[125 初期指示文](125_next_research_initial_task.md)を、[126の有限designバッチ](126_bounded_orchestration.md)から開始できる。C01一案、実データattempt 0件、Executor最大3回・Planner最大5回。同じ成果物のレビュー修正だけを行い、C02への自動切替や売買枠補充はしない。
 
-上記初回と [127 C01準備タスク](127_c01_autonomous_preparation.md) はDONEとして保存済み。次は [129 C01 S1カレンダー検証](129_c01_s1_calendar_causality.md) を [128 自律ループ](128_autonomous_orchestration.md) で実行する。旧3/5回の呼出上限を外し、凍結カレンダーからのラベル・時点利用可能性・合成境界例を完了するまで自動継続する。過去成果物は不変で引き継ぎ、C01一案・実データattempt 0件を維持する。資本/DDやfamily再開をカレンダー整理・合成検証の共通前提にしない。
+上記初回、[127 C01準備タスク](127_c01_autonomous_preparation.md)、[129 C01 S1カレンダー検証](129_c01_s1_calendar_causality.md)はDONEとして保存済み。次は [130 C01 S2入場判定](130_c01_s2_admission.md) を [128 自律ループ](128_autonomous_orchestration.md) で実行する。S2の実データ診断を開始せず、入場gate、許可される非PnL観測可能性出力、fail-closed合成例を完了するまで自動継続する。過去成果物は不変で引き継ぎ、C01一案・実データattempt 0件を維持する。閉鎖family例外、有限枠、ReviewReceipt、一致grantがない状態は`NOT_GRANTED`として保存し、S2実データ実行を許可しない。
 
 - `batch_id`、対象family/spec、残枠、条件manifest、許可段階、停止理由を一つの正本に持ち、初回・再開・直接呼出しで同じ確認を通す。
 - 許可と数値を保存するだけでなく、コード・入力・仕様hash、期間、枠を実行前に検査する。曖昧な状態は読み込み前に拒否する。

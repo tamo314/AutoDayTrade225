@@ -1,0 +1,40 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-C01-S2-ADMISSION-04",
+  "mode": "design",
+  "task_file": "docs/strategy/130_c01_s2_admission.md",
+  "scope_file": "docs/strategy/130_c01_s2_admission.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/s2_admission_spec.md",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/admission_matrix.json",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/synthetic_admission_cases.json",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/verification.md",
+    "docs/strategy/plans/TASK-C01-S2-ADMISSION-04/review.md"
+  ],
+  "read_only_inputs": [
+    "config/research_execution.json",
+    "docs/strategy/registry/20260916_review.json",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/evidence.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/design.md",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/calendar_contract.json",
+    "docs/strategy/plans/TASK-C01-PREPARATION-02/review.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/labeling_spec.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/label_audit.json",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/synthetic_cases.json",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/fixture_results.md",
+    "docs/strategy/plans/TASK-C01-S1-CALENDAR-CAUSALITY-03/review.md"
+  ],
+  "validation_scripts": ["scripts/validate_c01_s2_admission.py"],
+  "completion_criteria": {
+    "fixed_scope": "C01の凍結代表ルート、S1ラベル、閉鎖台帳、実行停止設定を不変にし、価格・PnL・OOS・Final Holdout・grant・manifest・engineへアクセスしない。",
+    "admission_gates": "S2の実データアクセスに必要な閉鎖family例外、有限attempt、ReviewReceipt、一致grant、入力hashを明示し、現在は全て未許可と記録する。",
+    "observability_contract": "将来のS2が出力できる日付・ラベル・バー存在・欠損理由・非PnL集計を固定し、価格、方向、収益、注文・約定内容を出力・判断に使わない。",
+    "fail_closed": "grantなし、不一致hash、例外なし、範囲外期間、禁止出力のいずれも合成ケースで拒否し、仮想acceptを実行許可と混同しない。",
+    "verification": "固定validatorと最終監査を通し、C01の経済性・因果性・実行可能性をNOT_EVALUATED、実データ/PnL attemptを0のまま記録する。"
+  }
+}
