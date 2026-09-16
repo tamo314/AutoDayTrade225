@@ -15,10 +15,13 @@ import shutil
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from orchestrator_batch import Batch, BatchError
 
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_CONFIG = APP_DIR / "config.json"
@@ -64,7 +67,10 @@ def utc_now() -> str:
 
 def load_json(path: Path) -> dict[str, Any]:
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        value = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(value, dict):
+            raise OrchestratorError(f"Expected JSON object: {path}")
+        return value
     except FileNotFoundError as exc:
         raise OrchestratorError(f"Required file not found: {path}") from exc
     except json.JSONDecodeError as exc:
@@ -518,7 +524,7 @@ def _parse_codex_runtime_model(stdout: str, stderr: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def run_checks(config: dict[str, Any], project_dir: Path) -> bool:
+def run_checks(config: dict[str, Any], project_dir: Path, task_file: Path = INITIAL_TASK_FILE) -> bool:
     executor = config["executor"]
     required_commands = list(dict.fromkeys([config["codex"]["command"], config[executor]["command"]]))
     ok = True
@@ -532,9 +538,9 @@ def run_checks(config: dict[str, Any], project_dir: Path) -> bool:
     print(f"Executor          : {executor}")
     print(f"Planner model     : {planner_model} [{planner_model_source}]")
     print(f"Executor model    : {executor_model} [{executor_model_source}]")
-    print(f"Max iterations    : {config['max_iterations']}")
+    print(f"Legacy max iterations (bounded mode ignores): {config['max_iterations']}")
     print(f"Legacy min (ignored): {config['min_iterations_before_done']}")
-    print(f"Research paused   : {config.get('research_execution_paused', True)}")
+    print(f"Legacy loop paused: {config.get('research_execution_paused', True)}")
     print(f"Done confirmation : {config['done_confirmation_required']}")
     print(f"Planner workdir    : {project_dir}")
     if os.name == "nt":
@@ -549,14 +555,14 @@ def run_checks(config: dict[str, Any], project_dir: Path) -> bool:
         status = "OK" if exists else "MISSING"
         print(f"[{status}] {clean_cli_name(command)}", end="")
         if exists:
-            print(f" — {version_probe(command)}")
+            print(f" - {version_probe(command)}")
         else:
             print()
             ok = False
 
-    for path in [PLANNER_SCHEMA, PLANNER_PROMPT_FILE, EXECUTOR_PROMPT_FILE, CONTEXT_FILE, INITIAL_TASK_FILE]:
+    for path in [PLANNER_SCHEMA, PLANNER_PROMPT_FILE, EXECUTOR_PROMPT_FILE, CONTEXT_FILE, task_file]:
         exists = path.is_file()
-        print(f"[{'OK' if exists else 'MISSING'}] {path.relative_to(APP_DIR)}")
+        print(f"[{'OK' if exists else 'MISSING'}] {path}")
         ok = ok and exists
 
     if executor == "antigravity":
@@ -801,8 +807,13 @@ def run_executor(
     project_dir: Path,
     task: str,
     iteration: int,
+    *,
+    dispatch_check: Callable[[], None] | None = None,
 ) -> tuple[CommandResult, str, Path]:
-    require_automation_enabled(config)
+    if dispatch_check is None:
+        require_automation_enabled(config)
+    else:
+        dispatch_check()
     executor = config["executor"]
     tool_config = config[executor]
     context = read_text(CONTEXT_FILE)
@@ -1107,6 +1118,19 @@ def run_planner(
         log_stem=f"{safe_kind}_codex",
         success=result.return_code == 0 and not result.timed_out,
     )
+    # Preserve failed calls and malformed final responses before validation.
+    write_json(
+        RUNS_DIR / f"{iteration:04d}_{safe_kind}_response.json",
+        {
+            "return_code": result.return_code,
+            "timed_out": result.timed_out,
+            "duration_seconds": result.duration_seconds,
+            "stdout": result.stdout,
+            "stderr": logged_stderr,
+            **stderr_meta,
+            "final_text": final_path.read_text(encoding="utf-8") if final_path.is_file() else None,
+        },
+    )
     if result.return_code != 0:
         diagnostic = (logged_stderr or result.stdout).strip()
         raise OrchestratorError(
@@ -1385,6 +1409,74 @@ def orchestrate(config: dict[str, Any], project_dir: Path, reset: bool, once: bo
     print(f"\nStopped: reached max_iterations={max_iterations}.")
 
 
+def run_bounded_task(
+    config: dict[str, Any], project_dir: Path, batch: Batch,
+    *, once: bool = False, close_reason: str | None = None,
+) -> dict[str, Any]:
+    """Reuse CLI transports inside a reserved finite task and isolated log directory."""
+    global RUNS_DIR, CODEX_SCRATCH_DIR, HISTORY_FILE
+    old_paths = RUNS_DIR, CODEX_SCRATCH_DIR, HISTORY_FILE
+    RUNS_DIR = batch.directory / "runs"
+    CODEX_SCRATCH_DIR = batch.directory / "codex_scratch"
+    HISTORY_FILE = batch.directory / "history.jsonl"
+
+    class BoundedTransport:
+        def execute(self, task: str, attempt: int, check: Callable[[], None]) -> str:
+            check()
+            if batch.spec.mode == "design":
+                result, report, _ = run_executor(
+                    config, project_dir, task, attempt, dispatch_check=check,
+                )
+                if result.return_code != 0 or result.timed_out:
+                    raise BatchError(f"Executor exit={result.return_code}; see {RUNS_DIR}")
+                return report
+            # No agent receives authority to invent a market command or carry a reservation.
+            # The registered controller validates and reserves the frozen manifest itself.
+            manifest = project_dir / str(batch.spec.manifest_file)
+            run_id = load_json(manifest).get("run_id")
+            if not isinstance(run_id, str):
+                raise BatchError("Registered manifest has no run_id")
+            outputs = []
+            for verb, argument in (("check-execution", str(manifest)),
+                                   ("execute", str(manifest)), ("verify-execution", run_id)):
+                check()
+                result = run_command(
+                    [sys.executable, "-m", "n225m_bt.cli", "research", verb, argument],
+                    project_dir, int(config["executor_timeout_seconds"]),
+                )
+                write_json(RUNS_DIR / f"{attempt:04d}_{verb}.json", asdict(result))
+                if result.return_code != 0 or result.timed_out:
+                    raise BatchError(f"Registered {verb} failed; inspect execution-status and {RUNS_DIR}")
+                outputs.append(result.stdout)
+            return "\n".join(outputs)
+
+        def plan(self, task: str, report: str, attempt: int) -> dict[str, Any]:
+            result = CommandResult([], 0, "", "", 0)
+            decision, _ = run_planner(
+                config, project_dir, attempt, config["executor"], task, result, report,
+                run_kind=f"bounded_review_{attempt:04d}",
+                extra_instruction=(
+                    "This is a reserved bounded task, not the retired legacy loop. "
+                    "Review the declared artifacts and frozen scope. HOLD/CLOSE with complete "
+                    "records can finish. Continue only to complete this same task; no new "
+                    "hypothesis, market access, scope/budget changes, or task dispatch. "
+                    f"Mode={batch.spec.mode}; limits executor={batch.spec.max_executor_calls}, "
+                    f"planner={batch.spec.max_planner_calls}. In registered mode review only "
+                    "the frozen run outputs; do not open unrelated results or market data."
+                ),
+            )
+            append_jsonl(HISTORY_FILE, {
+                "iteration": attempt, "executor": config["executor"], "task": task,
+                "executor_return_code": 0, "planner": decision,
+            })
+            return decision
+
+    try:
+        return batch.run(BoundedTransport(), once=once, close_reason=close_reason)
+    finally:
+        RUNS_DIR, CODEX_SCRATCH_DIR, HISTORY_FILE = old_paths
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Codex planner + configurable Claude Code / Antigravity / Codex executor orchestrator"
@@ -1410,15 +1502,54 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run exactly one executor + planner cycle and save the next task",
     )
+    parser.add_argument("--batch", type=Path, help="Frozen bounded task JSON (defaults to config.bounded_task)")
+    parser.add_argument("--status", action="store_true", help="Read bounded task state without dispatch")
+    parser.add_argument("--close-interrupted", metavar="REASON", help="Close an orphaned bounded dispatch without refunding its budget")
     return parser.parse_args()
 
 
 def main() -> int:
+    # Windows redirected consoles may use cp932; arbitrary agent output must not
+    # abort a persisted task merely because one character is not representable.
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(errors="backslashreplace")
     args = parse_args()
     config_path = args.config.resolve()
     try:
         config = normalize_config(load_json(config_path))
         project_dir = resolve_project_dir(config, config_path)
+
+        batch_name = args.batch or config.get("bounded_task")
+        if batch_name:
+            if args.reset:
+                raise BatchError("--reset is disabled for bounded tasks; budgets and logs must be retained")
+            if sum((bool(args.check), bool(args.status), args.close_interrupted is not None)) > 1:
+                raise BatchError("Use only one of --check, --status, --close-interrupted")
+            # One Executor process per reservation; no hidden Claude auto-resumes.
+            config["claude"]["auto_resume_on_max_turns"] = False
+            batch_path = Path(batch_name)
+            if not batch_path.is_absolute():
+                batch_path = project_dir / batch_path
+            batch = Batch(project_dir, batch_path, config)
+            if args.status:
+                print(json.dumps({k: v for k, v in batch.status().items() if k not in {"report", "feedback"}}, ensure_ascii=False, indent=2))
+                return 0
+            if args.check:
+                batch.verify()
+                state = batch.status()
+                print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; phase={state['phase']}; executor<={batch.spec.max_executor_calls}; planner<={batch.spec.max_planner_calls}")
+                return 0 if run_checks(config, project_dir, project_dir / batch.spec.task_file) else 2
+            if args.close_interrupted is None and not run_checks(config, project_dir, project_dir / batch.spec.task_file):
+                return 2
+            print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; executor<={batch.spec.max_executor_calls}; planner<={batch.spec.max_planner_calls}")
+            state = run_bounded_task(config, project_dir, batch, once=args.once, close_reason=args.close_interrupted)
+            print(json.dumps({k: v for k, v in state.items() if k not in {"report", "feedback"}}, ensure_ascii=False, indent=2))
+            return 0 if state["phase"] in {"DONE", "EXECUTOR_PENDING"} else 1
+
+        if args.status or args.close_interrupted is not None:
+            raise BatchError("--status/--close-interrupted requires a bounded task")
 
         if args.check:
             return 0 if run_checks(config, project_dir) else 2
@@ -1432,7 +1563,7 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\nInterrupted. State was preserved; inspect research execution-status before further work.", file=sys.stderr)
         return 130
-    except OrchestratorError as exc:
+    except (OrchestratorError, BatchError) as exc:
         print(f"\nERROR: {exc}", file=sys.stderr)
         return 1
 

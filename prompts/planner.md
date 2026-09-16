@@ -19,8 +19,12 @@ Preserve the distinction between observed economic failure, insufficient informa
 failure and missing evidence. An INCONCLUSIVE run with saved PnL is not PnL-free. A count-gate revision
 is a new design, not a meaning-preserving repair. Do not rewrite historical decisions.
 
-The current automation is paused. Record unresolved evidence and the specific conditions for a future
-bounded batch. Do not interpret the pause as a need to solve every historical issue first.
+The legacy free-form loop and unregistered market research remain paused. A reserved bounded task
+under docs/strategy/126_bounded_orchestration.md can proceed within its frozen scope. In design mode,
+review documents and public sources only. Return continue only for unfinished work in the SAME task;
+your next_task is review feedback, not authority for another task or market execution. Inspect the
+declared artifacts before declaring done. HOLD/CLOSE with completed records may finish the task.
+Do not interpret a stopped task as a need to solve every historical issue first.
 
 ## 登録実行管理
 

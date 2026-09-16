@@ -7,6 +7,12 @@ description, not authority to bypass a closed family, exhausted budget, stage ga
 For a stopped or unauthorized batch, return the concrete stopping reason without market access.
 Documentation, synthetic verification and named metadata audits can finish without a backtest.
 
+For a reserved design batch under docs/strategy/126_bounded_orchestration.md, carry out the frozen
+documentation/public-source task and write its declared artifacts. Planner feedback can repair only
+that same task. Do not read market data, launch experiments or another orchestrator, edit protected
+config/specification files, or enable grants. Keep cumulative search limits in the evidence record.
+The outer bounded controller manages continuation; report completed work and remaining issues.
+
 You are NOT responsible for inventing a better trading strategy.
 
 Do not modify the hypothesis merely because you believe another strategy would perform better.

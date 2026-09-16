@@ -76,7 +76,7 @@ ReviewReceiptは試験の代用品ではない。`evidence`に実際の監査・
 |`script:scripts/<name>.py`|レビュー済みの専用runner。引数なし。`RUN_ID`、`OUT`、`RESEARCH_STAGE`、`RESEARCH_CONDITIONS`、`RESEARCH_SEED`をmanifestと一致させ、mainで`require_entry()`を呼ぶ|
 |既存script・関数の直接起動|119本のscript、campaign、R003、R057、専用S2、baseline CLIは未予約なら冒頭で停止。純粋な合成計算helperは引き続き利用できる|
 |`load_split` / `partition_paths` / 専用S2 partition列挙|予約のないDevelopmentも、OOSも、価格scan前に拒否。Final Holdoutは閉鎖を維持|
-|旧Planner/Executorループ|自由文タスクから価格実行の予約を引き継がないため停止。`research_execution_paused=false`や`--reset`では復活しない。実行は上記の確定計画入口を使う|
+|旧Planner/Executorループ|自由文タスクから価格実行の予約を引き継がないため停止。`research_execution_paused=false`や`--reset`では復活しない。別経路の[126 有限バッチ](126_bounded_orchestration.md)はdesign作業、または固定manifestを上記登録入口へ渡すことだけを許可する|
 
 campaign/scriptの仕様は、S4など別工程へ勝手に引き継がない。旧scriptに冒頭確認を付けたことは、その旧案を再開してよいという意味ではない。RESEARCH_*定義や固定出力契約を持たない旧scriptは、専用adapterの受入まで実行不可。子プロセスへの予約の暗黙継承もない。
 

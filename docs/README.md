@@ -10,6 +10,8 @@
 - 個別研究への索引：[121 対応表](strategy/121_research_inventory_index.md)
 - 方針・実装の再点検：[122 レビュー](strategy/122_project_policy_review.md)
 - 実行・残枠・中断確認：[123 登録実行管理](strategy/123_registered_execution_control.md)
+- 次の候補・初期指示：[124 引継ぎ](strategy/124_next_research_orchestrator_handoff.md)、[125 初期タスク](strategy/125_next_research_initial_task.md)
+- Planner／Executorの起動：[126 有限オーケストレーション](strategy/126_bounded_orchestration.md)
 
 01～119の計画・結果・監査は履歴。120/121とregistryは2026-09-16の棚卸しsnapshotで、将来の実行許可ではない。新しい運用変更は00に反映し、旧runの仕様・結果と区別する。
 

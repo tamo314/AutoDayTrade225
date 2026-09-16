@@ -11,7 +11,18 @@ Development: 2021-01-01～2025-06-30、OOS: 2025-07-01～2025-12-31。2026年以
 
 ## 現在の作業範囲
 
-設計・記録整理・合成検証を進め、新しい実データPnL探索と自動研究ループは停止しています。`config/research_execution.json`は停止・grant 0件です。次の計画は仕様・証拠・有限枠を登録して`research execute`から実行します。旧ループの設定解除や`--reset`では枠を作れません。
+設計・記録整理・合成検証を進めます。Planner／Executorは[有限バッチ](docs/strategy/126_bounded_orchestration.md)で自動連携できます。新しい実データPnL探索と旧自由文ループは停止を維持し、`config/research_execution.json`は停止・grant 0件です。実データ計画は仕様・証拠・有限枠を登録して`research execute`から実行します。旧ループの設定解除や`--reset`では枠を作れません。
+
+### Planner／Executorの開始
+
+プロジェクトrootで実行します。現在の既定バッチはC01の根拠確認・設計で、実データを使いません。モデル・CLI設定は既存の`config.json`を使います。
+
+```powershell
+.venv/Scripts/python.exe orchestrator.py --check
+.venv/Scripts/python.exe orchestrator.py
+```
+
+状態だけを見る場合は `--status`、1回のExecutor＋Plannerで区切る場合は `--once`。同じ開始コマンドで保存状態から続行します。`--reset`は使えません。Executorは最大3回、Plannerは最大5回で、HOLD/CLOSEでも成果物が揃えば完了できます。詳細な障害時の扱いは[操作手順](docs/strategy/126_bounded_orchestration.md)を参照してください。
 
 環境と設定だけの確認:
 

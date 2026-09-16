@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "task_id": "TASK-NEXT-C01-DESIGN-01",
+  "mode": "design",
+  "task_file": "docs/strategy/125_next_research_initial_task.md",
+  "scope_file": "docs/strategy/124_next_research_orchestrator_handoff.md",
+  "max_executor_calls": 3,
+  "max_planner_calls": 5,
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-NEXT-C01-DESIGN-01/evidence.md",
+    "docs/strategy/plans/TASK-NEXT-C01-DESIGN-01/design.md",
+    "docs/strategy/plans/TASK-NEXT-C01-DESIGN-01/review.md"
+  ]
+}
