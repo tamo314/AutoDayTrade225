@@ -21,7 +21,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from orchestrator_batch import Batch, BatchError, DispatchUncertainError
+from orchestrator_batch import (
+    Batch,
+    BatchError,
+    DispatchUncertainError,
+    require_explicit_input_expansion,
+)
 
 APP_DIR = Path(__file__).resolve().parent
 DEFAULT_CONFIG = APP_DIR / "config.json"
@@ -1568,6 +1573,7 @@ def main() -> int:
         config = normalize_config(load_json(config_path))
         project_dir = resolve_project_dir(config, config_path)
 
+        selected_batch_explicitly = args.batch is not None
         batch_name = args.batch or config.get("bounded_task")
         if batch_name:
             if args.reset:
@@ -1592,6 +1598,9 @@ def main() -> int:
                 state = batch.status(historical=True)
                 print(f"Bounded task: {batch.spec.task_id}; mode={batch.spec.mode}; phase={state['phase']}; {limit_text}")
                 return 0 if run_checks(config, project_dir, project_dir / batch.spec.task_file) else 2
+            require_explicit_input_expansion(
+                batch.spec, selected_explicitly=selected_batch_explicitly
+            )
             if getattr(args, "recover_interrupted", False):
                 recovered = batch.recover_interrupted()
                 print(

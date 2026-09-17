@@ -1,6 +1,6 @@
 # 128. 範囲完了まで再設計・修正・実行を自動継続する
 
-改訂: **ORCHESTRATION-20260916-02** / 2026-09-16 JST
+改訂: **ORCHESTRATION-20260917-01** / 2026-09-17 JST
 
 ユーザーの自動継続依頼を受け、schema_version=2の準備研究ループを追加した。研究範囲は固定し、その範囲の未完了事項を自動で処理する。HOLDや文書作成だけで終了させず、式の訂正・設計の整合化・根拠調査・検証失敗の修正を継続する。
 
@@ -13,7 +13,7 @@
 .venv/Scripts/python.exe orchestrator.py
 ```
 
-既定は [C05 R103設計閉鎖監査バッチ](../../config/orchestration/c05_r103_design_closure.json)。その範囲・完了条件は [135 C05 R103設計閉鎖監査](135_c05_r103_design_closure.md) を参照する。同じコマンドで保存された工程から再開する。`--once`は利用者が途中で区切る場合だけ使う。状態確認は `--status`。
+既定は [現有OHLC候補入場判定バッチ](../../config/orchestration/current_ohlc_candidate_admission.json)。その範囲・完了条件は [138 現有OHLC候補入場判定](138_current_ohlc_candidate_admission.md) を参照する。同じコマンドで保存された工程から再開する。`--once`は利用者が途中で区切る場合だけ使う。状態確認は `--status`。
 
 元のC01タスクはDONE/HOLDの記録を保持し、新しい準備タスクへ参照として継承した。新タスクは旧成果物を修正せず、新出力先に訂正を残す。旧状態は次で参照できる。コードやconfig更新後の過去DONEは `contract_matches_current=false` と表示できるが、この表示は旧タスクの再実行を許可しない。
 
@@ -22,6 +22,12 @@
 ```
 
 `--reset`や状態ファイルの削除は使わない。処理中断・二重起動・ログ保存の基本は [126](126_bounded_orchestration.md) を継承する。
+
+### 入力プロファイルと既定キュー
+
+schema v2の凍結taskには`input_profile`と`queue_lane`を記録する。`CURRENT_225LABO_OHLC`/`CURRENT_DATA_RESEARCH`だけが、現有OHLC研究の既定キューになれる。`REQUIRES_VOLUME_SEMANTICS`、`REQUIRES_EXTERNAL_SERIES`、`REQUIRES_EVENT_TIMESTAMP_LEDGER`は`INPUT_EXPANSION`であり、既定`bounded_task`からのdispatchをコントローラが拒否する。
+
+入力拡張の履歴を確認する`--check`・`--status`は許可する。実行するには、入力範囲の変更を別途記録した後に明示的な`--batch`で選ぶ。これにより、C02〜C04のような対象外入力の監査が、現有OHLC研究の次工程として自動選択されない。
 
 ## 2. 自動継続する条件
 

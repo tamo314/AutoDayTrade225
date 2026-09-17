@@ -9,6 +9,8 @@
   "max_stalled_cycles": 3,
   "max_consecutive_errors": 3,
   "retry_backoff_seconds": 2,
+  "input_profile": "REQUIRES_EXTERNAL_SERIES",
+  "queue_lane": "INPUT_EXPANSION",
   "required_artifacts": [
     "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/source_contract.md",
     "docs/strategy/plans/TASK-C03-FX-INPUT-AUDIT-07/input_admission.json",

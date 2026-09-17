@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import io
 import json
 import uuid
@@ -17,6 +18,7 @@ from orchestrator_batch import (
     DispatchUncertainError,
     TaskSpec,
     read_json,
+    require_explicit_input_expansion,
     save_json,
     task_lock,
 )
@@ -424,6 +426,59 @@ def auto_decision(batch: Batch, status: str = "done", *, complete: bool = True) 
         "remaining_work": [] if complete else ["Accounting correction"],
         "blocker": None,
     }
+
+
+def test_schema2_input_profile_requires_its_matching_queue_lane(auto_batch: Batch) -> None:
+    root = auto_batch.root
+    spec = read_json(auto_batch.path)
+    spec.update(input_profile="REQUIRES_EXTERNAL_SERIES", queue_lane="GOVERNANCE")
+    save_json(auto_batch.path, spec)
+    with pytest.raises(BatchError, match="INPUT_EXPANSION"):
+        TaskSpec.load(root, auto_batch.path)
+
+
+def test_input_expansion_requires_explicit_batch_selection(auto_batch: Batch) -> None:
+    root = auto_batch.root
+    spec = read_json(auto_batch.path)
+    spec.update(input_profile="REQUIRES_EXTERNAL_SERIES", queue_lane="INPUT_EXPANSION")
+    save_json(auto_batch.path, spec)
+    loaded = TaskSpec.load(root, auto_batch.path)
+    with pytest.raises(BatchError, match="cannot be the default"):
+        require_explicit_input_expansion(loaded, selected_explicitly=False)
+    require_explicit_input_expansion(loaded, selected_explicitly=True)
+
+
+def test_main_rejects_default_input_expansion_before_any_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    spec = type(
+        "InputExpansionSpec",
+        (),
+        {
+            "queue_lane": "INPUT_EXPANSION",
+            "max_executor_calls": None,
+            "max_planner_calls": None,
+        },
+    )()
+    batch = type("InputExpansionBatch", (), {"spec": spec})()
+    monkeypatch.setattr(
+        app,
+        "parse_args",
+        lambda: argparse.Namespace(
+            config=Path("config.json"),
+            batch=None,
+            reset=False,
+            check=False,
+            status=False,
+            close_interrupted=None,
+            once=False,
+            recover_interrupted=False,
+            recover_planner_block=False,
+        ),
+    )
+    monkeypatch.setattr(app, "Batch", lambda *args: batch)
+    monkeypatch.setattr(app, "run_checks", lambda *args: pytest.fail("must not dispatch"))
+    assert app.main() == 1
 
 
 class AutoTransport(FakeTransport):

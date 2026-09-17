@@ -1,6 +1,6 @@
 # 現在の研究方針と文書の読み順
 
-運用改訂: **POLICY-20260916-04** / 2026-09-16 JST
+運用改訂: **POLICY-20260917-01** / 2026-09-17 JST
 
 現在: **設計・記録整理・合成検証を継続。固定したdesignバッチはPlanner／Executorで自動連携できる。新しい実データPnL探索と旧自由文ループは停止。**
 
@@ -18,7 +18,7 @@
 |新しい計画のS0設計、S1/S2の合成校正|進める|既知履歴を明示し、まだ研究枠を消費していない計画と区別。計画作成を実データ実行の許可にしない|
 |Development非PnL件数・可用性診断|計画を固定した対象だけ|既存許可の範囲と終了条件を継承。既知の同一可用性不足を再発見するだけの反復をしない|
 |Developmentの新規PnL、近縁救済、メタ戦略追加|停止|対象familyの再開理由、有限枠、完全仕様、対象に必要な監査・校正が揃ってから別のバッチとして記録|
-|Planner/Executorバッチ|固定範囲の完了まで自律継続|[128](128_autonomous_orchestration.md)を適用。C01準備、[129](129_c01_s1_calendar_causality.md)の価格なしS1カレンダー検証、[130](130_c01_s2_admission.md)のS2入場判定、[131](131_c01_exception_review.md)のF05/F06例外レビュー、[132](132_c02_volume_input_audit.md)のC02出来高入力監査、[133](133_c03_fx_input_audit.md)のC03ドル円外部入力監査、[134](134_c04_event_calendar_audit.md)のC04雇用統計カレンダー監査は完了した。C04は`NOT_USABLE_FOR_C04`で、経済性ではなく入力時刻証拠の不足による不採用である。次は[135](135_c05_r103_design_closure.md)のR103設計閉鎖監査を再設計・修正・検証する。旧自由文ループは停止。実データは登録済みmanifestを`research execute`で実行し、現在grantなし|
+|Planner/Executorバッチ|固定範囲の完了まで自律継続|[128](128_autonomous_orchestration.md)を適用する。C01〜C05の完了記録は保存し、C02〜C04は入力拡張キューに分離する。既定は[138](138_current_ohlc_candidate_admission.md)の現有OHLC候補入場判定で、外部価格・出来高・イベント時刻を必要とする監査を自動選択しない。旧自由文ループは停止。実データは登録済みmanifestを`research execute`で実行し、現在grantなし|
 |OOS／Final Holdout／実売買|現在は進めない|13のS5以降の別工程。Development通過や候補の凍結だけで開封しない|
 
 R050の実体確認、R065のcross-session受入、volume意味など、対象案が依存しない未解決事項を全研究共通の停止理由にしない。既存の225Labo利用に関する所有者判断とPASS_LIMITEDは維持し、同じ判断を再度求めない。PASS_LIMITEDをOOSや実運用の保証へ拡張しない。
@@ -52,7 +52,7 @@ R050の実体確認、R065のcross-session受入、volume意味など、対象�
 
 ユーザーの自動連携実装依頼により、[124 候補引継ぎ](124_next_research_orchestrator_handoff.md)と[125 初期指示文](125_next_research_initial_task.md)を、[126の有限designバッチ](126_bounded_orchestration.md)から開始できる。C01一案、実データattempt 0件、Executor最大3回・Planner最大5回。同じ成果物のレビュー修正だけを行い、C02への自動切替や売買枠補充はしない。
 
-上記初回、[127 C01準備タスク](127_c01_autonomous_preparation.md)、[129 C01 S1カレンダー検証](129_c01_s1_calendar_causality.md)、[130 C01 S2入場判定](130_c01_s2_admission.md)、[131 C01例外レビュー](131_c01_exception_review.md)、[132 C02出来高入力監査](132_c02_volume_input_audit.md)、[133 C03ドル円外部入力監査](133_c03_fx_input_audit.md)、[134 C04雇用統計カレンダー監査](134_c04_event_calendar_audit.md)はDONEとして保存済み。C01は`NO_EXCEPTION_RECOMMENDED`であり、実データS2を許可しない。C02とC03は共に`NOT_VERIFIED`で完了し、C02のR010/R052はPnL前の入力不足・`NOT_EVALUATED`のまま、F11を再開しない。C04は`NOT_USABLE_FOR_C04`で完了し、BLSの予定時刻資料は確認できたが実発表・DST/JST・OSE対応の証拠不足によりC04をfamily化しない。次は[135 C05 R103設計閉鎖監査](135_c05_r103_design_closure.md)を[128 自律ループ](128_autonomous_orchestration.md)で実行する。R103の2021初期化4件と事前下限8件を固定し、下限の事後変更やF07再開をせず、PnL前不足と経済的REJECTを分離して記録する。実データ・経済値・外部時系列・family化・有限枠・grantは作成せず、実データattempt 0件を維持する。
+上記初回、[127 C01準備タスク](127_c01_autonomous_preparation.md)、[129 C01 S1カレンダー検証](129_c01_s1_calendar_causality.md)、[130 C01 S2入場判定](130_c01_s2_admission.md)、[131 C01例外レビュー](131_c01_exception_review.md)、[132 C02出来高入力監査](132_c02_volume_input_audit.md)、[133 C03ドル円外部入力監査](133_c03_fx_input_audit.md)、[134 C04雇用統計カレンダー監査](134_c04_event_calendar_audit.md)、[135 C05 R103設計閉鎖監査](135_c05_r103_design_closure.md)は完了記録として保存済みである。C01は`NO_EXCEPTION_RECOMMENDED`、C02/C03は`NOT_VERIFIED`、C04は`NOT_USABLE_FOR_C04`、C05は既存仕様の`CLOSE_CURRENT_DESIGN`であり、いずれも実データの再開を許可しない。[137の監査](137_current_data_scope_gap_audit.md)で、現有OHLCの範囲と外部入力監査を同じ既定キューに載せていた不整合を確認した。次は[138 現有OHLC候補入場判定](138_current_ohlc_candidate_admission.md)を[128 自律ループ](128_autonomous_orchestration.md)で実行する。これは既存13群との近縁性を照合してOHLC-only候補を最大1件に有限化し、候補がある場合だけ別の登録S0契約を設計する。候補なしは有限探索の結論として保存し、データ意味の不足とは扱わない。実データ・外部時系列・family化・有限枠・grantは作成せず、実データattempt 0件を維持する。
 
 - `batch_id`、対象family/spec、残枠、条件manifest、許可段階、停止理由を一つの正本に持ち、初回・再開・直接呼出しで同じ確認を通す。
 - 許可と数値を保存するだけでなく、コード・入力・仕様hash、期間、枠を実行前に検査する。曖昧な状態は読み込み前に拒否する。

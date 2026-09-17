@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "task_id": "TASK-OHLC-CANDIDATE-ADMISSION-10",
+  "mode": "design",
+  "task_file": "docs/strategy/138_current_ohlc_candidate_admission.md",
+  "scope_file": "docs/strategy/138_current_ohlc_candidate_admission.md",
+  "max_executor_calls": null,
+  "max_planner_calls": null,
+  "max_stalled_cycles": 3,
+  "max_consecutive_errors": 3,
+  "retry_backoff_seconds": 2,
+  "input_profile": "CURRENT_225LABO_OHLC",
+  "queue_lane": "CURRENT_DATA_RESEARCH",
+  "required_artifacts": [
+    "docs/strategy/plans/TASK-OHLC-CANDIDATE-ADMISSION-10/input_admission.json",
+    "docs/strategy/plans/TASK-OHLC-CANDIDATE-ADMISSION-10/candidate_screen.json",
+    "docs/strategy/plans/TASK-OHLC-CANDIDATE-ADMISSION-10/s0_feasibility_contract.json",
+    "docs/strategy/plans/TASK-OHLC-CANDIDATE-ADMISSION-10/verification.md",
+    "docs/strategy/plans/TASK-OHLC-CANDIDATE-ADMISSION-10/review.md"
+  ],
+  "read_only_inputs": [
+    "config/research_execution.json",
+    "docs/strategy/00_current_research_policy.md",
+    "docs/strategy/13_research_governance.md",
+    "docs/strategy/20_225labo_only_scope_and_s2.md",
+    "docs/strategy/120_research_reconciliation_and_finite_search.md",
+    "docs/strategy/121_research_inventory_index.md",
+    "docs/strategy/122_project_policy_review.md",
+    "docs/strategy/123_registered_execution_control.md",
+    "docs/strategy/124_next_research_orchestrator_handoff.md",
+    "docs/strategy/137_current_data_scope_gap_audit.md",
+    "docs/strategy/registry/20260916_review.json"
+  ],
+  "validation_scripts": ["scripts/validate_current_ohlc_candidate_admission.py"],
+  "completion_criteria": {
+    "input_boundary": "現有225Laboの日時・OHLC、版管理済みcalendar、行内適格性だけを将来のS0対象として固定し、volume/VWAP、板・約定順序、外部価格、イベント値を明示的に除外する。今回、Parquet・価格・PnL・OOS・Final Holdoutは読まない。",
+    "finite_candidate_screen": "閉鎖台帳と既存13群を照合し、現有OHLCだけで完結する新規family候補を最大1件だけADMISSIBLE_FOR_S0にするか、NO_ADMISSIBLE_CANDIDATEを記録する。ID変更、近縁救済、閾値の事後変更で候補を作らない。",
+    "s0_contract": "候補がある場合だけ、PnL前の一回限りのS0可用性・warm-up・精度校正の必要入力、合格判定、停止条件を契約化する。実データ実行、manifest、ReviewReceipt、grant、market_execution_enabledの変更を作成しない。",
+    "classification": "候補なしは有限探索の結論、閉鎖familyは再開根拠不足、入力対象外はINPUT_EXPANSIONとして別分類し、経済的REJECT、PnL前情報不足、NOT_EVALUATEDを混同しない。",
+    "verification": "固定validatorと最終監査を通し、config/research_execution.json、registry、既存成果物、engine、OOS・Final Holdout保護を不変のまま保つ。"
+  }
+}

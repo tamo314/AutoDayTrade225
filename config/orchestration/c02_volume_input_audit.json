@@ -9,6 +9,8 @@
   "max_stalled_cycles": 3,
   "max_consecutive_errors": 3,
   "retry_backoff_seconds": 2,
+  "input_profile": "REQUIRES_VOLUME_SEMANTICS",
+  "queue_lane": "INPUT_EXPANSION",
   "required_artifacts": [
     "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/source_contract.md",
     "docs/strategy/plans/TASK-C02-VOLUME-INPUT-AUDIT-06/input_semantics.json",

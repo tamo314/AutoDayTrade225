@@ -45,6 +45,27 @@ PROTECTED = (
 )
 TERMINAL = {"DONE", "FAILED", "INCOMPLETE", "EXHAUSTED", "INTERRUPTED", "BLOCKED"}
 
+# A task's lane is part of its frozen contract.  It prevents an audit for data
+# that is outside the current 225Labo OHLC scope from silently becoming the
+# project's default autonomous task.
+INPUT_PROFILES = frozenset(
+    {
+        "DOCUMENTATION_ONLY",
+        "CURRENT_225LABO_OHLC",
+        "REQUIRES_VOLUME_SEMANTICS",
+        "REQUIRES_EXTERNAL_SERIES",
+        "REQUIRES_EVENT_TIMESTAMP_LEDGER",
+    }
+)
+QUEUE_LANES = frozenset({"GOVERNANCE", "CURRENT_DATA_RESEARCH", "INPUT_EXPANSION"})
+INPUT_EXPANSION_PROFILES = frozenset(
+    {
+        "REQUIRES_VOLUME_SEMANTICS",
+        "REQUIRES_EXTERNAL_SERIES",
+        "REQUIRES_EVENT_TIMESTAMP_LEDGER",
+    }
+)
+
 
 def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -126,6 +147,8 @@ class TaskSpec:
     max_stalled_cycles: int = 3
     max_consecutive_errors: int = 3
     retry_backoff_seconds: int = 2
+    input_profile: str = "DOCUMENTATION_ONLY"
+    queue_lane: str = "GOVERNANCE"
 
     @classmethod
     def load(cls, root: Path, path: Path) -> TaskSpec:
@@ -186,7 +209,37 @@ class TaskSpec:
             for name in spec.validation_scripts:
                 if not name.startswith("scripts/") or Path(name).suffix != ".py":
                     raise BatchError("Validators must be reviewed Python scripts in scripts/")
-        elif spec.completion_criteria or spec.read_only_inputs or spec.validation_scripts:
+            if spec.input_profile not in INPUT_PROFILES:
+                raise BatchError("Unknown input_profile")
+            if spec.queue_lane not in QUEUE_LANES:
+                raise BatchError("Unknown queue_lane")
+            if (
+                spec.input_profile == "CURRENT_225LABO_OHLC"
+                and spec.queue_lane != "CURRENT_DATA_RESEARCH"
+            ):
+                raise BatchError("CURRENT_225LABO_OHLC requires CURRENT_DATA_RESEARCH")
+            if (
+                spec.input_profile in INPUT_EXPANSION_PROFILES
+                and spec.queue_lane != "INPUT_EXPANSION"
+            ):
+                raise BatchError("External or semantic inputs require INPUT_EXPANSION")
+            if (
+                spec.queue_lane == "INPUT_EXPANSION"
+                and spec.input_profile not in INPUT_EXPANSION_PROFILES
+            ):
+                raise BatchError("INPUT_EXPANSION requires an out-of-scope input profile")
+            if (
+                spec.queue_lane == "GOVERNANCE"
+                and spec.input_profile != "DOCUMENTATION_ONLY"
+            ):
+                raise BatchError("GOVERNANCE requires DOCUMENTATION_ONLY")
+        elif (
+            spec.completion_criteria
+            or spec.read_only_inputs
+            or spec.validation_scripts
+            or spec.input_profile != "DOCUMENTATION_ONLY"
+            or spec.queue_lane != "GOVERNANCE"
+        ):
             raise BatchError("Autonomous fields require schema_version=2")
         for name in (spec.task_file, spec.scope_file):
             if not isinstance(name, str) or not within(root, name).is_file():
@@ -209,6 +262,21 @@ class TaskSpec:
         elif not within(root, spec.manifest_file).is_file():
             raise BatchError("Registered manifest is missing")
         return spec
+
+
+def require_explicit_input_expansion(spec: TaskSpec, *, selected_explicitly: bool) -> None:
+    """Keep input-expansion audits out of the default autonomous queue.
+
+    The caller may still inspect such a task with --check/--status, and may
+    dispatch it with an explicit --batch after its scope extension is chosen.
+    """
+
+    if spec.queue_lane == "INPUT_EXPANSION" and not selected_explicitly:
+        raise BatchError(
+            "Input-expansion tasks cannot be the default bounded task. "
+            "Set a CURRENT_225LABO_OHLC task in config.json, or select this "
+            "audit explicitly with --batch after approving its input scope."
+        )
 
 
 class Transport(Protocol):
